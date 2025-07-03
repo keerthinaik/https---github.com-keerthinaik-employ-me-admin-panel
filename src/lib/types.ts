@@ -1,33 +1,80 @@
-export type Role = "Admin" | "Editor" | "Viewer";
 
-export type User = {
+
+export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  avatarUrl: string;
-  role: Role;
-  status: "Active" | "Disabled";
-  createdAt: string;
-};
+}
 
-export type JobPosting = {
-  id: string;
-  title: string;
-  companyName: string;
-  location: string;
-  description: string;
-  tags: string[];
-  status: "Pending" | "Approved" | "Rejected";
-  submittedAt: string;
-};
+export interface LoginSuccessResponse {
+  status: 'success';
+  token: string;
+  data: {
+    user: AuthUser;
+  };
+}
 
-export type Translation = {
-  key: string;
-  value: string;
-};
+export interface LoginErrorResponse {
+  message: string;
+}
 
-export type Locale = {
-  name: string;
-  code: string;
-  translations: Translation[];
-};
+export interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalRecords: number;
+  limit: number;
+}
+
+export interface PaginatedApiResponse<T> {
+  status: string;
+  results: number;
+  total: number;
+  page: number;
+  limit: number;
+  data: T[];
+}
+
+export interface SkillCategory {
+    id: string;
+    _id?: string;
+    name: string;
+    description: string;
+    createdAt: Date;
+    updatedAt: Date;
+    isActive: boolean;
+}
+
+export interface JobCategory {
+    id: string;
+    _id?: string;
+    name: string;
+    slug?: string;
+    description: string;
+    createdAt: Date;
+    updatedAt: Date;
+    isActive: boolean;
+}
+
+export interface Skill {
+    id: string;
+    _id?: string;
+    name: string;
+    description?: string;
+    skillCategory: {
+        id: string;
+        _id?: string;
+        name: string;
+    };
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+
+export interface GetAllParams {
+    page?: number;
+    limit?: number;
+    sort?: string;
+    filters?: Record<string, any>;
+    fields?: string;
+}
