@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -35,6 +36,7 @@ export function SkillCategoryForm({ category }: SkillCategoryFormProps) {
     handleSubmit,
     formState: { errors, isSubmitting },
     control,
+    setError,
   } = useForm<SkillCategoryFormValues>({
     resolver: zodResolver(skillCategorySchema),
     defaultValues: {
@@ -58,11 +60,28 @@ export function SkillCategoryForm({ category }: SkillCategoryFormProps) {
       router.push('/skill-categories');
       router.refresh();
     } catch (error: any) {
-       toast({
-          title: 'An error occurred',
-          description: error.message,
-          variant: 'destructive',
-      });
+        if (error.data && error.data.errors) {
+            const serverErrors = error.data.errors;
+            Object.keys(serverErrors).forEach((key) => {
+                if (Object.prototype.hasOwnProperty.call(skillCategorySchema.shape, key)) {
+                    setError(key as keyof SkillCategoryFormValues, {
+                        type: 'server',
+                        message: serverErrors[key],
+                    });
+                }
+            });
+            toast({
+                title: 'Could not save category',
+                description: error.data.message || 'Please correct the errors and try again.',
+                variant: 'destructive',
+            });
+        } else {
+           toast({
+              title: 'An error occurred',
+              description: error.message,
+              variant: 'destructive',
+          });
+        }
     }
   };
 

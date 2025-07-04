@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -131,6 +132,7 @@ export default function ProfilePage() {
     reset,
     setValue,
     control,
+    setError,
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -276,11 +278,28 @@ export default function ProfilePage() {
         await fetchProfile(); // Re-fetch data to get new photo URL from server
         await refetchUser(); // Re-fetch user in auth context
     } catch (error: any) {
-        toast({
-            title: 'Update Failed',
-            description: error.message || 'An unexpected error occurred.',
-            variant: 'destructive',
-        });
+        if (error.data && error.data.errors) {
+            const serverErrors = error.data.errors;
+            Object.keys(serverErrors).forEach((key) => {
+                if (Object.prototype.hasOwnProperty.call(profileSchema.shape, key)) {
+                    setError(key as keyof ProfileFormValues, {
+                        type: 'server',
+                        message: serverErrors[key],
+                    });
+                }
+            });
+            toast({
+                title: 'Update Failed',
+                description: error.data.message || 'Please correct the errors and try again.',
+                variant: 'destructive',
+            });
+        } else {
+            toast({
+                title: 'Update Failed',
+                description: error.message || 'An unexpected error occurred.',
+                variant: 'destructive',
+            });
+        }
     }
   }
   
