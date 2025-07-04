@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -207,6 +208,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     defaultValues: {
         name: jobseeker?.name || '',
         email: jobseeker?.email || '',
+        password: '',
         phoneNumber: jobseeker?.phoneNumber || '',
         address: jobseeker?.address || '',
         country: jobseeker?.country || '',
@@ -492,7 +494,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
             formData.append(key, String(value));
         }
     });
-
+    
+    // The workaround for experience/education/projects is no longer needed with correct FormData formatting
+    
     try {
         if (jobseeker) {
             await updateJobseeker(jobseeker.id, formData);
@@ -585,10 +589,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     name="businessAssociationId"
                                     render={({ field }) => (
                                         <FormItem><FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '_none_' ? undefined : value)} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="_none_">None</SelectItem>
+                                                    <SelectItem value="">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -600,10 +604,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     name="universityAssociationId"
                                     render={({ field }) => (
                                         <FormItem><FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '_none_' ? undefined : value)} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="_none_">None</SelectItem>
+                                                    <SelectItem value="">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -624,34 +628,33 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                         <CardHeader><CardTitle>Work Experience</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             {expFields.map((field, index) => {
-                                const expErrors = errors.experience?.[index];
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Job Title</Label>
-                                        <Controller name={`experience.${index}.jobTitle`} control={control} render={({field}) => <Input {...field} />} />
-                                        {expErrors?.jobTitle && <p className="text-sm text-destructive">{expErrors.jobTitle.message}</p>}
+                                        <Input {...form.register(`experience.${index}.jobTitle`)} />
+                                        {errors.experience?.[index]?.jobTitle && <p className="text-sm text-destructive">{errors.experience[index]?.jobTitle?.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Company</Label>
-                                        <Controller name={`experience.${index}.companyName`} control={control} render={({field}) => <Input {...field} />} />
-                                        {expErrors?.companyName && <p className="text-sm text-destructive">{expErrors.companyName.message}</p>}
+                                        <Input {...form.register(`experience.${index}.companyName`)} />
+                                        {errors.experience?.[index]?.companyName && <p className="text-sm text-destructive">{errors.experience[index]?.companyName?.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <Controller name={`experience.${index}.startDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
-                                        <Controller name={`experience.${index}.endDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`experience.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`experience.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
                                     </div>
-                                    <Controller control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>} />
+                                    <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>} />
                                     <div className="space-y-2">
                                         <Label>Responsibilities (one per line)</Label>
                                         <Controller name={`experience.${index}.responsibilities`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
-                                        {expErrors?.responsibilities && <p className="text-sm text-destructive">{expErrors.responsibilities.message}</p>}
+                                        {errors.experience?.[index]?.responsibilities && <p className="text-sm text-destructive">{errors.experience[index]?.responsibilities?.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Achievements (one per line)</Label>
-                                         <Controller name={`experience.${index}.achievements`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
-                                        {expErrors?.achievements && <p className="text-sm text-destructive">{expErrors.achievements.message}</p>}
+                                        <Controller name={`experience.${index}.achievements`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
+                                        {errors.experience?.[index]?.achievements && <p className="text-sm text-destructive">{errors.experience[index]?.achievements?.message}</p>}
                                     </div>
                                 </div>
                             )})}
@@ -662,34 +665,33 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                         <CardHeader><CardTitle>Education</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             {eduFields.map((field, index) => {
-                                const eduErrors = errors.education?.[index];
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Institution</Label>
-                                        <Controller name={`education.${index}.institution`} control={control} render={({field}) => <Input {...field} />} />
-                                        {eduErrors?.institution && <p className="text-sm text-destructive">{eduErrors.institution.message}</p>}
+                                        <Input {...form.register(`education.${index}.institution`)} />
+                                        {errors.education?.[index]?.institution && <p className="text-sm text-destructive">{errors.education[index]?.institution?.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label>Degree</Label>
-                                            <Controller name={`education.${index}.degree`} control={control} render={({field}) => <Input {...field} />} />
-                                            {eduErrors?.degree && <p className="text-sm text-destructive">{eduErrors.degree.message}</p>}
+                                            <Input {...form.register(`education.${index}.degree`)} />
+                                            {errors.education?.[index]?.degree && <p className="text-sm text-destructive">{errors.education[index]?.degree?.message}</p>}
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Field of Study</Label>
-                                            <Controller name={`education.${index}.fieldOfStudy`} control={control} render={({field}) => <Input {...field} />} />
-                                            {eduErrors?.fieldOfStudy && <p className="text-sm text-destructive">{eduErrors.fieldOfStudy.message}</p>}
+                                            <Input {...form.register(`education.${index}.fieldOfStudy`)} />
+                                            {errors.education?.[index]?.fieldOfStudy && <p className="text-sm text-destructive">{errors.education[index]?.fieldOfStudy?.message}</p>}
                                         </div>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <Controller name={`education.${index}.startDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
-                                        <Controller name={`education.${index}.endDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`education.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
                                         <div className="space-y-2">
                                             <Label>CGPA/Grade</Label>
-                                            <Controller name={`education.${index}.cgpa`} control={control} render={({field}) => <Input {...field} />} />
-                                            {eduErrors?.cgpa && <p className="text-sm text-destructive">{eduErrors.cgpa.message}</p>}
+                                            <Input {...form.register(`education.${index}.cgpa`)} />
+                                            {errors.education?.[index]?.cgpa && <p className="text-sm text-destructive">{errors.education[index]?.cgpa?.message}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -779,33 +781,44 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Online Presence</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..."/></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..."/></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://..."/></FormControl><FormMessage /></FormItem>}/>
+                             <div className="space-y-2">
+                                <Label>LinkedIn Profile</Label>
+                                <Input {...form.register('linkedInProfile')} placeholder="https://linkedin.com/in/..."/>
+                                {errors.linkedInProfile && <p className="text-sm text-destructive">{errors.linkedInProfile.message}</p>}
+                            </div>
+                             <div className="space-y-2">
+                                <Label>GitHub Profile</Label>
+                                <Input {...form.register('githubProfile')} placeholder="https://github.com/..."/>
+                                {errors.githubProfile && <p className="text-sm text-destructive">{errors.githubProfile.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Portfolio Website</Label>
+                                <Input {...form.register('portfolio')} placeholder="https://..."/>
+                                {errors.portfolio && <p className="text-sm text-destructive">{errors.portfolio.message}</p>}
+                            </div>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             {projFields.map((field, index) => {
-                                const projErrors = errors.projects?.[index];
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Project Title</Label>
-                                        <Controller name={`projects.${index}.title`} control={control} render={({field}) => <Input {...field} />} />
-                                        {projErrors?.title && <p className="text-sm text-destructive">{projErrors.title.message}</p>}
+                                        <Input {...form.register(`projects.${index}.title`)} />
+                                        {errors.projects?.[index]?.title && <p className="text-sm text-destructive">{errors.projects[index]?.title?.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Project URL</Label>
-                                        <Controller name={`projects.${index}.url`} control={control} render={({field}) => <Input {...field} />} />
-                                        {projErrors?.url && <p className="text-sm text-destructive">{projErrors.url.message}</p>}
+                                        <Input {...form.register(`projects.${index}.url`)} />
+                                        {errors.projects?.[index]?.url && <p className="text-sm text-destructive">{errors.projects[index]?.url?.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Description</Label>
-                                        <Controller name={`projects.${index}.description`} control={control} render={({field}) => <Textarea {...field} />} />
-                                        {projErrors?.description && <p className="text-sm text-destructive">{projErrors.description.message}</p>}
+                                        <Textarea {...form.register(`projects.${index}.description`)} />
+                                        {errors.projects?.[index]?.description && <p className="text-sm text-destructive">{errors.projects[index]?.description?.message}</p>}
                                     </div>
                                 </div>
                             )})}
