@@ -336,7 +336,7 @@ export default function JobseekersPage() {
                                     )}
                                      {columnVisibility.isVerified && (
                                         <TableCell>
-                                            {js.isVerified ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground" />}
+                                            {js.isVerified ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-destructive" />}
                                         </TableCell>
                                     )}
                                     {columnVisibility.createdAt && <TableCell>{format(new Date(js.createdAt), 'MMM d, yyyy')}</TableCell>}

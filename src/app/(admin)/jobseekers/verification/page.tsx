@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, type Key } from 'react';
@@ -313,7 +314,7 @@ export default function JobseekersVerificationPage() {
                                     )}
                                      {columnVisibility.verified && (
                                         <TableCell>
-                                            {js.isVerified ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground" />}
+                                            {js.isVerified ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-destructive" />}
                                         </TableCell>
                                     )}
                                     {columnVisibility.joinedOn && <TableCell>{format(new Date(js.createdAt), 'MMM d, yyyy')}</TableCell>}

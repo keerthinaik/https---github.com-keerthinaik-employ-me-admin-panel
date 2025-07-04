@@ -33,7 +33,9 @@ import {
     Columns,
     ChevronLeft,
     ChevronRight,
-    Building
+    Building,
+    CheckCircle,
+    XCircle
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from '@/components/ui/input';
@@ -317,9 +319,11 @@ export default function EmployersPage() {
                                      {columnVisibility.location && <TableCell>{employer.city && employer.country ? `${employer.city}, ${employer.country}` : 'N/A'}</TableCell>}
                                      {columnVisibility.verification && (
                                         <TableCell>
-                                            <Badge variant={employer.isVerified ? 'default' : 'secondary'} className={employer.isVerified ? 'bg-green-500 hover:bg-green-600' : ''}>
-                                                {employer.isVerified ? 'Verified' : 'Not Verified'}
-                                            </Badge>
+                                            {employer.isVerified ? (
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            ) : (
+                                                <XCircle className="h-5 w-5 text-destructive" />
+                                            )}
                                         </TableCell>
                                     )}
                                      {columnVisibility.status && (
