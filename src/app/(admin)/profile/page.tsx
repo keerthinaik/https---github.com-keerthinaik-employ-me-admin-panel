@@ -2,7 +2,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -126,6 +126,7 @@ export default function ProfilePage() {
   const [completedCrop, setCompletedCrop] = useState<Crop>()
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [debugImageUrl, setDebugImageUrl] = useState('');
   
   useEffect(() => {
     async function fetchProfile() {
@@ -144,7 +145,9 @@ export default function ProfilePage() {
           zipCode: userData.zipCode || '',
         });
         if (userData.profilePhoto) {
-          setCroppedImageUrl(`${API_BASE_URL}/${userData.profilePhoto}`);
+          const fullUrl = `${API_BASE_URL}/${userData.profilePhoto}`;
+          setCroppedImageUrl(fullUrl);
+          setDebugImageUrl(fullUrl);
         }
       } catch (error: any) {
         toast({ title: "Failed to load profile", description: error.message, variant: "destructive" });
@@ -283,6 +286,12 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
               </div>
             </div>
+            {debugImageUrl && (
+                <div className="space-y-2 pt-4">
+                    <Label>Debug: Full Photo Path</Label>
+                    <Input readOnly value={debugImageUrl} className="text-xs text-muted-foreground" />
+                </div>
+            )}
 
             <Separator />
 
