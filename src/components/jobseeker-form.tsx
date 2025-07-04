@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -594,14 +593,17 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                            <Select
+                                                onValueChange={(value) => field.onChange(value === "---none---" ? "" : value)}
+                                                value={field.value || ""}
+                                            >
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="None" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
+                                                    <SelectItem value="---none---">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -615,14 +617,17 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                            <Select
+                                                onValueChange={(value) => field.onChange(value === "---none---" ? "" : value)}
+                                                value={field.value || ""}
+                                            >
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="None" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
+                                                    <SelectItem value="---none---">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -809,9 +814,21 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField name={`projects.${index}.title`} control={control} render={({field}) => <FormItem><FormLabel>Project Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <FormField name={`projects.${index}.url`} control={control} render={({field}) => <FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <FormField name={`projects.${index}.description`} control={control} render={({field}) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    <div className="space-y-2">
+                                        <Label>Project Title</Label>
+                                        <Input {...register(`projects.${index}.title`)} />
+                                        {errors.projects?.[index]?.title && <p className="text-sm text-destructive">{errors.projects[index]?.title?.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Project URL</Label>
+                                        <Input {...register(`projects.${index}.url`)} />
+                                        {errors.projects?.[index]?.url && <p className="text-sm text-destructive">{errors.projects[index]?.url?.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Description</Label>
+                                        <Textarea {...register(`projects.${index}.description`)} />
+                                        {errors.projects?.[index]?.description && <p className="text-sm text-destructive">{errors.projects[index]?.description?.message}</p>}
+                                    </div>
                                 </div>
                             )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendProj({ title: '', url: '', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
@@ -961,4 +978,3 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
-
