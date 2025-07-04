@@ -146,6 +146,23 @@ type JobseekerFormProps = {
     jobseeker?: Jobseeker;
 }
 
+const ArrayTextarea = ({ value, onChange, ...props }: { value: string[], onChange: (value: string[]) => void } & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange'>) => {
+    const [text, setText] = React.useState(Array.isArray(value) ? value.join('\n') : '');
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newText = e.target.value;
+        setText(newText);
+        onChange(newText.split('\n').filter(line => line.trim() !== ''));
+    };
+    
+    React.useEffect(() => {
+        setText(Array.isArray(value) ? value.join('\n') : '');
+    }, [value]);
+
+    return <Textarea {...props} value={text} onChange={handleChange} />;
+};
+
+
 // Function to center the crop
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
   return centerCrop(
@@ -221,7 +238,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, register, getFieldState } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
@@ -440,7 +457,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     Object.entries(data).forEach(([key, value]) => {
         if (value === null || value === undefined || value === '') return;
 
-        if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
+        if (['experience', 'education', 'projects'].includes(key)) {
+            // Stringify arrays of objects for backend parsing
+            formData.append(key, JSON.stringify(value));
+        } else if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
             formData.append(key, value);
         } else if (key === 'resume' && value instanceof FileList) {
              if (value.length > 0) formData.append(key, value[0]);
@@ -449,9 +469,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 formData.append('certifications', value[i]);
             }
         } else if (key === 'skills' && Array.isArray(value)) {
-            value.forEach(v => formData.append('skills[]', v));
-        } else if (['experience', 'education', 'projects'].includes(key)) {
-            formData.append(key, JSON.stringify(value));
+            value.forEach(v => formData.append('skills', v));
         } else if (value instanceof Date) {
             formData.append(key, value.toISOString());
         } else {
@@ -477,7 +495,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
              let firstErrorField: keyof JobseekerFormValues | null = null;
             Object.keys(serverErrors).forEach((key) => {
                  if (!firstErrorField) {
-                    firstErrorField = key as keyof JobseekerFormValues;
+                    firstErrorField = key.split('.')[0] as keyof JobseekerFormValues;
                 }
                 if (jobseekerSchema.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
                     setError(key as keyof JobseekerFormValues, {
@@ -574,185 +592,103 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Work Experience</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            {expFields.map((field, index) => (
+                            {expFields.map((field, index) => {
+                                const expErrors = errors.experience?.[index];
+                                return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField
-                                        control={control}
-                                        name={`experience.${index}.jobTitle`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Job Title</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={control}
-                                        name={`experience.${index}.companyName`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Company</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="space-y-2">
+                                        <Label>Job Title</Label>
+                                        <Input {...register(`experience.${index}.jobTitle`)} />
+                                        {expErrors?.jobTitle && <p className="text-sm text-destructive">{expErrors.jobTitle.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Company</Label>
+                                        <Input {...register(`experience.${index}.companyName`)} />
+                                        {expErrors?.companyName && <p className="text-sm text-destructive">{expErrors.companyName.message}</p>}
+                                    </div>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={control}
+                                        <Controller
                                             name={`experience.${index}.startDate`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col">
-                                                    <FormLabel>Start Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}>
-                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                    {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                                                    </Popover>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
                                             control={control}
+                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{expErrors?.startDate && <p className="text-sm text-destructive">{expErrors.startDate.message}</p>}</FormItem>)}
+                                        />
+                                        <Controller
                                             name={`experience.${index}.endDate`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col">
-                                                    <FormLabel>End Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}>
-                                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                    {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-                                                    </Popover>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
+                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{expErrors?.endDate && <p className="text-sm text-destructive">{expErrors.endDate.message}</p>}</FormItem>)}
                                         />
                                     </div>
-                                    <FormField
-                                        control={control}
-                                        name={`experience.${index}.isCurrent`}
-                                        render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>}
-                                    />
-                                    <FormField
-                                        control={control}
-                                        name={`experience.${index}.responsibilities`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Responsibilities (one per line)</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                {...field}
-                                                value={Array.isArray(field.value) ? field.value.join('\n') : ''}
-                                                onChange={(e) => field.onChange(e.target.value.split('\n'))}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={control}
-                                        name={`experience.${index}.achievements`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Achievements (one per line)</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                {...field}
-                                                value={Array.isArray(field.value) ? field.value.join('\n') : ''}
-                                                onChange={(e) => field.onChange(e.target.value.split('\n'))}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox id={`experience.${index}.isCurrent`} {...register(`experience.${index}.isCurrent`)} />
+                                        <Label htmlFor={`experience.${index}.isCurrent`} className="!mt-0">I currently work here</Label>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Responsibilities (one per line)</Label>
+                                        <Controller
+                                            name={`experience.${index}.responsibilities`}
+                                            control={control}
+                                            render={({ field }) => <ArrayTextarea {...field} />}
+                                        />
+                                        {expErrors?.responsibilities && <p className="text-sm text-destructive">{expErrors.responsibilities.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Achievements (one per line)</Label>
+                                        <Controller
+                                            name={`experience.${index}.achievements`}
+                                            control={control}
+                                            render={({ field }) => <ArrayTextarea {...field} />}
+                                        />
+                                        {expErrors?.achievements && <p className="text-sm text-destructive">{expErrors.achievements.message}</p>}
+                                    </div>
                                 </div>
-                            ))}
+                            )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendExp({ jobTitle: '', companyName: '', startDate: new Date(), isCurrent: false, responsibilities: [], achievements: [] })}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader><CardTitle>Education</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            {eduFields.map((field, index) => (
-                            <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                            {eduFields.map((field, index) => {
+                                const eduErrors = errors.education?.[index];
+                                return (
+                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField
-                                        control={control}
-                                        name={`education.${index}.institution`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Institution</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="space-y-2">
+                                        <Label>Institution</Label>
+                                        <Input {...register(`education.${index}.institution`)} />
+                                        {eduErrors?.institution && <p className="text-sm text-destructive">{eduErrors.institution.message}</p>}
+                                    </div>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={control}
-                                            name={`education.${index}.degree`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Degree</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={control}
-                                            name={`education.${index}.fieldOfStudy`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Field of Study</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                        <div className="space-y-2">
+                                            <Label>Degree</Label>
+                                            <Input {...register(`education.${index}.degree`)} />
+                                            {eduErrors?.degree && <p className="text-sm text-destructive">{eduErrors.degree.message}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Field of Study</Label>
+                                            <Input {...register(`education.${index}.fieldOfStudy`)} />
+                                            {eduErrors?.fieldOfStudy && <p className="text-sm text-destructive">{eduErrors.fieldOfStudy.message}</p>}
+                                        </div>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <FormField
-                                            control={control}
+                                        <Controller
                                             name={`education.${index}.startDate`}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
-                                        />
-                                        <FormField
                                             control={control}
+                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{eduErrors?.startDate && <p className="text-sm text-destructive">{eduErrors.startDate.message}</p>}</FormItem>)}
+                                        />
+                                        <Controller
                                             name={`education.${index}.endDate`}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
-                                        />
-                                        <FormField
                                             control={control}
-                                            name={`education.${index}.cgpa`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>CGPA/Grade</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
+                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{eduErrors?.endDate && <p className="text-sm text-destructive">{eduErrors.endDate.message}</p>}</FormItem>)}
                                         />
+                                        <div className="space-y-2">
+                                            <Label>CGPA/Grade</Label>
+                                            <Input {...register(`education.${index}.cgpa`)} />
+                                            {eduErrors?.cgpa && <p className="text-sm text-destructive">{eduErrors.cgpa.message}</p>}
+                                        </div>
                                     </div>
-                            </div>
-                            ))}
+                                </div>
+                            )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendEdu({ institution: '', degree: '', fieldOfStudy: '', startDate: new Date(), endDate: new Date(), cgpa: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Education</Button>
                         </CardContent>
                     </Card>
@@ -846,32 +782,28 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            {projFields.map((field, index) => (
-                            <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
-                                <FormField
-                                    control={control}
-                                    name={`projects.${index}.title`}
-                                    render={({ field }) => (
-                                        <FormItem><FormLabel>Project Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={control}
-                                    name={`projects.${index}.url`}
-                                    render={({ field }) => (
-                                        <FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={control}
-                                    name={`projects.${index}.description`}
-                                    render={({ field }) => (
-                                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                    )}
-                                />
-                            </div>
-                            ))}
+                            {projFields.map((field, index) => {
+                                const projErrors = errors.projects?.[index];
+                                return (
+                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
+                                    <div className="space-y-2">
+                                        <Label>Project Title</Label>
+                                        <Input {...register(`projects.${index}.title`)} />
+                                        {projErrors?.title && <p className="text-sm text-destructive">{projErrors.title.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Project URL</Label>
+                                        <Input {...register(`projects.${index}.url`)} />
+                                        {projErrors?.url && <p className="text-sm text-destructive">{projErrors.url.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Description</Label>
+                                        <Textarea {...register(`projects.${index}.description`)} />
+                                        {projErrors?.description && <p className="text-sm text-destructive">{projErrors.description.message}</p>}
+                                    </div>
+                                </div>
+                            )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendProj({ title: '', url: '', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
                         </CardContent>
                     </Card>
