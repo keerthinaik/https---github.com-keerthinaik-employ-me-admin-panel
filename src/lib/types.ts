@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter" | "SubAdmin";
 }
 
 export interface LoginSuccessResponse {
@@ -21,7 +22,7 @@ export interface ProfileUser {
   email: string;
   isVerified: boolean;
   isActive: boolean;
-  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter";
+  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter" | "SubAdmin";
   permissions: string[];
   createdAt: string;
   updatedAt: string;
@@ -33,6 +34,7 @@ export interface ProfileUser {
   state?: string;
   city?: string;
   zipCode?: string;
+  headline?: string;
 }
 
 export interface GetMeResponse {

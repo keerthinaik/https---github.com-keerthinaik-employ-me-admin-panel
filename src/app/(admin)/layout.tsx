@@ -1,10 +1,11 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Globe, LogOut, Settings, User } from "lucide-react";
+import { Globe, LogOut, Settings, User, Shield, ShieldCheck, Contact } from "lucide-react";
 import { MainNav } from "@/components/main-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
@@ -12,6 +13,23 @@ import { useAuth } from "@/context/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+
+const getRoleBadge = (role?: 'Admin' | 'SubAdmin' | 'Recruiter' | 'Member') => {
+    if (!role) return null;
+    switch (role) {
+        case 'Admin':
+            return <Badge className="bg-primary hover:bg-primary/90 text-xs"><Shield className="mr-1 h-3 w-3" />Admin</Badge>;
+        case 'SubAdmin':
+            return <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-xs"><ShieldCheck className="mr-1 h-3 w-3" />Sub-Admin</Badge>;
+        case 'Recruiter':
+            return <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs"><Contact className="mr-1 h-3 w-3" />Recruiter</Badge>;
+        case 'Member':
+            return <Badge variant="secondary" className="text-xs">Member</Badge>;
+        default:
+            return <Badge variant="secondary" className="text-xs">{role}</Badge>;
+    }
+};
 
 export default function AdminLayout({
   children,
@@ -65,7 +83,10 @@ export default function AdminLayout({
                             <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'AD'}</AvatarFallback>
                         </Avatar>
                         <div className="truncate text-left">
-                            <p className="font-semibold text-sm text-foreground">{user?.name || 'Admin User'}</p>
+                           <div className="flex items-center gap-2">
+                                <p className="font-semibold text-sm text-foreground truncate">{user?.name || 'Admin User'}</p>
+                                {getRoleBadge(user?.userType as any)}
+                            </div>
                             <p className="text-xs text-muted-foreground">{user?.email || 'admin@talent.hub'}</p>
                         </div>
                     </Button>

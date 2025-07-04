@@ -21,6 +21,8 @@ import { getMe, updateAdminUser } from '@/services/api'
 import type { ProfileUser } from '@/lib/types';
 import { useAuth } from '@/context/auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Contact, Shield, ShieldCheck } from 'lucide-react';
 
 
 const profileSchema = z.object({
@@ -53,6 +55,22 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
     mediaHeight
   );
 }
+
+const getRoleBadge = (role?: 'Admin' | 'SubAdmin' | 'Recruiter' | 'Member') => {
+    if (!role) return null;
+    switch (role) {
+        case 'Admin':
+            return <Badge className="bg-primary hover:bg-primary/90 text-xs"><Shield className="mr-1 h-3 w-3" />Admin</Badge>;
+        case 'SubAdmin':
+            return <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-xs"><ShieldCheck className="mr-1 h-3 w-3" />Sub-Admin</Badge>;
+        case 'Recruiter':
+            return <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs"><Contact className="mr-1 h-3 w-3" />Recruiter</Badge>;
+        case 'Member':
+            return <Badge variant="secondary" className="text-xs">Member</Badge>;
+        default:
+            return <Badge variant="secondary" className="text-xs">{role}</Badge>;
+    }
+};
 
 function ProfilePageSkeleton() {
     return (
@@ -293,7 +311,10 @@ export default function ProfilePage() {
             <Separator />
 
             <div>
-              <h3 className="text-lg font-medium">Contact Information</h3>
+                <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-medium">Contact Information</h3>
+                    {getRoleBadge(profileData?.userType as any)}
+                </div>
               <p className="text-sm text-muted-foreground">How we can reach you.</p>
             </div>
             
