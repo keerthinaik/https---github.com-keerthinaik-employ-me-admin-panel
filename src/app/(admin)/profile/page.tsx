@@ -7,6 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import 'react-phone-number-input/style.css'
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
 
 import { PageHeader } from '@/components/page-header'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +30,9 @@ import { Contact, Shield, ShieldCheck } from 'lucide-react';
 const profileSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().refine(value => value ? isValidPhoneNumber(value) : true, {
+    message: "Invalid phone number",
+  }).optional(),
   avatar: z.any().optional(),
   address: z.string().optional(),
   country: z.string().optional(),
@@ -130,6 +134,7 @@ export default function ProfilePage() {
     formState: { errors, isSubmitting },
     reset,
     setValue,
+    control,
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -332,7 +337,20 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input id="phoneNumber" {...register('phoneNumber')} />
+              <Controller
+                name="phoneNumber"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    id="phoneNumber"
+                    international
+                    defaultCountry="US"
+                    className="w-full"
+                    {...field}
+                  />
+                )}
+              />
+              {errors.phoneNumber && <p className="text-sm text-destructive">{errors.phoneNumber.message}</p>}
             </div>
 
             <Separator />
