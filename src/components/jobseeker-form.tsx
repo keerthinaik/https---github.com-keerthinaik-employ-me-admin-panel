@@ -26,7 +26,7 @@ import type { Skill, SkillCategory, Jobseeker } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 
@@ -105,7 +105,7 @@ const jobseekerSchema = z.object({
 
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
 
-const fieldToTabMap: Record<string, string> = {
+const fieldToTabMap: Record<keyof JobseekerFormValues, string> = {
   name: 'profile',
   email: 'profile',
   phoneNumber: 'profile',
@@ -122,6 +122,21 @@ const fieldToTabMap: Record<string, string> = {
   resume: 'account',
   certifications: 'account',
   password: 'account',
+  isVerified: 'account',
+  isActive: 'account',
+  businessAssociationId: 'profile',
+  universityAssociationId: 'profile',
+  address: 'profile',
+  country: 'profile',
+  state: 'profile',
+  city: 'profile',
+  zipCode: 'profile',
+  summary: 'profile',
+  about: 'profile',
+  dateOfBirth: 'profile',
+  gender: 'profile',
+  passportNumber: 'profile',
+  fieldOfStudy: 'profile',
 };
 
 
@@ -152,6 +167,22 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [activeTab, setActiveTab] = React.useState('profile');
   const TABS = ['profile', 'career', 'skills', 'portfolio', 'account'];
   
+  // State for profile photo cropping
+  const [imgSrc, setImgSrc] = React.useState('')
+  const imgRef = React.useRef<HTMLImageElement>(null)
+  const [crop, setCrop] = React.useState<Crop>()
+  const [completedCrop, setCompletedCrop] = React.useState<Crop>()
+  const [croppedImageUrl, setCroppedImageUrl] = React.useState<string>('')
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+
+  // State for banner image cropping
+  const [bannerImgSrc, setBannerImgSrc] = React.useState('')
+  const bannerImgRef = React.useRef<HTMLImageElement>(null)
+  const [bannerCrop, setBannerCrop] = React.useState<Crop>()
+  const [completedBannerCrop, setCompletedBannerCrop] = React.useState<Crop>()
+  const [croppedBannerImageUrl, setCroppedBannerImageUrl] = React.useState<string>('')
+  const [bannerDialogOpen, setBannerDialogOpen] = React.useState(false)
+
   const form = useForm<JobseekerFormValues>({
     resolver: zodResolver(jobseekerSchema),
     defaultValues: {
@@ -188,23 +219,20 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
   const { fields: projFields, append: appendProj, remove: removeProj } = useFieldArray({ control, name: "projects" });
   
-  const [imgSrc, setImgSrc] = React.useState('')
-  const imgRef = React.useRef<HTMLImageElement>(null)
-  const [crop, setCrop] = React.useState<Crop>()
-  const [completedCrop, setCompletedCrop] = React.useState<Crop>()
-  const [croppedImageUrl, setCroppedImageUrl] = React.useState<string>('')
-  const [dialogOpen, setDialogOpen] = React.useState(false)
-
   React.useEffect(() => {
     if (jobseeker?.profilePhoto) {
         const fullUrl = `${API_BASE_URL}${jobseeker.profilePhoto.startsWith('/') ? '' : '/'}${jobseeker.profilePhoto}`;
         setCroppedImageUrl(fullUrl);
+    }
+    if (jobseeker?.bannerImage) {
+        const fullUrl = `${API_BASE_URL}${jobseeker.bannerImage.startsWith('/') ? '' : '/'}${jobseeker.bannerImage}`;
+        setCroppedBannerImageUrl(fullUrl);
     }
   }, [jobseeker]);
 
@@ -215,6 +243,16 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''))
       reader.readAsDataURL(file)
       setDialogOpen(true)
+    }
+  }
+  
+  const onBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader()
+      reader.addEventListener('load', () => setBannerImgSrc(reader.result?.toString() || ''))
+      reader.readAsDataURL(file)
+      setBannerDialogOpen(true)
     }
   }
 
@@ -231,6 +269,18 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       return;
     }
     setCrop(centerAspectCrop(width, height, 1));
+  }
+  
+  function onBannerImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { width } = e.currentTarget;
+    if (width < 1000) {
+      toast({
+        title: 'Image May Be Too Small',
+        description: 'Banner image should be at least 1000px wide for best quality.',
+        variant: 'default',
+      });
+    }
+    setBannerCrop(centerAspectCrop(width, e.currentTarget.height, 4 / 1));
   }
 
   const handleCropImage = async () => {
@@ -274,6 +324,50 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         setCroppedImageUrl(croppedUrl);
         form.setValue('profilePhoto', new File([blob], 'profilePhoto.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
         setDialogOpen(false);
+    }, 'image/jpeg');
+  }
+  
+  const handleCropBannerImage = async () => {
+    const image = bannerImgRef.current
+    if (!image || !completedBannerCrop || !completedBannerCrop.width || !completedBannerCrop.height) {
+      toast({ title: "Crop Error", description: "Could not crop banner image. Please try again.", variant: "destructive" });
+      return;
+    }
+    
+    const canvas = document.createElement('canvas')
+    const scaleX = image.naturalWidth / image.width
+    const scaleY = image.naturalHeight / image.height
+    
+    canvas.width = completedBannerCrop.width
+    canvas.height = completedBannerCrop.height
+    
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      toast({ title: "Crop Error", description: "Could not process banner image.", variant: "destructive" });
+      return;
+    }
+
+    ctx.drawImage(
+      image,
+      completedBannerCrop.x * scaleX,
+      completedBannerCrop.y * scaleY,
+      completedBannerCrop.width * scaleX,
+      completedBannerCrop.height * scaleY,
+      0,
+      0,
+      completedBannerCrop.width,
+      completedBannerCrop.height
+    );
+
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            toast({ title: "Crop Error", description: "Failed to create banner image blob.", variant: "destructive" });
+            return;
+        }
+        const croppedUrl = URL.createObjectURL(blob);
+        setCroppedBannerImageUrl(croppedUrl);
+        form.setValue('bannerImage', new File([blob], 'bannerImage.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
+        setBannerDialogOpen(false);
     }, 'image/jpeg');
   }
 
@@ -342,8 +436,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     Object.entries(data).forEach(([key, value]) => {
         if (value === null || value === undefined || value === '') return;
 
-        if (['profilePhoto', 'bannerImage', 'resume'].includes(key) && value instanceof FileList) {
-            if (value.length > 0) formData.append(key, value[0]);
+        if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
+            formData.append(key, value);
+        } else if (key === 'resume' && value instanceof FileList) {
+             if (value.length > 0) formData.append(key, value[0]);
         } else if (key === 'certifications' && value instanceof FileList) {
             for (let i = 0; i < value.length; i++) {
                 formData.append('certifications', value[i]);
@@ -379,7 +475,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                  if (!firstErrorField) {
                     firstErrorField = key as keyof JobseekerFormValues;
                 }
-                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
+                if (jobseekerSchema.shape[key as keyof typeof jobseekerSchema.shape]) {
                     setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
@@ -451,14 +547,14 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     control={control}
                                     name="businessAssociationId"
                                     render={({ field }) => (
-                                        <FormItem><FormLabel>Business Association</FormLabel><Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a business" /></SelectTrigger></FormControl><SelectContent><SelectItem value="--none--">None</SelectItem>{businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Business Association</FormLabel><Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || '--none--'}><FormControl><SelectTrigger><SelectValue placeholder="Select a business" /></SelectTrigger></FormControl><SelectContent><SelectItem value="--none--">None</SelectItem>{businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                     )}
                                 />
                                 <FormField
                                     control={control}
                                     name="universityAssociationId"
                                     render={({ field }) => (
-                                        <FormItem><FormLabel>University Association</FormLabel><Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a university" /></SelectTrigger></FormControl><SelectContent><SelectItem value="--none--">None</SelectItem>{universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>University Association</FormLabel><Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || '--none--'}><FormControl><SelectTrigger><SelectValue placeholder="Select a university" /></SelectTrigger></FormControl><SelectContent><SelectItem value="--none--">None</SelectItem>{universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                                     )}
                                 />
                             </div>
@@ -645,7 +741,34 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 </FormItem>
                                 )}
                             />
-                            <FormField control={control} name="bannerImage" render={({field}) => <FormItem><FormLabel>Banner Image</FormLabel><FormControl><Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField
+                                control={control}
+                                name="bannerImage"
+                                render={() => (
+                                <FormItem>
+                                    <FormLabel>Banner Image</FormLabel>
+                                    <FormControl>
+                                        <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
+                                            {croppedBannerImageUrl ? (
+                                                <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">Banner Preview (4:1)</span>
+                                            )}
+                                        </div>
+                                    </FormControl>
+                                    <FormControl>
+                                        <Input
+                                            id="bannerImage-input"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={onBannerFileChange}
+                                        />
+                                    </FormControl>
+                                    <p className="text-xs text-muted-foreground">Recommended size: 1128x282px.</p>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
                             <FormField control={control} name="resume" render={({field}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
                             <FormField control={control} name="certifications" render={({field}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
@@ -701,7 +824,34 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 <Button onClick={handleCropImage}>Crop & Save</Button>
             </DialogFooter>
         </DialogContent>
-      </Dialog>
+    </Dialog>
+    <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
+        <DialogContent className="max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>Crop your banner image</DialogTitle>
+            </DialogHeader>
+            {bannerImgSrc && (
+                <ReactCrop
+                    crop={bannerCrop}
+                    onChange={(_, percentCrop) => setBannerCrop(percentCrop)}
+                    onComplete={(c) => setCompletedBannerCrop(c)}
+                    aspect={4 / 1}
+                    minWidth={400}
+                >
+                    <img
+                        ref={bannerImgRef}
+                        alt="Crop me"
+                        src={bannerImgSrc}
+                        onLoad={onBannerImageLoad}
+                    />
+                </ReactCrop>
+            )}
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setBannerDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCropBannerImage}>Crop & Save Banner</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </>
   );
 }
