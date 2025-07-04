@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import { Checkbox } from './ui/checkbox';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -475,7 +476,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                  if (!firstErrorField) {
                     firstErrorField = key as keyof JobseekerFormValues;
                 }
-                if (jobseekerSchema.shape[key as keyof typeof jobseekerSchema.shape]) {
+                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
                     setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
