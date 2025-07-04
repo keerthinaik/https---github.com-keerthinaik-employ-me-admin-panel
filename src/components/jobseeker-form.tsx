@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -156,7 +155,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'social', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'social', 'portfolio', 'account'];
   
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -413,36 +412,33 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const onSubmit = async (data: JobseekerFormValues) => {
     const formData = new FormData();
+    
+    // This will hold all non-file data
+    const jsonData: Record<string, any> = {};
 
-    Object.entries(data).forEach(([key, value]) => {
-      if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
-        return;
-      }
-      
-      const keyString = key as keyof JobseekerFormValues;
-      
-      if (Array.isArray(value)) {
-        if (keyString === 'skills') {
-            (value as string[]).forEach(item => formData.append('skills', item));
-        } else if (['experience', 'education', 'projects'].includes(keyString)) {
-            (value as (Experience[] | Education[] | Project[])).forEach((item) => {
-                formData.append(keyString, JSON.stringify(item));
-            });
+    for (const [key, value] of Object.entries(data)) {
+        if (value === undefined || value === null) continue;
+        
+        const keyString = key as keyof JobseekerFormValues;
+
+        if (keyString === 'profilePhoto' && value instanceof File) {
+            formData.append('profilePhoto', value);
+        } else if (keyString === 'bannerImage' && value instanceof File) {
+            formData.append('bannerImage', value);
+        } else if (keyString === 'resume' && value instanceof FileList && value.length > 0) {
+            formData.append('resume', value[0]);
+        } else if (keyString === 'certifications' && value instanceof FileList) {
+            for (let i = 0; i < value.length; i++) {
+                formData.append('certifications', value[i]);
+            }
+        } else if (typeof value !== 'object' || value instanceof Date || Array.isArray(value)) {
+            // Add all other data to the jsonData object
+            jsonData[keyString] = value;
         }
-      } else if (value instanceof File) {
-        formData.append(key, value);
-      } else if (value instanceof FileList) {
-        for (let i = 0; i < value.length; i++) {
-          formData.append(key, value[i]);
-        }
-      } else if (value instanceof Date) {
-        formData.append(key, value.toISOString());
-      } else if (typeof value === 'boolean') {
-        formData.append(key, String(value));
-      } else {
-        formData.append(key, value as string);
-      }
-    });
+    }
+    
+    // Stringify the entire data payload and append it
+    formData.append('jsonData', JSON.stringify(jsonData));
 
     try {
         if (jobseeker) {
@@ -459,8 +455,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     } catch (error: any) {
         if (error.data && error.data.errors) {
             const serverErrors = error.data.errors;
-            let firstErrorField: keyof JobseekerFormValues | null = null;
-            
+            let firstErrorField: string | null = null;
+
             Object.keys(serverErrors).forEach((key) => {
                 const fieldKey = key.split('.')[0] as keyof JobseekerFormValues;
                 if (!firstErrorField) {
@@ -506,7 +502,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
                     <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
-                    <TabsTrigger value="social">Social &amp; Projects</TabsTrigger>
+                    <TabsTrigger value="social">Social</TabsTrigger>
+                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -750,6 +747,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                              <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
+                     <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+                
+                 <TabsContent value="portfolio" className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Projects</CardTitle>
