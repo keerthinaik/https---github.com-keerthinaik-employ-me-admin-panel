@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -281,7 +282,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         variant: 'default',
       });
     }
-    setBannerCrop(centerAspectCrop(width, e.currentTarget.height, 4 / 1));
+    setBannerCrop(centerAspectCrop(width, e.currentTarget.height, 1128 / 191));
   }
 
   const handleCropImage = async () => {
@@ -576,18 +577,30 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             {expFields.map((field, index) => (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormItem>
-                                        <FormLabel>Job Title</FormLabel>
-                                        <FormControl><Input {...form.register(`experience.${index}.jobTitle`)} /></FormControl>
-                                        <p className="text-sm font-medium text-destructive">{errors.experience?.[index]?.jobTitle?.message}</p>
-                                    </FormItem>
-                                    <FormItem>
-                                        <FormLabel>Company</FormLabel>
-                                        <FormControl><Input {...form.register(`experience.${index}.companyName`)} /></FormControl>
-                                        <p className="text-sm font-medium text-destructive">{errors.experience?.[index]?.companyName?.message}</p>
-                                    </FormItem>
+                                    <FormField
+                                        control={control}
+                                        name={`experience.${index}.jobTitle`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Job Title</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name={`experience.${index}.companyName`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Company</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <Controller
+                                        <FormField
                                             control={control}
                                             name={`experience.${index}.startDate`}
                                             render={({ field }) => (
@@ -604,11 +617,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                         </PopoverTrigger>
                                                         <PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                                                     </Popover>
-                                                    <p className="text-sm font-medium text-destructive">{errors.experience?.[index]?.startDate?.message}</p>
+                                                    <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
-                                        <Controller
+                                        <FormField
                                             control={control}
                                             name={`experience.${index}.endDate`}
                                             render={({ field }) => (
@@ -625,26 +638,50 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                         </PopoverTrigger>
                                                         <PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                                                     </Popover>
-                                                    <p className="text-sm font-medium text-destructive">{errors.experience?.[index]?.endDate?.message}</p>
+                                                    <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                     </div>
-                                    <Controller
+                                    <FormField
                                         control={control}
                                         name={`experience.${index}.isCurrent`}
                                         render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>}
                                     />
-                                    <FormItem>
-                                        <FormLabel>Responsibilities (one per line)</FormLabel>
-                                        <FormControl><Textarea {...form.register(`experience.${index}.responsibilities`)} onChange={(e) => form.setValue(`experience.${index}.responsibilities`, e.target.value.split('\n'))} value={Array.isArray(form.watch(`experience.${index}.responsibilities`)) ? form.watch(`experience.${index}.responsibilities`)?.join('\n') : ''} /></FormControl>
-                                        <p className="text-sm font-medium text-destructive">{errors.experience?.[index]?.responsibilities?.message}</p>
-                                    </FormItem>
-                                    <FormItem>
-                                        <FormLabel>Achievements (one per line)</FormLabel>
-                                        <FormControl><Textarea {...form.register(`experience.${index}.achievements`)} onChange={(e) => form.setValue(`experience.${index}.achievements`, e.target.value.split('\n'))} value={Array.isArray(form.watch(`experience.${index}.achievements`)) ? form.watch(`experience.${index}.achievements`)?.join('\n') : ''} /></FormControl>
-                                        <p className="text-sm font-medium text-destructive">{errors.experience?.[index]?.achievements?.message}</p>
-                                    </FormItem>
+                                    <FormField
+                                        control={control}
+                                        name={`experience.${index}.responsibilities`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Responsibilities (one per line)</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                {...field}
+                                                value={Array.isArray(field.value) ? field.value.join('\n') : ''}
+                                                onChange={(e) => field.onChange(e.target.value.split('\n'))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name={`experience.${index}.achievements`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Achievements (one per line)</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                {...field}
+                                                value={Array.isArray(field.value) ? field.value.join('\n') : ''}
+                                                onChange={(e) => field.onChange(e.target.value.split('\n'))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
                             ))}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendExp({ jobTitle: '', companyName: '', startDate: new Date(), isCurrent: false, responsibilities: [], achievements: [] })}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
@@ -656,39 +693,63 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             {eduFields.map((field, index) => (
                             <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormItem>
-                                        <FormLabel>Institution</FormLabel>
-                                        <FormControl><Input {...form.register(`education.${index}.institution`)} /></FormControl>
-                                        <p className="text-sm font-medium text-destructive">{errors.education?.[index]?.institution?.message}</p>
-                                    </FormItem>
+                                    <FormField
+                                        control={control}
+                                        name={`education.${index}.institution`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Institution</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormItem>
-                                            <FormLabel>Degree</FormLabel>
-                                            <FormControl><Input {...form.register(`education.${index}.degree`)} /></FormControl>
-                                            <p className="text-sm font-medium text-destructive">{errors.education?.[index]?.degree?.message}</p>
-                                        </FormItem>
-                                        <FormItem>
-                                            <FormLabel>Field of Study</FormLabel>
-                                            <FormControl><Input {...form.register(`education.${index}.fieldOfStudy`)} /></FormControl>
-                                            <p className="text-sm font-medium text-destructive">{errors.education?.[index]?.fieldOfStudy?.message}</p>
-                                        </FormItem>
+                                        <FormField
+                                            control={control}
+                                            name={`education.${index}.degree`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Degree</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={control}
+                                            name={`education.${index}.fieldOfStudy`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Field of Study</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <Controller
+                                        <FormField
                                             control={control}
                                             name={`education.${index}.startDate`}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><p className="text-sm font-medium text-destructive">{errors.education?.[index]?.startDate?.message}</p></FormItem>)}
+                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
                                         />
-                                        <Controller
+                                        <FormField
                                             control={control}
                                             name={`education.${index}.endDate`}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><p className="text-sm font-medium text-destructive">{errors.education?.[index]?.endDate?.message}</p></FormItem>)}
+                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}
                                         />
-                                        <FormItem>
-                                            <FormLabel>CGPA/Grade</FormLabel>
-                                            <FormControl><Input {...form.register(`education.${index}.cgpa`)} /></FormControl>
-                                            <p className="text-sm font-medium text-destructive">{errors.education?.[index]?.cgpa?.message}</p>
-                                        </FormItem>
+                                        <FormField
+                                            control={control}
+                                            name={`education.${index}.cgpa`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>CGPA/Grade</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                             </div>
                             ))}
@@ -788,21 +849,27 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             {projFields.map((field, index) => (
                             <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
-                                <FormItem>
-                                    <FormLabel>Project Title</FormLabel>
-                                    <FormControl><Input {...form.register(`projects.${index}.title`)} /></FormControl>
-                                    <p className="text-sm font-medium text-destructive">{errors.projects?.[index]?.title?.message}</p>
-                                </FormItem>
-                                <FormItem>
-                                    <FormLabel>Project URL</FormLabel>
-                                    <FormControl><Input {...form.register(`projects.${index}.url`)} /></FormControl>
-                                    <p className="text-sm font-medium text-destructive">{errors.projects?.[index]?.url?.message}</p>
-                                </FormItem>
-                                <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl><Textarea {...form.register(`projects.${index}.description`)} /></FormControl>
-                                    <p className="text-sm font-medium text-destructive">{errors.projects?.[index]?.description?.message}</p>
-                                </FormItem>
+                                <FormField
+                                    control={control}
+                                    name={`projects.${index}.title`}
+                                    render={({ field }) => (
+                                        <FormItem><FormLabel>Project Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name={`projects.${index}.url`}
+                                    render={({ field }) => (
+                                        <FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name={`projects.${index}.description`}
+                                    render={({ field }) => (
+                                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}
+                                />
                             </div>
                             ))}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendProj({ title: '', url: '', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
@@ -851,7 +918,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                             {croppedBannerImageUrl ? (
                                                 <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="text-sm text-muted-foreground">Banner Preview (4:1)</span>
+                                                <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
                                             )}
                                         </div>
                                     </FormControl>
@@ -863,7 +930,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                             onChange={onBannerFileChange}
                                         />
                                     </FormControl>
-                                    <p className="text-xs text-muted-foreground">Recommended size: 1128x282px.</p>
+                                    <p className="text-xs text-muted-foreground">Recommended size: 1128x191px.</p>
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -934,7 +1001,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     crop={bannerCrop}
                     onChange={(_, percentCrop) => setBannerCrop(percentCrop)}
                     onComplete={(c) => setCompletedBannerCrop(c)}
-                    aspect={4 / 1}
+                    aspect={1128 / 191}
                     minWidth={400}
                 >
                     <img
