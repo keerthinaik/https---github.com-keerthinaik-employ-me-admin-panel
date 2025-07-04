@@ -223,8 +223,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         githubProfile: jobseeker?.githubProfile || '',
         portfolio: jobseeker?.portfolio || '',
         fieldOfStudy: jobseeker?.fieldOfStudy || '',
-        businessAssociationId: jobseeker?.businessAssociationId || '',
-        universityAssociationId: jobseeker?.universityAssociationId || '',
+        businessAssociationId: jobseeker?.businessAssociationId || undefined,
+        universityAssociationId: jobseeker?.universityAssociationId || undefined,
         isVerified: jobseeker?.isVerified || false,
         isActive: jobseeker?.isActive ?? true,
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
@@ -513,7 +513,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                  if (!firstErrorField) {
                     firstErrorField = key.split('.')[0] as keyof JobseekerFormValues;
                 }
-                if (jobseekerSchema._def.schema?.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema._def.schema.shape, key)) {
+                if (jobseekerSchema.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
                     setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
@@ -585,9 +585,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     name="businessAssociationId"
                                     render={({ field }) => (
                                         <FormItem><FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                            <Select onValueChange={(value) => field.onChange(value === '_none_' ? undefined : value)} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
+                                                    <SelectItem value="_none_">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -599,9 +600,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     name="universityAssociationId"
                                     render={({ field }) => (
                                         <FormItem><FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                            <Select onValueChange={(value) => field.onChange(value === '_none_' ? undefined : value)} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
+                                                    <SelectItem value="_none_">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
