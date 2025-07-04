@@ -671,18 +671,32 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center gap-6">
-                                <Avatar className="h-20 w-20">
-                                    <AvatarImage src={croppedImageUrl} alt="Company profile photo" />
-                                    <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-grow space-y-2">
-                                    <FormLabel htmlFor="profilePhoto-input">Company Profile Photo</FormLabel>
-                                    <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
-                                    <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
-                                    {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
-                                </div>
-                            </div>
+                            <FormField
+                                control={control}
+                                name="profilePhoto"
+                                render={() => (
+                                    <FormItem>
+                                        <div className="flex items-center gap-6">
+                                            <Avatar className="h-20 w-20">
+                                                <AvatarImage src={croppedImageUrl} alt="Company profile photo" />
+                                                <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-grow space-y-2">
+                                                <FormLabel>Company Profile Photo</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={onFileChange}
+                                                    />
+                                                </FormControl>
+                                                <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
+                                                <FormMessage />
+                                            </div>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={control}
                                 name="password"

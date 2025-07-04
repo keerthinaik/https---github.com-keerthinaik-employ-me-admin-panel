@@ -273,7 +273,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                  if (!firstErrorField) {
                     firstErrorField = key as keyof JobseekerFormValues;
                 }
-                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
+                if (Object.prototype.hasOwnProperty.call(jobseekerSchema._def.schema.shape, key)) {
                     setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
