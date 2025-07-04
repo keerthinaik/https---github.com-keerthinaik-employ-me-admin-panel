@@ -185,6 +185,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const bannerImgRef = React.useRef<HTMLImageElement>(null)
   const [bannerCrop, setBannerCrop] = React.useState<Crop>()
   const [completedBannerCrop, setCompletedBannerCrop] = React.useState<Crop>()
+  const [croppedBannerImageUrl, setCroppedBannerImageUrl] = React.useState<string>('')
   const [bannerDialogOpen, setBannerDialogOpen] = React.useState(false)
 
   const form = useForm<JobseekerFormValues>({
@@ -437,8 +438,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
     Object.entries(data).forEach(([key, value]) => {
         if (value === null || value === undefined) return;
-        if (key === 'businessAssociationId' && value === '') return;
-        if (key === 'universityAssociationId' && value === '') return;
+        if (key === 'businessAssociationId' && value === '---none---') return;
+        if (key === 'universityAssociationId' && value === '---none---') return;
 
         if (['experience', 'education'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
@@ -791,11 +792,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                             </Avatar>
                                             <div className="flex-grow space-y-2">
                                                 <FormLabel>Profile Photo</FormLabel>
+                                                <FormControl>
                                                     <Input
                                                         type="file"
                                                         accept="image/*"
                                                         onChange={onFileChange}
                                                     />
+                                                </FormControl>
                                                 <FormDescription>Image must be at least 200x200px.</FormDescription>
                                                 <FormMessage />
                                             </div>
