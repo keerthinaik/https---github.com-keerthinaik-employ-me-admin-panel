@@ -432,18 +432,18 @@ export async function deleteBusiness(id: string): Promise<null> {
 
 // Location APIs
 export async function getCountries(): Promise<Country[]> {
-  const response = await publicFetch(`/api/v1/location/countries`);
+  const response = await publicFetch(`/api/location/countries`);
   return response.data;
 }
 
 export async function getStates(countryCode: string): Promise<State[]> {
   if (!countryCode) return [];
-  const response = await publicFetch(`/api/v1/location/states/${countryCode}`);
+  const response = await publicFetch(`/api/location/states/${countryCode}`);
   return response.data;
 }
 
 export async function getCities(countryCode: string, stateCode: string): Promise<City[]> {
   if (!countryCode || !stateCode) return [];
-  const response = await publicFetch(`/api/v1/location/cities/${countryCode}/${stateCode}`);
+  const response = await publicFetch(`/api/location/cities/${countryCode}/${stateCode}`);
   return response.data;
 }
