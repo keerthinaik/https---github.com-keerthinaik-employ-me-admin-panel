@@ -45,7 +45,7 @@ export default function MapPicker({ lat, lng, setValue }: MapPickerProps) {
   return (
     <MapContainer
       center={[lat || 51.505, lng || -0.09]}
-      zoom={13}
+      zoom={lat !== undefined && lng !== undefined ? 13 : 5}
       scrollWheelZoom={false}
       className="h-full w-full z-0"
     >
