@@ -1,13 +1,12 @@
 
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form'
+import React, { useState, useRef } from 'react';
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import dynamic from 'next/dynamic'
 
 import { PageHeader } from '@/components/page-header'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +17,6 @@ import { useToast } from '@/hooks/use-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 
 
 const profileSchema = z.object({
@@ -31,8 +29,6 @@ const profileSchema = z.object({
   state: z.string().optional(),
   city: z.string().optional(),
   zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, {message: "Please provide a valid US zip code"}).optional().or(z.literal('')),
-  latitude: z.coerce.number().optional(),
-  longitude: z.coerce.number().optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -54,20 +50,12 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
   );
 }
 
-// Dynamically import the MapPicker component
-const MapPicker = dynamic(() => import('@/components/map-picker'), {
-  ssr: false,
-  loading: () => <Skeleton className="h-full w-full" />,
-});
-
-
 export default function ProfilePage() {
   const { toast } = useToast()
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -80,8 +68,6 @@ export default function ProfilePage() {
       state: 'CA',
       country: 'USA',
       zipCode: '90210',
-      latitude: 34.0736,
-      longitude: -118.4004,
     },
   })
   
@@ -93,9 +79,6 @@ export default function ProfilePage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [aspect, setAspect] = useState<number | undefined>(1)
   
-  const lat = watch('latitude');
-  const lng = watch('longitude');
-
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -252,26 +235,6 @@ export default function ProfilePage() {
                 {errors.zipCode && <p className="text-sm text-destructive">{errors.zipCode.message}</p>}
               </div>
             </div>
-
-            <div className="space-y-2">
-                <Label>Location on Map</Label>
-                <div className="h-80 w-full rounded-md border overflow-hidden">
-                    <MapPicker lat={lat} lng={lng} setValue={setValue} />
-                </div>
-            </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input id="latitude" type="number" {...register('latitude')} />
-                {errors.latitude && <p className="text-sm text-destructive">{errors.latitude.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input id="longitude" type="number" {...register('longitude')} />
-                 {errors.longitude && <p className="text-sm text-destructive">{errors.longitude.message}</p>}
-              </div>
-            </div>
-
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
             <Button type="submit" disabled={isSubmitting}>
