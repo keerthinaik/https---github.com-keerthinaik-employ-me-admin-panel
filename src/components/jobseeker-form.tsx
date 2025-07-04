@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -77,10 +76,6 @@ const jobseekerSchema = z.object({
   dateOfBirth: z.date().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   passportNumber: z.string().optional(),
-
-  linkedInProfile: z.string().url().optional().or(z.literal('')),
-  githubProfile: z.string().url().optional().or(z.literal('')),
-  portfolio: z.string().url().optional().or(z.literal('')),
   
   businessAssociationId: z.string().optional(),
   universityAssociationId: z.string().optional(),
@@ -94,7 +89,7 @@ const jobseekerSchema = z.object({
   
   experience: z.array(experienceSchema).optional(),
   education: z.array(educationSchema).optional(),
-  projects: z.array(projectSchema).optional(),
+  
 }).refine(data => {
     return !(data.businessAssociationId && data.universityAssociationId);
 }, {
@@ -111,7 +106,6 @@ const fieldToTabMap: Record<string, string> = {
   profilePhoto: 'profile', bannerImage: 'profile',
   experience: 'career', education: 'career',
   skills: 'skills', resume: 'skills', certifications: 'skills',
-  linkedInProfile: 'portfolio', githubProfile: 'portfolio', portfolio: 'portfolio', projects: 'portfolio',
   password: 'account', isVerified: 'account', isActive: 'account',
 };
 
@@ -156,7 +150,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'portfolio', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'account'];
   
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -192,10 +186,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
         education: jobseeker?.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
         skills: jobseeker?.skills || [],
-        linkedInProfile: jobseeker?.linkedInProfile || '',
-        githubProfile: jobseeker?.githubProfile || '',
-        portfolio: jobseeker?.portfolio || '',
-        projects: jobseeker?.projects?.map(proj => ({ ...proj, startDate: proj.startDate ? new Date(proj.startDate) : undefined, endDate: proj.endDate ? new Date(proj.endDate) : undefined})) || [],
     }
   });
 
@@ -203,7 +193,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
-  const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({ control, name: "projects" });
   
   React.useEffect(() => {
     if (jobseeker?.profilePhoto) {
@@ -511,11 +500,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-6">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
                     <TabsTrigger value="skills">Skills & Docs</TabsTrigger>
-                    <TabsTrigger value="portfolio">Social & Portfolio</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -550,10 +538,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || ''}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
+                                                    <SelectItem value="---none---">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -567,10 +555,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || ''}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
+                                                    <SelectItem value="---none---">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -716,40 +704,64 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </TabsContent>
                 
-                 <TabsContent value="portfolio" className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle>Social & Professional Links</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                           <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
-                           <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
-                           <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://your-portfolio.com" /></FormControl><FormMessage /></FormItem>}/>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                           {projectFields.map((field, index) => (
-                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProject(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField control={control} name={`projects.${index}.title`} render={({field}) => (<FormItem><FormLabel>Project Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`projects.${index}.description`} render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`projects.${index}.url`} render={({field}) => (<FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..."/></FormControl><FormMessage /></FormItem>)} />
-                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField control={control} name={`projects.${index}.startDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={control} name={`projects.${index}.endDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                    </div>
-                                </div>
-                            ))}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
-                        </CardContent>
-                    </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-                
                 <TabsContent value="account" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Media</CardTitle>
+                            <CardDescription>Upload profile and banner images.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <FormField
+                                control={control}
+                                name="profilePhoto"
+                                render={() => (
+                                    <FormItem>
+                                        <div className="flex items-center gap-6">
+                                            <Avatar className="h-20 w-20">
+                                                <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
+                                                <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-grow space-y-2">
+                                                <FormLabel>Profile Photo</FormLabel>
+                                                    <Input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={onFileChange}
+                                                    />
+                                                <FormDescription>Image must be at least 200x200px.</FormDescription>
+                                                <FormMessage />
+                                            </div>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name="bannerImage"
+                                render={() => (
+                                    <FormItem className="pt-6 border-t">
+                                        <FormLabel>Banner Image</FormLabel>
+                                        <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
+                                            {croppedBannerImageUrl ? (
+                                                <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
+                                            )}
+                                        </div>
+                                        <FormControl>
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={onBannerFileChange}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
@@ -831,4 +843,3 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
-
