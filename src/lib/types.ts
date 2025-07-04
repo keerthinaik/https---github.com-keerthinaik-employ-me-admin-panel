@@ -140,6 +140,34 @@ export interface University {
   updatedAt: Date;
 }
 
+export interface Employer {
+  id: string;
+  _id?: string;
+  name: string; // Contact Person
+  email: string;
+  phoneNumber?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  zipCode?: string;
+
+  companyName: string;
+  profilePhoto?: string; // Replaces logo
+  about?: string;
+  website?: string;
+  
+  taxNumber?: string;
+  taxCertificate?: string;
+  registrationNumber?: string;
+  registrationCertificate?: string;
+
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 
 export interface GetAllParams {
     page?: number;

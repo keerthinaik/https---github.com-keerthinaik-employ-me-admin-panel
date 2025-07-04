@@ -1,5 +1,5 @@
 
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -501,6 +501,77 @@ export async function deleteUniversity(id: string): Promise<null> {
   });
 }
 
+// Employers
+export async function getEmployers(params: GetAllParams = {}): Promise<{ data: Employer[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response = await authedFetch(`/api/v1/employers?${queryString}`);
+  
+  const data = response.data.map((item: any) => ({
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getEmployer(id: string): Promise<Employer> {
+    const response = await authedFetch(`/api/v1/employers/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("Employer not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+    };
+}
+
+export async function createEmployer(employerData: FormData): Promise<Employer> {
+  const response = await authedFetch(`/api/v1/employers`, {
+    method: 'POST',
+    body: employerData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Created employer data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function updateEmployer(id: string, employerData: FormData): Promise<Employer> {
+  const response = await authedFetch(`/api/v1/employers/${id}`, {
+    method: 'PUT',
+    body: employerData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated employer data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function deleteEmployer(id: string): Promise<null> {
+  return authedFetch(`/api/v1/employers/${id}`, {
+    method: 'DELETE',
+  });
+}
 
 // Location APIs
 export async function getCountries(): Promise<Country[]> {
