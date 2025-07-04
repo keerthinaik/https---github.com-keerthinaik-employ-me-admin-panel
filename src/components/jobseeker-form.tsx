@@ -173,47 +173,67 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const form = useForm<JobseekerFormValues>({
     resolver: zodResolver(jobseekerSchema),
-    defaultValues: {
-        name: jobseeker?.name || '',
-        email: jobseeker?.email || '',
-        password: '',
-        phoneNumber: jobseeker?.phoneNumber || '',
-        headline: jobseeker?.headline || '',
-        summary: jobseeker?.summary || '',
-        about: jobseeker?.about || '',
-        dateOfBirth: jobseeker?.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
-        gender: jobseeker?.gender,
-        passportNumber: jobseeker?.passportNumber || '',
-        businessAssociationId: jobseeker?.businessAssociationId || '',
-        universityAssociationId: jobseeker?.universityAssociationId || '',
-        linkedInProfile: jobseeker?.linkedInProfile || '',
-        githubProfile: jobseeker?.githubProfile || '',
-        portfolio: jobseeker?.portfolio || '',
-        isVerified: jobseeker?.isVerified || false,
-        isActive: jobseeker?.isActive ?? true,
-        experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
-        education: jobseeker?.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
-        projects: jobseeker?.projects?.map(p => ({ ...p, url: p.url || '' })) || [],
-        skills: jobseeker?.skills || [],
-    }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, reset } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
   const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({ control, name: "projects" });
 
   React.useEffect(() => {
-    if (jobseeker?.profilePhoto) {
-        const fullUrl = `${API_BASE_URL}${jobseeker.profilePhoto.startsWith('/') ? '' : '/'}${jobseeker.profilePhoto}`;
-        setCroppedImageUrl(fullUrl);
+    if (jobseeker) {
+      reset({
+        name: jobseeker.name || '',
+        email: jobseeker.email || '',
+        password: '',
+        phoneNumber: jobseeker.phoneNumber || '',
+        headline: jobseeker.headline || '',
+        summary: jobseeker.summary || '',
+        about: jobseeker.about || '',
+        dateOfBirth: jobseeker.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
+        gender: jobseeker.gender,
+        passportNumber: jobseeker.passportNumber || '',
+        businessAssociationId: jobseeker.businessAssociationId || '',
+        universityAssociationId: jobseeker.universityAssociationId || '',
+        linkedInProfile: jobseeker.linkedInProfile || '',
+        githubProfile: jobseeker.githubProfile || '',
+        portfolio: jobseeker.portfolio || '',
+        isVerified: jobseeker.isVerified || false,
+        isActive: jobseeker.isActive ?? true,
+        experience: jobseeker.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
+        education: jobseeker.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
+        projects: jobseeker.projects?.map(p => ({ ...p, url: p.url || '' })) || [],
+        skills: jobseeker.skills || [],
+        resume: undefined,
+        certifications: undefined,
+        profilePhoto: undefined,
+        bannerImage: undefined,
+      });
+
+      if (jobseeker.profilePhoto) {
+          const fullUrl = `${API_BASE_URL}${jobseeker.profilePhoto.startsWith('/') ? '' : '/'}${jobseeker.profilePhoto}`;
+          setCroppedImageUrl(fullUrl);
+      } else {
+        setCroppedImageUrl('');
+      }
+      if (jobseeker.bannerImage) {
+          const fullUrl = `${API_BASE_URL}${jobseeker.bannerImage.startsWith('/') ? '' : '/'}${jobseeker.bannerImage}`;
+          setCroppedBannerImageUrl(fullUrl);
+      } else {
+        setCroppedBannerImageUrl('');
+      }
+    } else {
+        reset({
+            name: '', email: '', password: '', phoneNumber: '', headline: '', summary: '', about: '',
+            dateOfBirth: undefined, gender: undefined, passportNumber: '', businessAssociationId: '', universityAssociationId: '',
+            linkedInProfile: '', githubProfile: '', portfolio: '',
+            isVerified: false, isActive: true,
+            experience: [], education: [], projects: [], skills: [],
+            resume: undefined, certifications: undefined, profilePhoto: undefined, bannerImage: undefined,
+        });
     }
-    if (jobseeker?.bannerImage) {
-        const fullUrl = `${API_BASE_URL}${jobseeker.bannerImage.startsWith('/') ? '' : '/'}${jobseeker.bannerImage}`;
-        setCroppedBannerImageUrl(fullUrl);
-    }
-  }, [jobseeker]);
+  }, [jobseeker, reset]);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -412,8 +432,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const onSubmit = async (data: JobseekerFormValues) => {
     const formData = new FormData();
-    
-    // This will hold all non-file data
     const jsonData: Record<string, any> = {};
 
     for (const [key, value] of Object.entries(data)) {
@@ -431,13 +449,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
             for (let i = 0; i < value.length; i++) {
                 formData.append('certifications', value[i]);
             }
-        } else if (typeof value !== 'object' || value instanceof Date || Array.isArray(value)) {
-            // Add all other data to the jsonData object
-            jsonData[keyString] = value;
+        } else {
+           jsonData[keyString] = value;
         }
     }
     
-    // Stringify the entire data payload and append it
     formData.append('jsonData', JSON.stringify(jsonData));
 
     try {
@@ -498,7 +514,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-6">
+                <TabsList className="grid w-full grid-cols-6 mb-6">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
                     <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
@@ -562,7 +578,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                             </div>
                             <div className="grid md:grid-cols-2 gap-4">
-                               <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                               <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                <FormField name="passportNumber" control={control} render={({field}) => <FormItem><FormLabel>Passport Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                             </div>
                              <div className="grid md:grid-cols-2 gap-4">

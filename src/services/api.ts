@@ -131,7 +131,7 @@ export async function getMe(): Promise<GetMeResponse> {
 
 export async function updateAdminUser(id: string, userData: FormData): Promise<AuthUser> {
   const response = await authedFetch(`/api/v1/admin-users/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: userData,
   });
   return response.data.user;
@@ -410,7 +410,7 @@ export async function createBusiness(businessData: FormData): Promise<Business> 
 
 export async function updateBusiness(id: string, businessData: FormData): Promise<Business> {
   const response = await authedFetch(`/api/v1/businesses/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: businessData,
   });
   const item = response.data;
@@ -482,7 +482,7 @@ export async function createUniversity(universityData: FormData): Promise<Univer
 
 export async function updateUniversity(id: string, universityData: FormData): Promise<University> {
   const response = await authedFetch(`/api/v1/universities/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: universityData,
   });
   const item = response.data;
@@ -554,7 +554,7 @@ export async function createEmployer(employerData: FormData): Promise<Employer> 
 
 export async function updateEmployer(id: string, employerData: FormData): Promise<Employer> {
   const response = await authedFetch(`/api/v1/employers/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: employerData,
   });
   const item = response.data;
@@ -626,7 +626,7 @@ export async function createJobseeker(jobseekerData: FormData): Promise<Jobseeke
 
 export async function updateJobseeker(id: string, jobseekerData: FormData): Promise<Jobseeker> {
   const response = await authedFetch(`/api/v1/jobseekers/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: jobseekerData,
   });
   const item = response.data;
