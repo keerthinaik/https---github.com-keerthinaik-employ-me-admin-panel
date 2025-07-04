@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -57,8 +58,6 @@ const projectSchema = z.object({
   title: z.string().min(1, "Project title is required"),
   description: z.string().optional(),
   url: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
 });
 
 const jobseekerSchema = z.object({
@@ -109,9 +108,10 @@ const fieldToTabMap: Record<string, string> = {
   name: 'profile', email: 'profile', phoneNumber: 'profile', headline: 'profile', summary: 'profile', about: 'profile',
   dateOfBirth: 'profile', gender: 'profile', passportNumber: 'profile', businessAssociationId: 'profile', universityAssociationId: 'profile',
   profilePhoto: 'profile', bannerImage: 'profile',
-  experience: 'career', education: 'career', projects: 'career',
+  experience: 'career', education: 'career', 
   skills: 'skills', resume: 'skills', certifications: 'skills',
   linkedInProfile: 'social', githubProfile: 'social', portfolio: 'social',
+  projects: 'portfolio',
   password: 'account', isVerified: 'account', isActive: 'account',
 };
 
@@ -156,7 +156,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'social', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'portfolio', 'social', 'account'];
   
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -199,51 +199,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, getValues } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
   const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({ control, name: "projects" });
-  
-  // FOR TESTING: Display errors on all fields
-  React.useEffect(() => {
-    setError("name", { type: "manual", message: "Name is too short." });
-    setError("email", { type: "manual", message: "This email is already in use." });
-    setError("headline", { type: "manual", message: "Headline cannot be empty." });
-    setError("summary", { type: "manual", message: "A summary is required." });
-    setError("about", { type: "manual", message: "Please tell us more about yourself." });
-    setError("dateOfBirth", { type: "manual", message: "Please enter a valid date." });
-    setError("gender", { type: "manual", message: "Please select a gender." });
-    setError("passportNumber", { type: "manual", message: "Invalid passport number format." });
-    setError("businessAssociationId", { type: "manual", message: "Invalid association." });
-    
-    if (!getValues('experience') || getValues('experience')?.length === 0) {
-        appendExp({ jobTitle: 'Test Job', companyName: 'Test Co', startDate: new Date(), isCurrent: true }, { shouldFocus: false });
-    }
-    if (!getValues('education') || getValues('education')?.length === 0) {
-        appendEdu({ institution: 'Test Uni', degree: 'BSc', fieldOfStudy: 'Testing', startDate: new Date(), endDate: new Date() }, { shouldFocus: false });
-    }
-    if (!getValues('projects') || getValues('projects')?.length === 0) {
-        appendProject({ title: 'Test Project', description: 'A test project' }, { shouldFocus: false });
-    }
-    
-    setTimeout(() => {
-      setError("experience.0.jobTitle", { type: 'manual', message: 'Job title is required.' });
-      setError("education.0.institution", { type: 'manual', message: 'Institution is required.' });
-      setError("projects.0.title", { type: 'manual', message: 'Project title is required.' });
-    }, 0);
-
-
-    setError("skills", { type: "manual", message: "Please select at least one skill." });
-    setError("resume", { type: "manual", message: "A resume file is required." });
-    setError("certifications", { type: "manual", message: "Please provide valid certification files." });
-
-    setError("linkedInProfile", { type: "manual", message: "Please enter a valid LinkedIn URL." });
-    setError("githubProfile", { type: "manual", message: "Please enter a valid GitHub URL." });
-    setError("portfolio", { type: "manual", message: "Please enter a valid portfolio URL." });
-    
-    setError("password", { type: "manual", message: "Password is too weak." });
-  }, [setError, getValues, appendExp, appendEdu, appendProject]);
 
   React.useEffect(() => {
     if (jobseeker?.profilePhoto) {
@@ -452,12 +412,79 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   };
 
   const onSubmit = async (data: JobseekerFormValues) => {
-    // This is a test, so we'll just log the data
-    console.log("Form Submitted", data);
-    toast({
-        title: "Test Submission",
-        description: "Form is configured for testing and validation display.",
+    const formData = new FormData();
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined || value === null || (typeof value === 'string' && value === '')) return;
+
+      if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
+          formData.append(key, value);
+      } else if (['resume', 'certifications'].includes(key) && value instanceof FileList) {
+          for (let i = 0; i < value.length; i++) {
+              formData.append(key, value[i]);
+          }
+      } else if (Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+      } else if (value instanceof Date) {
+          formData.append(key, value.toISOString());
+      } else if (typeof value === 'boolean') {
+          formData.append(key, String(value));
+      } else {
+          formData.append(key, value as string);
+      }
     });
+
+    try {
+        if (jobseeker) {
+            await updateJobseeker(jobseeker.id, formData);
+        } else {
+            await createJobseeker(formData);
+        }
+        toast({
+            title: jobseeker ? 'Jobseeker Updated' : 'Jobseeker Created',
+            description: `${data.name} has been successfully ${jobseeker ? 'updated' : 'created'}.`,
+        });
+        router.push('/jobseekers');
+        router.refresh();
+    } catch (error: any) {
+        if (error.data && error.data.errors) {
+            const serverErrors = error.data.errors;
+            let firstErrorField: keyof JobseekerFormValues | null = null;
+            
+            Object.keys(serverErrors).forEach((key) => {
+                const fieldKey = key as keyof JobseekerFormValues;
+                if (!firstErrorField) {
+                    firstErrorField = fieldKey;
+                }
+                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, fieldKey)) {
+                    setError(fieldKey, {
+                        type: 'server',
+                        message: serverErrors[key],
+                    });
+                }
+            });
+
+            if (firstErrorField) {
+                const tabKey = firstErrorField.split('.')[0]
+                const tab = fieldToTabMap[tabKey];
+                if (tab && tab !== activeTab) {
+                    setActiveTab(tab);
+                }
+            }
+
+            toast({
+                title: 'Could not save jobseeker',
+                description: error.data.message || 'Please correct the errors and try again.',
+                variant: 'destructive',
+            });
+        } else {
+           toast({
+              title: 'An error occurred',
+              description: error.message,
+              variant: 'destructive',
+          });
+        }
+    }
   };
 
   return (
@@ -465,11 +492,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-6">
+                <TabsList className="grid w-full grid-cols-6 mb-6">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
                     <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
-                    <TabsTrigger value="social">Social &amp; Portfolio</TabsTrigger>
+                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+                    <TabsTrigger value="social">Social</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -504,7 +532,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || ''}>
+                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || '---none---'}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="---none---">None</SelectItem>
@@ -521,10 +549,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || ''}>
+                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || '---none---'}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="---none---">None</SelectItem>
+                                                     <SelectItem value="---none---">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -552,8 +580,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <FormField name={`experience.${index}.jobTitle`} control={control} render={({field}) => <FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     <FormField name={`experience.${index}.companyName`} control={control} render={({field}) => <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField control={control} name={`experience.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={control} name={`experience.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`experience.${index}.startDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`experience.${index}.endDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
                                     <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel><FormMessage /></FormItem>} />
                                     <FormField name={`experience.${index}.responsibilities`} control={control} render={({ field }) => <FormItem><FormLabel>Responsibilities (one per line)</FormLabel><FormControl><ArrayTextarea {...field} /></FormControl><FormMessage /></FormItem>} />
@@ -576,8 +604,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <FormField name={`education.${index}.fieldOfStudy`} control={control} render={({field}) => <FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <FormField control={control} name={`education.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`education.${index}.startDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                         <FormField name={`education.${index}.cgpa`} control={control} render={({field}) => <FormItem><FormLabel>CGPA/Grade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     </div>
                                 </div>
@@ -669,18 +697,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                         <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                     </div>
                 </TabsContent>
-                
-                <TabsContent value="social" className="space-y-6">
+
+                 <TabsContent value="portfolio" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Social & Portfolio</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Projects</CardTitle>
+                            <CardDescription>Showcase your work by adding projects.</CardDescription>
+                        </CardHeader>
                         <CardContent className="space-y-4">
                             {projectFields.map((field, index) => {
                                 return (
@@ -692,6 +715,21 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 </div>
                             )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+                
+                <TabsContent value="social" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Social & Portfolio Links</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
                     <div className="mt-6 flex justify-between">
@@ -715,7 +753,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <div className="flex items-center gap-6">
                                             <Avatar className="h-20 w-20">
                                                 <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
-                                                <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                                <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
                                             </Avatar>
                                             <div className="flex-grow space-y-2">
                                                 <FormLabel>Profile Photo</FormLabel>
@@ -739,7 +777,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 render={() => (
                                     <FormItem className="pt-6 border-t">
                                         <FormLabel>Banner Image</FormLabel>
-                                        <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
+                                         <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
                                             {croppedBannerImageUrl ? (
                                                 <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
                                             ) : (
