@@ -105,6 +105,7 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profilePhotoPath, setProfilePhotoPath] = useState('');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -139,6 +140,7 @@ export default function ProfilePage() {
         });
         if (userData.profilePhoto) {
           setCroppedImageUrl(`${API_BASE_URL}/${userData.profilePhoto}`);
+          setProfilePhotoPath(userData.profilePhoto);
         }
       } catch (error: any) {
         toast({ title: "Failed to load profile", description: error.message, variant: "destructive" });
@@ -300,6 +302,11 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
               <Input id="phoneNumber" {...form.register('phoneNumber')} />
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="testPhotoPath">Test Photo Path</Label>
+                <Input id="testPhotoPath" value={profilePhotoPath} readOnly />
             </div>
 
             <Separator />
