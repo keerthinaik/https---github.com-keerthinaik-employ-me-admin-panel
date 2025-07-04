@@ -334,10 +334,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 name="businessAssociationId"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}>
                                         <SelectTrigger><SelectValue placeholder="Select a business" /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">None</SelectItem>
+                                            <SelectItem value="--none--">None</SelectItem>
                                             {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
@@ -350,10 +350,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 name="universityAssociationId"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}>
                                         <SelectTrigger><SelectValue placeholder="Select a university" /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">None</SelectItem>
+                                            <SelectItem value="--none--">None</SelectItem>
                                             {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
