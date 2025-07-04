@@ -456,12 +456,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-        if (value === null || value === undefined) return;
+        if (value === null || value === undefined || value === '') return;
 
-        if (key === 'businessAssociationId' || key === 'universityAssociationId') {
-            if (value === '') return;
-        }
-        
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
@@ -594,8 +590,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
                                             <Select
-                                                onValueChange={(value) => field.onChange(value === "---none---" ? "" : value)}
-                                                value={field.value || ""}
+                                                onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)}
+                                                value={field.value || '---none---'}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -618,8 +614,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
                                             <Select
-                                                onValueChange={(value) => field.onChange(value === "---none---" ? "" : value)}
-                                                value={field.value || ""}
+                                                 onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)}
+                                                 value={field.value || '---none---'}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -800,7 +796,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 
                 <TabsContent value="portfolio" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Online Presence</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Online Presence</CardTitle>
+                            <CardDescription>Links to professional profiles and portfolio.</CardDescription>
+                        </CardHeader>
                         <CardContent className="space-y-4">
                             <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..."/> </FormControl><FormMessage /></FormItem>}/>
                             <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..."/> </FormControl><FormMessage /></FormItem>}/>
@@ -808,30 +807,60 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Projects</CardTitle>
+                            <CardDescription>Showcase your work by adding links to your projects.</CardDescription>
+                        </CardHeader>
                         <CardContent className="space-y-4">
-                            {projFields.map((field, index) => {
-                                return (
-                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <div className="space-y-2">
-                                        <Label>Project Title</Label>
-                                        <Input {...register(`projects.${index}.title`)} />
-                                        {errors.projects?.[index]?.title && <p className="text-sm text-destructive">{errors.projects[index]?.title?.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Project URL</Label>
-                                        <Input {...register(`projects.${index}.url`)} />
-                                        {errors.projects?.[index]?.url && <p className="text-sm text-destructive">{errors.projects[index]?.url?.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Description</Label>
-                                        <Textarea {...register(`projects.${index}.description`)} />
-                                        {errors.projects?.[index]?.description && <p className="text-sm text-destructive">{errors.projects[index]?.description?.message}</p>}
-                                    </div>
+                            {projFields.map((field, index) => (
+                                <div key={field.id} className="p-4 border rounded-lg space-y-4 relative bg-muted/20">
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                    <FormField
+                                        control={control}
+                                        name={`projects.${index}.title`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Project Title</FormLabel>
+                                                <FormControl><Input {...field} placeholder="e.g., My Awesome App" /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name={`projects.${index}.url`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Project URL</FormLabel>
+                                                <FormControl><Input {...field} placeholder="https://github.com/user/repo" /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name={`projects.${index}.description`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl><Textarea {...field} placeholder="A short description of the project." /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
-                            )})}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendProj({ title: '', url: '', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
+                            ))}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => appendProj({ title: '', url: '', description: '' })}
+                            >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add Another Project
+                            </Button>
                         </CardContent>
                     </Card>
                     <div className="mt-6 flex justify-between">
@@ -844,54 +873,42 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Media & Documents</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
-                            <FormField
-                                control={control}
-                                name="profilePhoto"
-                                render={() => (
-                                <FormItem>
-                                    <div className="flex items-center gap-6">
-                                        <Avatar className="h-20 w-20">
-                                            <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
-                                            <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-grow space-y-2">
-                                            <FormLabel>Profile Photo</FormLabel>
-                                            <FormControl>
-                                                <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
-                                            </FormControl>
-                                            <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
-                                            <FormMessage />
-                                        </div>
+                           <FormItem>
+                                <div className="flex items-center gap-6">
+                                    <Avatar className="h-20 w-20">
+                                        <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
+                                        <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-grow space-y-2">
+                                        <FormLabel htmlFor="profilePhoto-input">Profile Photo</FormLabel>
+                                        <FormControl>
+                                             <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
+                                        </FormControl>
+                                        <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
+                                        <FormMessage />
                                     </div>
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={control}
-                                name="bannerImage"
-                                render={() => (
-                                <FormItem>
-                                    <FormLabel>Banner Image</FormLabel>
-                                    <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
-                                        {croppedBannerImageUrl ? (
-                                            <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
-                                        )}
-                                    </div>
-                                    <FormControl>
-                                        <Input
-                                            id="bannerImage-input"
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={onBannerFileChange}
-                                        />
-                                    </FormControl>
-                                    <p className="text-xs text-muted-foreground">Recommended size: 1128x191px.</p>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+                                </div>
+                           </FormItem>
+                           <FormItem>
+                                <FormLabel>Banner Image</FormLabel>
+                                <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
+                                    {croppedBannerImageUrl ? (
+                                        <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
+                                    )}
+                                </div>
+                                <FormControl>
+                                    <Input
+                                        id="bannerImage-input"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={onBannerFileChange}
+                                    />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Recommended size: 1128x191px.</p>
+                                <FormMessage />
+                           </FormItem>
                             <FormField control={control} name="resume" render={({field}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
                             <FormField control={control} name="certifications" render={({field}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
