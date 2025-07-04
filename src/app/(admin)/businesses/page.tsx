@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, type Key } from 'react';
+import { useState, useMemo, useEffect, type Key, useCallback } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { businesses, type Business } from "@/lib/data";
+import { type Business, type Pagination, type GetAllParams } from "@/lib/types";
 import {
     MoreHorizontal,
     Edit,
@@ -40,6 +40,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/lib/hooks';
+import { useToast } from '@/hooks/use-toast';
+import { getBusinesses, deleteBusiness } from '@/services/api';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 type SortConfig = {
     key: keyof Business;
@@ -56,16 +60,22 @@ const columnsConfig = [
 
 type ColumnKeys = typeof columnsConfig[number]['key'];
 
-const ROWS_PER_PAGE = 5;
+const ROWS_PER_PAGE = 10;
 
 export default function BusinessesPage() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const { toast } = useToast();
+    const [businesses, setBusinesses] = useState<Business[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
     const [filters, setFilters] = useState({
         isVerified: 'all',
         isActive: 'all',
     });
-    const [isLoading, setIsLoading] = useState(true);
 
     const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
         business: true,
@@ -76,74 +86,65 @@ export default function BusinessesPage() {
     });
     
     const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
 
-    const filteredAndSortedBusinesses = useMemo(() => {
-        let sortedItems = [...businesses];
-
-        // Filtering
-        sortedItems = sortedItems.filter(biz => {
-            if (filters.isVerified !== 'all') {
-                const verifiedMatch = filters.isVerified === 'verified';
-                if (biz.isVerified !== verifiedMatch) return false;
-            }
-             if (filters.isActive !== 'all') {
-                const activeMatch = filters.isActive === 'active';
-                if (biz.isActive !== activeMatch) return false;
-            }
-
-            if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                    biz.name.toLowerCase().includes(searchLower) ||
-                    biz.email.toLowerCase().includes(searchLower) ||
-                    (biz.city && biz.city.toLowerCase().includes(searchLower))
-                );
-            }
-            return true;
-        });
-
-        // Sorting
-        if (sortConfig !== null) {
-            sortedItems.sort((a, b) => {
-                const key = sortConfig.key;
-                const valA = a[key as keyof Business];
-                const valB = b[key as keyof Business];
-
-                if (typeof valA === 'boolean' && typeof valB === 'boolean') {
-                    if (valA === valB) return 0;
-                    return sortConfig.direction === 'asc' ? (valA ? 1 : -1) : (valA ? -1 : 1);
-                }
-
-                 if (valA instanceof Date && valB instanceof Date) {
-                    return sortConfig.direction === 'asc' ? valA.getTime() - valB.getTime() : valB.getTime() - valA.getTime();
-                }
-                
-                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+    const fetchBusinesses = useCallback(() => {
+        setIsLoading(true);
+        const apiFilters: Record<string, any> = {};
+        if (debouncedSearchTerm) {
+            apiFilters.name = debouncedSearchTerm; // Assuming search by name
+        }
+        if (filters.isVerified !== 'all') {
+            apiFilters.isVerified = filters.isVerified === 'verified';
+        }
+        if (filters.isActive !== 'all') {
+            apiFilters.isActive = filters.isActive === 'active';
         }
 
-        return sortedItems;
-    }, [searchTerm, sortConfig, filters]);
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
 
-    const totalPages = Math.ceil(filteredAndSortedBusinesses.length / ROWS_PER_PAGE);
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
 
-    const paginatedBusinesses = useMemo(() => {
-        const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-        return filteredAndSortedBusinesses.slice(startIndex, startIndex + ROWS_PER_PAGE);
-    }, [currentPage, filteredAndSortedBusinesses]);
+        getBusinesses(params)
+            .then(data => {
+                setBusinesses(data.data);
+                setPagination(data.pagination);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching businesses',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
 
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, [currentPage, searchTerm, filters]);
-
+        fetchBusinesses();
+    }, [fetchBusinesses]);
+    
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
 
+    const handleDelete = async (businessId: string) => {
+        try {
+            await deleteBusiness(businessId);
+            toast({
+                title: 'Business Deleted',
+                description: 'The business has been successfully deleted.',
+            });
+            fetchBusinesses();
+        } catch (error: any) {
+            toast({
+                title: 'Error deleting business',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
     const requestSort = (key: keyof Business) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -194,7 +195,7 @@ export default function BusinessesPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by business name, email..."
+                        placeholder="Search by business name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -292,9 +293,9 @@ export default function BusinessesPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <SkeletonRow key={i} />)
-                        ) : paginatedBusinesses.length > 0 ? (
-                            paginatedBusinesses.map(biz => (
+                            Array.from({ length: rowsPerPage }).map((_, i) => <SkeletonRow key={i} />)
+                        ) : businesses.length > 0 ? (
+                            businesses.map(biz => (
                                 <TableRow key={biz.id}>
                                     {columnVisibility.business && (
                                         <TableCell>
@@ -327,33 +328,49 @@ export default function BusinessesPage() {
                                     )}
                                     {columnVisibility.actions && (
                                         <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                        <span className="sr-only">Toggle menu</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/businesses/${biz.id}`}>
-                                                            <Eye className="mr-1 h-4 w-4" />
-                                                            View Details
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/businesses/${biz.id}/edit`}>
-                                                            <Edit className="mr-1 h-4 w-4" />
-                                                            Edit
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                        <Trash2 className="mr-1 h-4 w-4"/>
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            <AlertDialog>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">Toggle menu</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/businesses/${biz.id}`}>
+                                                                <Eye className="mr-1 h-4 w-4" />
+                                                                View Details
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/businesses/${biz.id}/edit`}>
+                                                                <Edit className="mr-1 h-4 w-4" />
+                                                                Edit
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <AlertDialogTrigger asChild>
+                                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                                <Trash2 className="mr-1 h-4 w-4"/>
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </AlertDialogTrigger>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This action cannot be undone. This will permanently delete the business account.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(biz.id)}>Continue</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     )}
                                 </TableRow>
@@ -369,11 +386,11 @@ export default function BusinessesPage() {
                 </Table>
             </div>
              <div className="flex items-center justify-between mt-4">
-                {isLoading ? (
+                {isLoading || !pagination ? (
                     <Skeleton className="h-5 w-72" />
                 ) : (
                     <div className="text-sm text-muted-foreground">
-                        Showing {Math.min((currentPage - 1) * ROWS_PER_PAGE + 1, filteredAndSortedBusinesses.length)} to {Math.min(currentPage * ROWS_PER_PAGE, filteredAndSortedBusinesses.length)} of {filteredAndSortedBusinesses.length} businesses.
+                        Showing {pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of {pagination.totalRecords} businesses.
                     </div>
                 )}
                 <div className="flex items-center gap-2">
@@ -387,13 +404,13 @@ export default function BusinessesPage() {
                         Previous
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                        Page {isLoading ? '...' : currentPage} of {isLoading ? '...' : totalPages}
+                        Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
                     </span>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages || isLoading}
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                        disabled={currentPage === pagination?.totalPages || isLoading}
                     >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />

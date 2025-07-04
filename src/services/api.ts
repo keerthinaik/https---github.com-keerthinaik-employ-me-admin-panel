@@ -1,4 +1,4 @@
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -315,6 +315,78 @@ export async function updateSkill(id: string, skillData: Partial<Omit<Skill, 'id
 
 export async function deleteSkill(id: string): Promise<null> {
   return await authedFetch(`/api/v1/skills/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Businesses
+export async function getBusinesses(params: GetAllParams = {}): Promise<{ data: Business[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/businesses?${queryString}`);
+  
+  const data = response.data.map(item => ({
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getBusiness(id: string): Promise<Business> {
+    const response = await authedFetch(`/api/v1/businesses/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("Business not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+    };
+}
+
+export async function createBusiness(businessData: FormData): Promise<Business> {
+  const response = await authedFetch(`/api/v1/businesses`, {
+    method: 'POST',
+    body: businessData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Created business data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function updateBusiness(id: string, businessData: FormData): Promise<Business> {
+  const response = await authedFetch(`/api/v1/businesses/${id}`, {
+    method: 'PUT',
+    body: businessData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated business data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function deleteBusiness(id: string): Promise<null> {
+  return authedFetch(`/api/v1/businesses/${id}`, {
     method: 'DELETE',
   });
 }

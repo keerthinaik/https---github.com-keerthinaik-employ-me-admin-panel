@@ -1,20 +1,22 @@
 
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { businesses } from "@/lib/data";
-import { format, formatDistanceToNow } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import {
-    ArrowLeft, Edit, MapPin, Globe, CheckCircle, Clock, Users, Phone, Mail, Handshake
+    ArrowLeft, Edit, MapPin, Globe, Clock, Phone, Mail, Handshake
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Business } from '@/lib/types';
+import { getBusiness } from '@/services/api';
 
 function BusinessDetailsSkeleton() {
     return (
@@ -70,21 +72,27 @@ export default function BusinessDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const business = businesses.find(j => j.id === id);
-    
+    const [business, setBusiness] = useState<Business | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (!business) {
-        notFound();
-    }
-
+        if (id) {
+            getBusiness(id)
+                .then(data => setBusiness(data))
+                .catch(err => {
+                    console.error(err);
+                    notFound();
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [id]);
+    
     if (isLoading) {
         return <BusinessDetailsSkeleton />;
+    }
+
+    if (!business) {
+        return notFound();
     }
 
     return (
@@ -163,8 +171,8 @@ export default function BusinessDetailsPage() {
                                 </Badge>
                            </div>
                            <div className="text-sm text-muted-foreground pt-4 border-t">
-                                <p>Joined: {format(new Date(business.createdAt), 'MMM d, yyyy')}</p>
-                                <p>Last Updated: {formatDistanceToNow(new Date(business.updatedAt), { addSuffix: true })}</p>
+                                <p>Joined: {isValid(new Date(business.createdAt)) ? format(new Date(business.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                                <p>Last Updated: {isValid(new Date(business.updatedAt)) ? formatDistanceToNow(new Date(business.updatedAt), { addSuffix: true }) : 'N/A'}</p>
                            </div>
                         </CardContent>
                     </Card>

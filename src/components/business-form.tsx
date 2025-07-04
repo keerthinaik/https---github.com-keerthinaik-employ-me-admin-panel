@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -8,12 +9,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { type Business } from '@/lib/data';
+import type { Business } from '@/lib/types';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { createBusiness, updateBusiness } from '@/services/api';
 
 const businessSchema = z.object({
   name: z.string().min(1, 'Business name is required'),
@@ -49,6 +51,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
     handleSubmit,
     formState: { errors, isSubmitting },
     control,
+    setError,
   } = useForm<BusinessFormValues>({
     resolver: zodResolver(businessSchema),
     defaultValues: {
@@ -68,13 +71,55 @@ export function BusinessForm({ business }: BusinessFormProps) {
     }
   });
 
-  const onSubmit = (data: BusinessFormValues) => {
-    console.log(data);
-    toast({
-        title: business ? 'Business Updated' : 'Business Created',
-        description: `${data.name} has been successfully ${business ? 'updated' : 'created'}.`,
+  const onSubmit = async (data: BusinessFormValues) => {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === 'logo' && value instanceof FileList && value.length > 0) {
+          formData.append(key, value[0]);
+        } else if (typeof value === 'boolean') {
+          formData.append(key, value.toString());
+        } else if (typeof value !== 'object' || Array.isArray(value)) {
+           formData.append(key, value as string);
+        }
+      }
     });
-    router.push('/businesses');
+
+    try {
+        if (business) {
+            await updateBusiness(business.id, formData);
+        } else {
+            await createBusiness(formData);
+        }
+        toast({
+            title: business ? 'Business Updated' : 'Business Created',
+            description: `${data.name} has been successfully ${business ? 'updated' : 'created'}.`,
+        });
+        router.push('/businesses');
+        router.refresh();
+    } catch (error: any) {
+        if (error.data && error.data.errors) {
+            Object.keys(error.data.errors).forEach((key) => {
+                if (Object.prototype.hasOwnProperty.call(businessSchema.shape, key)) {
+                    setError(key as keyof BusinessFormValues, {
+                        type: 'server',
+                        message: error.data.errors[key],
+                    });
+                }
+            });
+            toast({
+                title: 'Could not save business',
+                description: error.data.message || 'Please correct the errors and try again.',
+                variant: 'destructive',
+            });
+        } else {
+           toast({
+              title: 'An error occurred',
+              description: error.message,
+              variant: 'destructive',
+          });
+        }
+    }
   };
 
   return (

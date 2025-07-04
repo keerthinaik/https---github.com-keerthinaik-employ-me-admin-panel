@@ -98,6 +98,26 @@ export interface Skill {
     updatedAt: Date;
 }
 
+export interface Business {
+  id: string;
+  _id?: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  zipCode?: string;
+  logo?: string;
+  about?: string;
+  website?: string;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 
 export interface GetAllParams {
     page?: number;
