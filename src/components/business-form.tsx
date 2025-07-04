@@ -108,6 +108,8 @@ export function BusinessForm({ business }: BusinessFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
+        setValue('state', '');
+        setValue('city', '');
         try {
           const stateData = await getStates(watchedCountry);
           setStates(stateData);
@@ -119,13 +121,14 @@ export function BusinessForm({ business }: BusinessFormProps) {
       }
     };
     fetchStates();
-  }, [watchedCountry, toast]);
+  }, [watchedCountry, toast, setValue]);
 
   React.useEffect(() => {
     const fetchCities = async () => {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
+        setValue('city', '');
         try {
           const cityData = await getCities(watchedCountry, watchedState);
           setCities(cityData);
@@ -137,7 +140,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
       }
     };
     fetchCities();
-  }, [watchedCountry, watchedState, toast]);
+  }, [watchedCountry, watchedState, toast, setValue]);
 
   const goToNextTab = () => {
     const currentIndex = TABS.indexOf(activeTab);
@@ -239,7 +242,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-                <div className="flex justify-end">
+                <div className="mt-6 flex justify-end">
                     <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                 </div>
             </TabsContent>
@@ -414,3 +417,4 @@ export function BusinessForm({ business }: BusinessFormProps) {
     </form>
   );
 }
+

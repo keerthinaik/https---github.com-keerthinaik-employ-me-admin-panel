@@ -1,4 +1,5 @@
 
+
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, Country, State, City } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
