@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from './ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
-import { CalendarIcon, Check, ChevronsUpDown, Loader2, Sparkles, Trash2, Wand2, X } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Loader2, Sparkles, Trash2, Wand2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
@@ -91,6 +91,9 @@ const currencies = [
 export function JobForm({ job }: { job?: Job }) {
   const router = useRouter();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState('details');
+  const TABS = ['details', 'type', 'compensation', 'skills', 'logistics', 'questions', 'publish'];
+
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [suggestedTitles, setSuggestedTitles] = React.useState<string[]>([]);
   const [allSkills, setAllSkills] = React.useState(skills);
@@ -144,6 +147,20 @@ export function JobForm({ job }: { job?: Job }) {
 
   const watchDescription = form.watch('description');
   const canSuggest = watchDescription && watchDescription.length > 50;
+
+  const goToNextTab = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex < TABS.length - 1) {
+        setActiveTab(TABS[currentIndex + 1]);
+    }
+  };
+
+  const goToPrevTab = () => {
+     const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex > 0) {
+        setActiveTab(TABS[currentIndex - 1]);
+    }
+  };
 
   const handleSuggestTitles = async () => {
     setIsSuggesting(true);
@@ -207,7 +224,7 @@ export function JobForm({ job }: { job?: Job }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Tabs defaultValue="details" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="w-full overflow-x-auto mb-6">
                 <TabsList>
                     <TabsTrigger value="details">Details</TabsTrigger>
@@ -317,6 +334,9 @@ export function JobForm({ job }: { job?: Job }) {
                          </div>
                     </CardContent>
                 </Card>
+                <div className="mt-6 flex justify-end">
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
             
             <TabsContent value="type">
@@ -393,6 +413,10 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                 </Card>
+                <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
             
             <TabsContent value="compensation">
@@ -503,6 +527,10 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                 </Card>
+                <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
             
             <TabsContent value="skills">
@@ -612,6 +640,10 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
+                 <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
              <TabsContent value="logistics">
@@ -673,6 +705,10 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
+                 <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
             
             <TabsContent value="questions">
@@ -725,6 +761,10 @@ export function JobForm({ job }: { job?: Job }) {
                         <Button type="button" variant="outline" onClick={() => appendQuestion({ question: '', type: 'text', options: [] })}>Add Question</Button>
                     </CardContent>
                  </Card>
+                 <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
             
             <TabsContent value="publish">
@@ -760,6 +800,9 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
+                <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                </div>
             </TabsContent>
 
         </Tabs>

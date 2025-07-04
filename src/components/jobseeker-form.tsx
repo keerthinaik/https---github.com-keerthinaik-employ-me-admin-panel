@@ -13,7 +13,7 @@ import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
-import { CalendarIcon, Trash2, X } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
@@ -94,6 +94,8 @@ type JobseekerFormProps = {
 export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState('profile');
+  const TABS = ['profile', 'career', 'skills', 'portfolio', 'account'];
   
   const form = useForm<JobseekerFormValues>({
     resolver: zodResolver(jobseekerSchema),
@@ -135,6 +137,20 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const [allSkills, setAllSkills] = React.useState(skills);
   const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
+
+  const goToNextTab = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex < TABS.length - 1) {
+        setActiveTab(TABS[currentIndex + 1]);
+    }
+  };
+
+  const goToPrevTab = () => {
+     const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex > 0) {
+        setActiveTab(TABS[currentIndex - 1]);
+    }
+  };
 
   const handleAddNewSkill = (categoryId: string, categoryName: string) => {
     const newSkillName = newSkillInputs[categoryId]?.trim();
@@ -179,7 +195,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="career">Career</TabsTrigger>
@@ -251,6 +267,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </CardContent>
             </Card>
+            <div className="mt-6 flex justify-end">
+                <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+            </div>
         </TabsContent>
 
         <TabsContent value="career" className="space-y-6">
@@ -309,6 +328,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Button type="button" variant="outline" onClick={() => appendEdu({ institution: '', degree: '', fieldOfStudy: '', startDate: new Date(), endDate: new Date() })}>Add Education</Button>
                 </CardContent>
             </Card>
+            <div className="mt-6 flex justify-between">
+                <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+            </div>
         </TabsContent>
 
         <TabsContent value="skills">
@@ -403,6 +426,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     />
                 </CardContent>
             </Card>
+            <div className="mt-6 flex justify-between">
+                <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+            </div>
         </TabsContent>
 
         <TabsContent value="portfolio" className="space-y-6">
@@ -425,6 +452,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                      <Button type="button" variant="outline" onClick={() => appendProj({ title: '', url: '', description: '' })}>Add Project</Button>
                 </CardContent>
             </Card>
+            <div className="mt-6 flex justify-between">
+                <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+            </div>
         </TabsContent>
         
         <TabsContent value="account" className="space-y-6">
@@ -490,6 +521,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </CardContent>
             </Card>
+            <div className="mt-6 flex justify-between">
+                <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+            </div>
         </TabsContent>
       </Tabs>
       <CardFooter className="flex justify-end gap-2 mt-6 px-0">

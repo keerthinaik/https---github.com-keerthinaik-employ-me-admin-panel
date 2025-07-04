@@ -2,6 +2,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { createBusiness, updateBusiness } from '@/services/api';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const businessSchema = z.object({
   name: z.string().min(1, 'Business name is required'),
@@ -46,6 +48,9 @@ type BusinessFormProps = {
 export function BusinessForm({ business }: BusinessFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState('business');
+  const TABS = ['business', 'location', 'account'];
+
   const {
     register,
     handleSubmit,
@@ -70,6 +75,20 @@ export function BusinessForm({ business }: BusinessFormProps) {
         logo: undefined,
     }
   });
+
+  const goToNextTab = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex < TABS.length - 1) {
+        setActiveTab(TABS[currentIndex + 1]);
+    }
+  };
+
+  const goToPrevTab = () => {
+     const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex > 0) {
+        setActiveTab(TABS[currentIndex - 1]);
+    }
+  };
 
   const onSubmit = async (data: BusinessFormValues) => {
     const formData = new FormData();
@@ -124,7 +143,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-        <Tabs defaultValue="business" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="business">Business Info</TabsTrigger>
                 <TabsTrigger value="location">Location</TabsTrigger>
@@ -157,6 +176,9 @@ export function BusinessForm({ business }: BusinessFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="flex justify-end">
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
             <TabsContent value="location" className="space-y-6">
@@ -187,6 +209,10 @@ export function BusinessForm({ business }: BusinessFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                 <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
             
             <TabsContent value="account" className="space-y-6">
@@ -230,6 +256,9 @@ export function BusinessForm({ business }: BusinessFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                </div>
             </TabsContent>
         </Tabs>
         <CardFooter className="flex justify-end gap-2 mt-6 px-0">

@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const employerSchema = z.object({
   name: z.string().min(1, 'Contact person name is required'),
@@ -49,6 +51,9 @@ type EmployerFormProps = {
 export function EmployerForm({ employer }: EmployerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState('company');
+  const TABS = ['company', 'location', 'legal', 'account'];
+
   const {
     register,
     handleSubmit,
@@ -78,6 +83,20 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     }
   });
 
+  const goToNextTab = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex < TABS.length - 1) {
+        setActiveTab(TABS[currentIndex + 1]);
+    }
+  };
+
+  const goToPrevTab = () => {
+     const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex > 0) {
+        setActiveTab(TABS[currentIndex - 1]);
+    }
+  };
+
   const onSubmit = (data: EmployerFormValues) => {
     console.log(data);
     toast({
@@ -89,7 +108,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-        <Tabs defaultValue="company" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="company">Company Info</TabsTrigger>
                 <TabsTrigger value="location">Location</TabsTrigger>
@@ -130,6 +149,9 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="flex justify-end">
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
             <TabsContent value="location" className="space-y-6">
@@ -160,6 +182,10 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                 <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
             <TabsContent value="legal" className="space-y-6">
@@ -183,6 +209,10 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
             <TabsContent value="account" className="space-y-6">
@@ -233,6 +263,9 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                 <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                </div>
             </TabsContent>
         </Tabs>
         <CardFooter className="flex justify-end gap-2 mt-6 px-0">

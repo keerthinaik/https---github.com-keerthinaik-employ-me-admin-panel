@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const universityTypes = ["Public", "Private", "Community College", "Technical Institute", "Research University", "Liberal Arts College", "Online University", "Vocational School", "Other"] as const;
 
@@ -57,6 +59,9 @@ type UniversityFormProps = {
 export function UniversityForm({ university }: UniversityFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState('university');
+  const TABS = ['university', 'location', 'account'];
+
   const {
     register,
     handleSubmit,
@@ -85,6 +90,20 @@ export function UniversityForm({ university }: UniversityFormProps) {
 
   const selectedType = watch('type');
 
+  const goToNextTab = () => {
+    const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex < TABS.length - 1) {
+        setActiveTab(TABS[currentIndex + 1]);
+    }
+  };
+
+  const goToPrevTab = () => {
+     const currentIndex = TABS.indexOf(activeTab);
+    if (currentIndex > 0) {
+        setActiveTab(TABS[currentIndex - 1]);
+    }
+  };
+
   const onSubmit = (data: UniversityFormValues) => {
     console.log(data);
     toast({
@@ -96,7 +115,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-        <Tabs defaultValue="university" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="university">University Info</TabsTrigger>
                 <TabsTrigger value="location">Location</TabsTrigger>
@@ -153,6 +172,9 @@ export function UniversityForm({ university }: UniversityFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="mt-6 flex justify-end">
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
              <TabsContent value="location">
@@ -183,6 +205,10 @@ export function UniversityForm({ university }: UniversityFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                </div>
             </TabsContent>
 
              <TabsContent value="account">
@@ -221,6 +247,9 @@ export function UniversityForm({ university }: UniversityFormProps) {
                         </div>
                     </CardContent>
                 </Card>
+                <div className="mt-6 flex justify-between">
+                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                </div>
             </TabsContent>
 
         </Tabs>
