@@ -1,6 +1,5 @@
 
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -102,7 +101,7 @@ export default function UniversitiesPage() {
         setIsLoading(true);
         const apiFilters: Record<string, any> = {};
         if (debouncedSearchTerm) {
-            apiFilters.name = debouncedSearchTerm; // Assuming search by name
+            apiFilters.name = debouncedSearchTerm;
         }
         if (filters.isVerified !== 'all') {
             apiFilters.isVerified = filters.isVerified === 'verified';
@@ -209,7 +208,7 @@ export default function UniversitiesPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by university name, email..."
+                        placeholder="Search by university name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
