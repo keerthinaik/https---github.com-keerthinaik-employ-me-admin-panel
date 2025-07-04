@@ -5,16 +5,20 @@ import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { businesses } from "@/lib/data";
-import { format, formatDistanceToNow } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import {
-    ArrowLeft, MapPin, Globe, CheckCircle, Clock, Phone, Mail, Check, X
+    ArrowLeft, MapPin, Globe, Clock, Phone, Mail, Handshake, Check, X
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Business } from '@/lib/types';
+import { getBusiness, updateBusiness } from '@/services/api';
+import { useToast } from "@/hooks/use-toast";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 function BusinessDetailsSkeleton() {
     return (
@@ -69,22 +73,54 @@ function BusinessDetailsSkeleton() {
 export default function BusinessVerificationDetailsPage() {
     const router = useRouter();
     const params = useParams();
+    const { toast } = useToast();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const business = businesses.find(j => j.id === id);
-    
+    const [business, setBusiness] = useState<Business | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchBusiness = useCallback(() => {
+        if (id) {
+            setIsLoading(true);
+            getBusiness(id)
+                .then(data => setBusiness(data))
+                .catch(err => {
+                    console.error(err);
+                    notFound();
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [id]);
+
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (!business) {
-        notFound();
-    }
-
+        fetchBusiness();
+    }, [fetchBusiness]);
+    
+    const handleVerification = async (isVerified: boolean) => {
+        if (!business) return;
+        try {
+            const formData = new FormData();
+            formData.append('isVerified', String(isVerified));
+            await updateBusiness(business.id, formData);
+            toast({
+                title: 'Verification Status Updated',
+                description: `${business.name} has been ${isVerified ? 'approved' : 'disapproved'}.`,
+            });
+            fetchBusiness(); // Refetch data to show updated status
+        } catch (error: any) {
+            toast({
+                title: 'Error updating status',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
     if (isLoading) {
         return <BusinessDetailsSkeleton />;
+    }
+
+    if (!business) {
+        return notFound();
     }
 
     return (
@@ -95,13 +131,12 @@ export default function BusinessVerificationDetailsPage() {
                         <ArrowLeft className="mr-1 h-4 w-4" />
                         Back to Verification List
                     </Button>
-                    {!business.isVerified && (
-                        <Button className="bg-green-500 hover:bg-green-600">
+                    {!business.isVerified ? (
+                        <Button className="bg-green-500 hover:bg-green-600" onClick={() => handleVerification(true)}>
                             <Check className="mr-1 h-4 w-4" /> Approve
                         </Button>
-                    )}
-                    {business.isVerified && (
-                        <Button variant="destructive">
+                    ) : (
+                        <Button variant="destructive" onClick={() => handleVerification(false)}>
                             <X className="mr-1 h-4 w-4" /> Disapprove
                         </Button>
                     )}
@@ -113,7 +148,7 @@ export default function BusinessVerificationDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={business.logo} alt={business.name} />
+                                <AvatarImage src={business.profilePhoto ? `${API_BASE_URL}${business.profilePhoto.startsWith('/') ? '' : '/'}${business.profilePhoto}` : undefined} alt={business.name} />
                                 <AvatarFallback>{business.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{business.name}</CardTitle>
@@ -167,8 +202,8 @@ export default function BusinessVerificationDetailsPage() {
                                 </Badge>
                            </div>
                            <div className="text-sm text-muted-foreground pt-4 border-t">
-                                <p>Joined: {format(new Date(business.createdAt), 'MMM d, yyyy')}</p>
-                                <p>Last Updated: {formatDistanceToNow(new Date(business.updatedAt), { addSuffix: true })}</p>
+                                <p>Joined: {isValid(new Date(business.createdAt)) ? format(new Date(business.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                                <p>Last Updated: {isValid(new Date(business.updatedAt)) ? formatDistanceToNow(new Date(business.updatedAt), { addSuffix: true }) : 'N/A'}</p>
                            </div>
                         </CardContent>
                     </Card>
