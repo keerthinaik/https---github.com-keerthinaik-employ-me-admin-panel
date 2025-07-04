@@ -1,4 +1,6 @@
 
+
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
@@ -6,15 +8,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { universities } from "@/lib/data";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import {
-    ArrowLeft, Edit, MapPin, Globe, CheckCircle, Clock, Users, Phone, Mail, FileText, School, Building
+    ArrowLeft, Edit, MapPin, Globe, Clock, Phone, Mail, Building
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { University } from '@/lib/types';
+import { getUniversity } from '@/services/api';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 function UniversityDetailsSkeleton() {
     return (
@@ -70,21 +75,27 @@ export default function UniversityDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const university = universities.find(j => j.id === id);
-    
+    const [university, setUniversity] = useState<University | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (!university) {
-        notFound();
-    }
+        if (id) {
+            getUniversity(id)
+                .then(data => setUniversity(data))
+                .catch(err => {
+                    console.error(err);
+                    notFound();
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [id]);
 
     if (isLoading) {
         return <UniversityDetailsSkeleton />;
+    }
+
+    if (!university) {
+        return notFound();
     }
 
     return (
@@ -109,7 +120,7 @@ export default function UniversityDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={university.logo} alt={university.name} />
+                                <AvatarImage src={university.profilePhoto ? `${API_BASE_URL}${university.profilePhoto.startsWith('/') ? '' : '/'}${university.profilePhoto}` : undefined} alt={university.name} />
                                 <AvatarFallback>{university.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{university.name}</CardTitle>
@@ -161,8 +172,8 @@ export default function UniversityDetailsPage() {
                                 </Badge>
                            </div>
                            <div className="text-sm text-muted-foreground pt-4 border-t">
-                                <p>Joined: {format(new Date(university.createdAt), 'MMM d, yyyy')}</p>
-                                <p>Last Updated: {formatDistanceToNow(new Date(university.updatedAt), { addSuffix: true })}</p>
+                                <p>Joined: {isValid(new Date(university.createdAt)) ? format(new Date(university.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                                <p>Last Updated: {isValid(new Date(university.updatedAt)) ? formatDistanceToNow(new Date(university.updatedAt), { addSuffix: true }) : 'N/A'}</p>
                            </div>
                         </CardContent>
                     </Card>

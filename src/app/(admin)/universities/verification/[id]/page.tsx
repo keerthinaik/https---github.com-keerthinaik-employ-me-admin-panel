@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
@@ -113,7 +114,7 @@ export default function UniversityVerificationDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={university.logo} alt={university.name} />
+                                <AvatarImage src={university.profilePhoto} alt={university.name} />
                                 <AvatarFallback>{university.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{university.name}</CardTitle>

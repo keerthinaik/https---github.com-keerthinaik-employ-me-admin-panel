@@ -1,5 +1,6 @@
 
 
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -112,6 +113,27 @@ export interface Business {
   profilePhoto?: string;
   about?: string;
   website?: string;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface University {
+  id: string;
+  _id?: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  zipCode?: string;
+  profilePhoto?: string;
+  about?: string;
+  type: "Public" | "Private" | "Community College" | "Technical Institute" | "Research University" | "Liberal Arts College" | "Online University" | "Vocational School" | "Other";
+  otherType?: string;
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;

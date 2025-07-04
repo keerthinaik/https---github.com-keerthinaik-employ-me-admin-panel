@@ -1,6 +1,7 @@
 
 
-import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType } from "./types";
+
+import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType } from "./types";
 
 export type Question = {
     question: string;
@@ -263,30 +264,7 @@ export type Employer = {
   updatedAt: Date;
 };
 
-export type University = {
-  id: string;
-  name: string;
-  email: string;
-  password?: string;
-  phoneNumber?: string;
-  
-  address?: string;
-  country?: string;
-  state?: string;
-  city?: string;
-  zipCode?: string;
-
-  isVerified: boolean;
-  isActive: boolean;
-  
-  type: "Public" | "Private" | "Community College" | "Technical Institute" | "Research University" | "Liberal Arts College" | "Online University" | "Vocational School" | "Other";
-  otherType?: string;
-  about?: string;
-  logo?: string;
-  
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type University = UniversityType;
 
 export type Business = {
   id: string;
@@ -304,7 +282,7 @@ export type Business = {
   zipCode?: string;
 
   // Business-Specific Fields
-  logo?: string; // Path or URL
+  profilePhoto?: string;
   about?: string;
   website?: string;
 
@@ -540,7 +518,7 @@ export const businesses: Business[] = [
         name: "Talent Finders Co.",
         email: "contact@talentfinders.com",
         phoneNumber: "+1-212-555-0150",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "Specialized recruitment agency for the tech industry.",
         city: "New York", state: "NY", country: "USA",
         website: "https://talentfinders.com",
@@ -554,7 +532,7 @@ export const businesses: Business[] = [
         name: "Global Recruiters",
         email: "info@globalrecruit.net",
         phoneNumber: "+44-20-7946-0200",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "Connecting top talent with international opportunities.",
         city: "London", country: "UK",
         website: "https://globalrecruit.net",
@@ -568,7 +546,7 @@ export const businesses: Business[] = [
         name: "HR Solutions Ltd.",
         email: "support@hrsolutions.io",
         phoneNumber: "+65-6555-0110",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "Comprehensive HR and payroll outsourcing services.",
         city: "Singapore", country: "Singapore",
         website: "https://hrsolutions.io",
@@ -585,7 +563,7 @@ export const universities: University[] = [
         name: "Stanford University",
         email: "admissions@stanford.edu",
         phoneNumber: "+1-650-723-2300",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "A place of learning, discovery, innovation, expression, and discourse.",
         city: "Stanford", state: "CA", country: "USA",
         type: "Research University",
@@ -599,7 +577,7 @@ export const universities: University[] = [
         name: "University of Cambridge",
         email: "info@cam.ac.uk",
         phoneNumber: "+44-1223-337733",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "A world-leading university, known for its academic excellence and traditional collegiate system.",
         city: "Cambridge", country: "UK",
         type: "Public",
@@ -613,7 +591,7 @@ export const universities: University[] = [
         name: "National University of Singapore",
         email: "contact@nus.edu.sg",
         phoneNumber: "+65-6516-6666",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "Singapore's flagship university, offering a global approach to education and research.",
         city: "Singapore", country: "Singapore",
         type: "Public",
@@ -627,7 +605,7 @@ export const universities: University[] = [
         name: "University of Toronto",
         email: "help.desk@utoronto.ca",
         phoneNumber: "+1-416-978-2011",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "Canada's leading institution of learning, discovery and knowledge creation.",
         city: "Toronto", state: "ON", country: "Canada",
         type: "Public",
@@ -641,7 +619,7 @@ export const universities: University[] = [
         name: "The University of Tokyo",
         email: "contact.adm@gs.mail.u-tokyo.ac.jp",
         phoneNumber: "+81-3-5841-2591",
-        logo: "https://placehold.co/100x100.png",
+        profilePhoto: "https://placehold.co/100x100.png",
         about: "A leading research university in Japan, with a rich history and a commitment to academic freedom.",
         city: "Tokyo", country: "Japan",
         type: "Research University",

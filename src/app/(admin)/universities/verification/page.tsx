@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, type Key } from 'react';
@@ -301,7 +302,7 @@ export default function UniversityVerificationPage() {
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={uni.logo} alt={uni.name} />
+                                                    <AvatarImage src={uni.profilePhoto} alt={uni.name} />
                                                     <AvatarFallback>{uni.name.slice(0,2)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>

@@ -1,4 +1,5 @@
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, Country, State, City } from '@/lib/types';
+
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -427,6 +428,79 @@ export async function deleteBusiness(id: string): Promise<null> {
     method: 'DELETE',
   });
 }
+
+// Universities
+export async function getUniversities(params: GetAllParams = {}): Promise<{ data: University[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response = await authedFetch(`/api/v1/universities?${queryString}`);
+  
+  const data = response.data.map((item: any) => ({
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getUniversity(id: string): Promise<University> {
+    const response = await authedFetch(`/api/v1/universities/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("University not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+    };
+}
+
+export async function createUniversity(universityData: FormData): Promise<University> {
+  const response = await authedFetch(`/api/v1/universities`, {
+    method: 'POST',
+    body: universityData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Created university data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function updateUniversity(id: string, universityData: FormData): Promise<University> {
+  const response = await authedFetch(`/api/v1/universities/${id}`, {
+    method: 'PUT',
+    body: universityData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated university data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function deleteUniversity(id: string): Promise<null> {
+  return authedFetch(`/api/v1/universities/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 
 // Location APIs
 export async function getCountries(): Promise<Country[]> {
