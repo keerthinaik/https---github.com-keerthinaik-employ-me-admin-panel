@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import type { UseFormSetValue } from 'react-hook-form'
 
 // Fix for default icon issue with webpack
-const DefaultIcon = L.icon({
+const defaultIcon = L.icon({
     iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
@@ -17,7 +17,6 @@ const DefaultIcon = L.icon({
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
 interface MapPickerProps {
   lat?: number
@@ -39,7 +38,7 @@ function LocationMarker({ setValue, lat, lng }: MapPickerProps) {
     }
   }, [lat, lng, map])
 
-  return lat === undefined || lng === undefined ? null : <Marker position={[lat, lng]} />
+  return lat === undefined || lng === undefined ? null : <Marker position={[lat, lng]} icon={defaultIcon} />
 }
 
 export default function MapPicker({ lat, lng, setValue }: MapPickerProps) {
