@@ -2,6 +2,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,22 +10,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { type Jobseeker, skills, skillCategories, businesses, universities } from '@/lib/data';
+import { type Jobseeker, businesses, universities } from '@/lib/data';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
-import { CalendarIcon, ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, Trash2, X, ChevronsUpDown, Check } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Checkbox } from '@/components/ui/checkbox';
-import * as React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { getSkills, getSkillCategories } from '@/services/api';
+import type { Skill, SkillCategory } from '@/lib/types';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 
 const experienceSchema = z.object({
   jobTitle: z.string().min(1, "Job title is required"),
@@ -186,8 +187,35 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
   const { fields: projFields, append: appendProj, remove: removeProj } = useFieldArray({ control, name: "projects" });
 
-  const [allSkills, setAllSkills] = React.useState(skills);
-  const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
+  const [allSkills, setAllSkills] = React.useState<Skill[]>([]);
+  const [skillCategories, setSkillCategories] = React.useState<SkillCategory[]>([]);
+  const [isLoadingSkills, setIsLoadingSkills] = React.useState(true);
+  
+  React.useEffect(() => {
+    async function fetchData() {
+        try {
+            const [skillsRes, categoriesRes] = await Promise.all([
+                getSkills({ limit: 1000, sort: 'name' }),
+                getSkillCategories({ limit: 1000, sort: 'name' })
+            ]);
+            setAllSkills(skillsRes.data);
+            setSkillCategories(categoriesRes.data);
+        } catch (error) {
+            toast({ title: "Failed to load skills data", variant: "destructive" });
+        } finally {
+            setIsLoadingSkills(false);
+        }
+    }
+    fetchData();
+  }, [toast]);
+  
+  const groupedSkills = React.useMemo(() => {
+    return skillCategories.map(category => ({
+        ...category,
+        skills: allSkills.filter(skill => skill.skillCategory?.id === category.id)
+    })).filter(category => category.skills.length > 0);
+  }, [skillCategories, allSkills]);
+
 
   const goToNextTab = () => {
     const currentIndex = TABS.indexOf(activeTab);
@@ -202,38 +230,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         setActiveTab(TABS[currentIndex - 1]);
     }
   };
-
-  const handleAddNewSkill = (categoryId: string, categoryName: string) => {
-    const newSkillName = newSkillInputs[categoryId]?.trim();
-    if (!newSkillName) {
-        toast({ title: "Skill name cannot be empty.", variant: "destructive" });
-        return;
-    }
-
-    if (allSkills.some(s => s.name.toLowerCase() === newSkillName.toLowerCase())) {
-        toast({ title: "Skill already exists.", description: `"${newSkillName}" is already in the list.`, variant: "destructive" });
-        return;
-    }
-
-    const newSkill = {
-        id: `SKL_${Date.now()}`,
-        name: newSkillName,
-        categoryId,
-        categoryName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
-
-    setAllSkills(prev => [...prev, newSkill].sort((a, b) => a.name.localeCompare(b.name)));
-    
-    const currentSelectedSkills = form.getValues('skills') || [];
-    form.setValue('skills', [...currentSelectedSkills, newSkill.name], { shouldDirty: true });
-    
-    setNewSkillInputs(prev => ({...prev, [categoryId]: ''}));
-    
-    toast({ title: "Skill Added", description: `"${newSkillName}" has been added and selected.` });
-  };
-
 
   const onError = (errors: any) => {
     const firstErrorField = Object.keys(errors)[0] as keyof JobseekerFormValues;
@@ -459,90 +455,72 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
             <Card>
                 <CardHeader>
                     <CardTitle>Skills</CardTitle>
-                    <CardDescription>Select skills for the jobseeker, organized by category.</CardDescription>
+                    <CardDescription>Select all relevant skills for the jobseeker.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Controller
                         name="skills"
                         control={control}
                         render={({ field }) => (
-                           <div className="space-y-4">
-                                <div className="flex flex-wrap gap-2 min-h-10 border rounded-md p-2">
-                                    {field.value?.length > 0 ? (
-                                        field.value.map(skillName => (
-                                            <Badge key={skillName} variant="secondary">
-                                                {skillName}
-                                                <button
-                                                    type="button"
-                                                    className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                                    onClick={() => {
-                                                        field.onChange(field.value?.filter(s => s !== skillName));
-                                                    }}
-                                                >
-                                                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                                </button>
-                                            </Badge>
-                                        ))
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground px-2 py-1">No skills selected.</span>
-                                    )}
-                                </div>
-                                <Accordion type="multiple" className="w-full">
-                                    {skillCategories.map(category => {
-                                        const categorySkills = allSkills
-                                            .filter(s => s.categoryId === category.id)
-                                            .sort((a,b) => a.name.localeCompare(b.name));
-                                            
-                                        if (categorySkills.length === 0) return null;
-
-                                        return (
-                                            <AccordionItem value={category.id} key={category.id}>
-                                                <AccordionTrigger>{category.name}</AccordionTrigger>
-                                                <AccordionContent>
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                                        {categorySkills.map(skill => (
-                                                            <div key={skill.id} className="flex items-center space-x-2">
-                                                                <Checkbox
-                                                                    id={`skill-${skill.id}`}
-                                                                    checked={field.value?.includes(skill.name)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        const currentSkills = field.value || [];
-                                                                        if (checked) {
-                                                                            field.onChange([...currentSkills, skill.name]);
-                                                                        } else {
-                                                                            field.onChange(currentSkills.filter(s => s !== skill.name));
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <Label htmlFor={`skill-${skill.id}`} className="font-normal cursor-pointer">
-                                                                    {skill.name}
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="mt-4 pt-4 border-t border-dashed">
-                                                        <p className="text-xs font-semibold text-muted-foreground mb-2">Not listed? Add a new skill to this category.</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <Input
-                                                                placeholder="Enter new skill name"
-                                                                value={newSkillInputs[category.id] || ''}
-                                                                onChange={(e) => setNewSkillInputs(prev => ({ ...prev, [category.id]: e.target.value }))}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        e.preventDefault();
-                                                                        handleAddNewSkill(category.id, category.name);
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        className="w-full justify-between h-auto"
+                                    >
+                                        <div className="flex gap-1 flex-wrap">
+                                            {field.value && field.value.length > 0 ? (
+                                                field.value.map(skillName => (
+                                                    <Badge key={skillName} variant="secondary">{skillName}</Badge>
+                                                ))
+                                            ) : (
+                                                "Select skills..."
+                                            )}
+                                        </div>
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search skills..." />
+                                        <CommandEmpty>No skills found.</CommandEmpty>
+                                        <CommandGroup className="max-h-60 overflow-auto">
+                                            {isLoadingSkills ? (
+                                                <CommandItem disabled>Loading skills...</CommandItem>
+                                            ) : (
+                                                groupedSkills.map(category => (
+                                                    <CommandGroup key={category.id} heading={category.name}>
+                                                        {category.skills.map(skill => (
+                                                            <CommandItem
+                                                                key={skill.id}
+                                                                value={skill.name}
+                                                                onSelect={() => {
+                                                                    const currentSkills = field.value || [];
+                                                                    const isSelected = currentSkills.includes(skill.name);
+                                                                    if (isSelected) {
+                                                                        field.onChange(currentSkills.filter(s => s !== skill.name));
+                                                                    } else {
+                                                                        field.onChange([...currentSkills, skill.name]);
                                                                     }
                                                                 }}
-                                                            />
-                                                            <Button type="button" onClick={() => handleAddNewSkill(category.id, category.name)}>Add</Button>
-                                                        </div>
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        );
-                                    })}
-                                </Accordion>
-                           </div>
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        field.value?.includes(skill.name) ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {skill.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                ))
+                                            )}
+                                        </CommandGroup>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         )}
                     />
                 </CardContent>
