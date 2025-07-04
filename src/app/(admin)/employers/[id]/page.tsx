@@ -6,8 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { employers } from "@/lib/data";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import {
     ArrowLeft, Edit, MapPin, Globe, CheckCircle, Clock, Users, Phone, Mail, FileText, Building, User, Hash, FileBadge, FileArchive
 } from "lucide-react";
@@ -15,6 +14,10 @@ import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getEmployer } from "@/services/api";
+import type { Employer } from "@/lib/types";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 function EmployerDetailsSkeleton() {
     return (
@@ -80,21 +83,24 @@ export default function EmployerDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const employer = employers.find(j => j.id === id);
-    
+    const [employer, setEmployer] = useState<Employer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
+        if (id) {
+            getEmployer(id)
+                .then(data => setEmployer(data))
+                .catch(err => {
+                    console.error(err);
+                    notFound();
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [id]);
 
     if (!employer) {
-        notFound();
-    }
-
-    if (isLoading) {
-        return <EmployerDetailsSkeleton />;
+        if(isLoading) return <EmployerDetailsSkeleton />;
+        return notFound();
     }
 
     return (
@@ -119,7 +125,7 @@ export default function EmployerDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={employer.logo} alt={employer.companyName} />
+                                <AvatarImage src={employer.profilePhoto ? `${API_BASE_URL}${employer.profilePhoto.startsWith('/') ? '' : '/'}${employer.profilePhoto}` : undefined} alt={employer.companyName} />
                                 <AvatarFallback>{employer.companyName.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{employer.companyName}</CardTitle>
@@ -197,8 +203,8 @@ export default function EmployerDetailsPage() {
                                 </Badge>
                            </div>
                            <div className="text-sm text-muted-foreground pt-4 border-t">
-                                <p>Joined: {format(new Date(employer.createdAt), 'MMM d, yyyy')}</p>
-                                <p>Last Updated: {formatDistanceToNow(new Date(employer.updatedAt), { addSuffix: true })}</p>
+                                <p>Joined: {isValid(new Date(employer.createdAt)) ? format(new Date(employer.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                                <p>Last Updated: {isValid(new Date(employer.updatedAt)) ? formatDistanceToNow(new Date(employer.updatedAt), { addSuffix: true }) : 'N/A'}</p>
                            </div>
                         </CardContent>
                     </Card>

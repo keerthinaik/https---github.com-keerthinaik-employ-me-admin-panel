@@ -6,15 +6,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { employers } from "@/lib/data";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import {
-    ArrowLeft, Edit, MapPin, Globe, Clock, Phone, Mail, FileText, Building, User, Hash, FileBadge, FileArchive, X, Check
+    ArrowLeft, MapPin, Globe, Clock, Phone, Mail, FileText, Building, User, Hash, FileBadge, FileArchive, X, Check
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Employer } from "@/lib/types";
+import { getEmployer, updateEmployer } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 function EmployerDetailsSkeleton() {
     return (
@@ -80,21 +84,53 @@ export default function EmployerVerificationDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const employer = employers.find(j => j.id === id);
-    
+    const { toast } = useToast();
+    const [employer, setEmployer] = useState<Employer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
+    const fetchEmployer = useCallback(() => {
+        if (id) {
+            setIsLoading(true);
+            getEmployer(id)
+                .then(data => setEmployer(data))
+                .catch(err => {
+                    console.error(err);
+                    notFound();
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [id]);
 
-    if (!employer) {
-        notFound();
-    }
+    useEffect(() => {
+        fetchEmployer();
+    }, [fetchEmployer]);
+    
+    const handleVerification = async (isVerified: boolean) => {
+        if (!employer) return;
+        try {
+            const formData = new FormData();
+            formData.append('isVerified', String(isVerified));
+            await updateEmployer(employer.id, formData);
+            toast({
+                title: 'Verification Status Updated',
+                description: `${employer.companyName} has been ${isVerified ? 'approved' : 'disapproved'}.`,
+            });
+            fetchEmployer(); // Refetch data to show updated status
+        } catch (error: any) {
+            toast({
+                title: 'Error updating status',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
 
     if (isLoading) {
         return <EmployerDetailsSkeleton />;
+    }
+
+    if (!employer) {
+        return notFound();
     }
 
     return (
@@ -105,13 +141,12 @@ export default function EmployerVerificationDetailsPage() {
                         <ArrowLeft className="mr-1 h-4 w-4" />
                         Back to Verification List
                     </Button>
-                    {!employer.isVerified && (
-                        <Button className="bg-green-500 hover:bg-green-600">
+                    {!employer.isVerified ? (
+                        <Button className="bg-green-500 hover:bg-green-600" onClick={() => handleVerification(true)}>
                             <Check className="mr-1 h-4 w-4" /> Approve
                         </Button>
-                    )}
-                    {employer.isVerified && (
-                        <Button variant="destructive">
+                    ) : (
+                         <Button variant="destructive" onClick={() => handleVerification(false)}>
                             <X className="mr-1 h-4 w-4" /> Disapprove
                         </Button>
                     )}
@@ -123,7 +158,7 @@ export default function EmployerVerificationDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={employer.logo} alt={employer.companyName} />
+                                <AvatarImage src={employer.profilePhoto ? `${API_BASE_URL}${employer.profilePhoto.startsWith('/') ? '' : '/'}${employer.profilePhoto}` : undefined} alt={employer.companyName} />
                                 <AvatarFallback>{employer.companyName.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{employer.companyName}</CardTitle>
@@ -201,8 +236,8 @@ export default function EmployerVerificationDetailsPage() {
                                 </Badge>
                            </div>
                            <div className="text-sm text-muted-foreground pt-4 border-t">
-                                <p>Joined: {format(new Date(employer.createdAt), 'MMM d, yyyy')}</p>
-                                <p>Last Updated: {formatDistanceToNow(new Date(employer.updatedAt), { addSuffix: true })}</p>
+                                <p>Joined: {isValid(new Date(employer.createdAt)) ? format(new Date(employer.createdAt), 'MMM d, yyyy') : 'N/A'}</p>
+                                <p>Last Updated: {isValid(new Date(employer.updatedAt)) ? formatDistanceToNow(new Date(employer.updatedAt), { addSuffix: true }) : 'N/A'}</p>
                            </div>
                         </CardContent>
                     </Card>
