@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import dynamic from 'next/dynamic'
 
 import { PageHeader } from '@/components/page-header'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,10 +18,6 @@ import { useToast } from '@/hooks/use-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
-import type { LatLng } from 'leaflet'
-import L from 'leaflet';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -57,17 +54,11 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
   );
 }
 
-// Fix for default icon issue with webpack
-const DefaultIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+// Dynamically import the MapPicker component
+const MapPicker = dynamic(() => import('@/components/map-picker'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-full w-full" />,
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
 
 export default function ProfilePage() {
@@ -101,12 +92,7 @@ export default function ProfilePage() {
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [aspect, setAspect] = useState<number | undefined>(1)
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
+  
   const lat = watch('latitude');
   const lng = watch('longitude');
 
@@ -186,25 +172,6 @@ export default function ProfilePage() {
       title: 'Profile Updated',
       description: 'Your profile has been successfully updated.',
     })
-  }
-  
-  const LocationMarker = () => {
-      const map = useMapEvents({
-          click(e) {
-              setValue('latitude', e.latlng.lat, { shouldValidate: true })
-              setValue('longitude', e.latlng.lng, { shouldValidate: true })
-          },
-      })
-
-      useEffect(() => {
-          if (lat !== undefined && lng !== undefined) {
-              map.flyTo([lat, lng], map.getZoom())
-          }
-      }, [lat, lng, map])
-
-      return lat === undefined || lng === undefined ? null : (
-          <Marker position={[lat, lng]}></Marker>
-      )
   }
 
   return (
@@ -289,20 +256,7 @@ export default function ProfilePage() {
             <div className="space-y-2">
                 <Label>Location on Map</Label>
                 <div className="h-80 w-full rounded-md border overflow-hidden">
-                {isClient ? (
-                  <MapContainer
-                    center={[lat || 51.505, lng || -0.09]}
-                    zoom={13}
-                    scrollWheelZoom={false}
-                    className="h-full w-full z-0"
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <LocationMarker />
-                  </MapContainer>
-                ) : <Skeleton className="h-full w-full" />}
+                    <MapPicker lat={lat} lng={lng} setValue={setValue} />
                 </div>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
