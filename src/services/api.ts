@@ -1,5 +1,3 @@
-
-
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, Country, State, City } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
@@ -368,18 +366,12 @@ export async function getBusinesses(params: GetAllParams = {}): Promise<{ data: 
     createdAt: new Date(item.createdAt),
     updatedAt: new Date(item.updatedAt),
   }));
-  
-  const paginationInfo = response.pagination;
-
-  if (!paginationInfo) {
-    throw new Error("Pagination data is missing from the business API response.");
-  }
 
   const pagination: Pagination = {
-    currentPage: paginationInfo.currentPage,
-    limit: paginationInfo.limit,
-    totalRecords: paginationInfo.totalRecords,
-    totalPages: paginationInfo.totalPages,
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
   };
 
   return { data, pagination };
