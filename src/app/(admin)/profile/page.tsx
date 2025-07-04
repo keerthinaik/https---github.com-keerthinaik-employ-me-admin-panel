@@ -106,7 +106,13 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const form = useForm<ProfileFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    setValue,
+  } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '', email: '', phoneNumber: '', address: '', city: '',
@@ -127,7 +133,7 @@ export default function ProfilePage() {
         const response = await getMe();
         const userData = response.data;
         setProfileData(userData);
-        form.reset({
+        reset({
           name: userData.name || '',
           email: userData.email || '',
           phoneNumber: userData.phoneNumber || '',
@@ -147,7 +153,7 @@ export default function ProfilePage() {
       }
     }
     fetchProfile();
-  }, [form, toast]);
+  }, [reset, toast]);
 
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,7 +220,7 @@ export default function ProfilePage() {
         }
         const croppedUrl = URL.createObjectURL(blob);
         setCroppedImageUrl(croppedUrl);
-        form.setValue('avatar', new File([blob], 'avatar.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
+        setValue('avatar', new File([blob], 'avatar.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
         setDialogOpen(false);
     }, 'image/jpeg');
   }
@@ -258,7 +264,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <PageHeader title="My Profile" />
         <Card>
           <CardHeader>
@@ -289,12 +295,12 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input id="name" {...register('name')} />
-                {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" {...register('email')} />
-                {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
               </div>
             </div>
             <div className="space-y-2">
@@ -331,13 +337,13 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <Label htmlFor="zipCode">Zip / Postal Code</Label>
                 <Input id="zipCode" {...register('zipCode')} />
-                {form.formState.errors.zipCode && <p className="text-sm text-destructive">{form.formState.errors.zipCode.message}</p>}
+                {errors.zipCode && <p className="text-sm text-destructive">{errors.zipCode.message}</p>}
               </div>
             </div>
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
           </CardFooter>
         </Card>
