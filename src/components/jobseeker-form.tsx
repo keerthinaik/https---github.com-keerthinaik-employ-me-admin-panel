@@ -412,33 +412,33 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     });
   };
 
-  const onSubmit = async (data: JobseekerFormValues) => {
+ const onSubmit = async (data: JobseekerFormValues) => {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (value === undefined || value === null || (typeof value === 'string' && value === '')) return;
+      if (value === undefined || value === null || (typeof value === 'string' && value === '')) {
+        return;
+      }
 
-      if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
-          formData.append(key, value);
-      } else if (['resume', 'certifications'].includes(key) && value instanceof FileList) {
-          for (let i = 0; i < value.length; i++) {
-              formData.append(key, value[i]);
-          }
-      } else if (Array.isArray(value)) {
-          if (key === 'skills') {
-              // Skills is an array of strings (IDs)
-              value.forEach(item => formData.append(key, item));
-          } else {
-              // Assumes other arrays (experience, education, projects) are arrays of objects
-              value.forEach(item => formData.append(key, JSON.stringify(item)));
-          }
+      if (Array.isArray(value)) {
+        if (key === 'skills') {
+          value.forEach(item => formData.append('skills', item));
+        } else {
+          // Handle arrays of objects (experience, education, projects)
+          value.forEach(item => formData.append(key, JSON.stringify(item)));
+        }
+      } else if (value instanceof File) {
+        formData.append(key, value);
+      } else if (value instanceof FileList) {
+        for (let i = 0; i < value.length; i++) {
+          formData.append(key, value[i]);
+        }
       } else if (value instanceof Date) {
-          formData.append(key, value.toISOString());
+        formData.append(key, value.toISOString());
       } else if (typeof value === 'boolean') {
-          formData.append(key, String(value));
+        formData.append(key, String(value));
       } else {
-          // This will handle strings and numbers
-          formData.append(key, value as string);
+        formData.append(key, value as string);
       }
     });
 
@@ -708,13 +708,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
                 <TabsContent value="social" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Social & Portfolio Links</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Social & Professional Links</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
                             <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
+                     <div className="mt-6 flex justify-between">
                         <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                         <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                     </div>
@@ -888,3 +888,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+
