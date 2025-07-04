@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
         source: '/api/v1/:path*',
         destination: `http://148.72.244.169:3000/api/v1/:path*`,
       },
+      {
+        source: '/api/location/:path*',
+        destination: `http://148.72.244.169:3000/api/location/:path*`,
+      },
     ]
   },
 };
