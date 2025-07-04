@@ -33,19 +33,25 @@ function LocationMarker({ setValue, lat, lng }: MapPickerProps) {
   })
 
   useEffect(() => {
+    // This effect runs when lat/lng props change, and flies to the new location.
+    // It also handles the initial positioning of the map.
     if (lat !== undefined && lng !== undefined) {
-      map.flyTo([lat, lng], map.getZoom())
+      const targetZoom = map.getZoom() < 5 ? 13 : map.getZoom();
+      map.flyTo([lat, lng], targetZoom)
     }
   }, [lat, lng, map])
 
+  // Only render the marker if we have coordinates
   return lat === undefined || lng === undefined ? null : <Marker position={[lat, lng]} icon={defaultIcon} />
 }
 
 export default function MapPicker({ lat, lng, setValue }: MapPickerProps) {
+  // MapContainer props should be immutable. We set a default view and let
+  // the LocationMarker component handle dynamic position updates.
   return (
     <MapContainer
-      center={[lat || 51.505, lng || -0.09]}
-      zoom={lat !== undefined && lng !== undefined ? 13 : 5}
+      center={[20, 0]} // A generic, static center
+      zoom={2} // A generic, static zoom level
       scrollWheelZoom={false}
       className="h-full w-full z-0"
     >
