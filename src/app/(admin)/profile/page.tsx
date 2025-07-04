@@ -159,7 +159,7 @@ export default function ProfilePage() {
       reset({
         name: userData.name || '',
         email: userData.email || '',
-        phoneNumber: userData.phoneNumber || '',
+        phoneNumber: (userData.phoneNumber && isValidPhoneNumber(userData.phoneNumber)) ? userData.phoneNumber : '',
         address: userData.address || '',
         city: userData.city || '',
         state: userData.state || '',
