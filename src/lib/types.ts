@@ -1,4 +1,5 @@
 
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -36,9 +37,7 @@ export interface ProfileUser {
 
 export interface GetMeResponse {
     status: string;
-    data: {
-        user: ProfileUser;
-    }
+    data: ProfileUser;
 }
 
 export interface LoginErrorResponse {

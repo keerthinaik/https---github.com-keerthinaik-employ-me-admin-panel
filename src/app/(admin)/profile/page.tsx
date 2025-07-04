@@ -125,7 +125,7 @@ export default function ProfilePage() {
     async function fetchProfile() {
       try {
         const response = await getMe();
-        const userData = response.data.user;
+        const userData = response.data;
         setProfileData(userData);
         form.reset({
           name: userData.name || '',
