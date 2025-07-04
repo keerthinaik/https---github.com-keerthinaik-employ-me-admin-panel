@@ -42,7 +42,7 @@ const businessSchema = z.object({
   city: z.string().optional(),    // Will store name
   zipCode: z.string().optional(),
 
-  logo: z.any().optional(),
+  profilePhoto: z.any().optional(),
   about: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
 
@@ -63,7 +63,7 @@ const fieldToTabMap: Record<keyof BusinessFormValues, string> = {
   city: 'location',
   zipCode: 'location',
   website: 'account',
-  logo: 'account',
+  profilePhoto: 'account',
   password: 'account',
   isVerified: 'account',
   isActive: 'account',
@@ -132,7 +132,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
         website: business?.website || '',
         isVerified: business?.isVerified || false,
         isActive: business?.isActive ?? true,
-        logo: undefined,
+        profilePhoto: undefined,
     }
   });
 
@@ -267,7 +267,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
         }
         const croppedUrl = URL.createObjectURL(blob);
         setCroppedImageUrl(croppedUrl);
-        setValue('logo', new File([blob], 'logo.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
+        setValue('profilePhoto', new File([blob], 'profilePhoto.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
         setDialogOpen(false);
     }, 'image/jpeg');
   }
@@ -305,7 +305,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
-        if (key === 'logo' && value instanceof File) {
+        if (key === 'profilePhoto' && value instanceof File) {
           formData.append('profilePhoto', value);
         } else if (typeof value === 'boolean') {
           formData.append(key, value.toString());
@@ -519,14 +519,14 @@ export function BusinessForm({ business }: BusinessFormProps) {
                           </div>
                           <div className="flex items-center gap-6">
                             <Avatar className="h-20 w-20">
-                                <AvatarImage src={croppedImageUrl} alt="Company logo" />
+                                <AvatarImage src={croppedImageUrl} alt="Company profile photo" />
                                 <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="flex-grow space-y-2">
-                                <Label htmlFor="logo-input">Company Logo</Label>
-                                <Input id="logo-input" type="file" accept="image/*" onChange={onFileChange} />
+                                <Label htmlFor="profilePhoto-input">Profile Photo</Label>
+                                <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
                                 <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
-                                {errors.logo && <p className="text-sm text-destructive">{errors.logo.message as string}</p>}
+                                {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
                             </div>
                          </div>
                       </CardContent>
@@ -570,7 +570,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
             <DialogHeader>
-                <DialogTitle>Crop your company logo</DialogTitle>
+                <DialogTitle>Crop your profile photo</DialogTitle>
             </DialogHeader>
             {imgSrc && (
                 <ReactCrop
@@ -599,3 +599,4 @@ export function BusinessForm({ business }: BusinessFormProps) {
     </>
   );
 }
+
