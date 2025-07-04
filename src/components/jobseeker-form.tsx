@@ -87,6 +87,37 @@ const jobseekerSchema = z.object({
 
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
 
+const fieldToTabMap: Record<keyof JobseekerFormValues, string> = {
+  name: 'profile',
+  email: 'profile',
+  phoneNumber: 'profile',
+  address: 'profile',
+  country: 'profile',
+  state: 'profile',
+  city: 'profile',
+  zipCode: 'profile',
+  headline: 'profile',
+  summary: 'profile',
+  about: 'profile',
+  dateOfBirth: 'profile',
+  gender: 'profile',
+  experience: 'career',
+  education: 'career',
+  skills: 'skills',
+  projects: 'portfolio',
+  linkedInProfile: 'portfolio',
+  githubProfile: 'portfolio',
+  portfolio: 'portfolio',
+  profilePhoto: 'account',
+  bannerImage: 'account',
+  resume: 'account',
+  certifications: 'account',
+  password: 'account',
+  isVerified: 'account',
+  isActive: 'account',
+};
+
+
 type JobseekerFormProps = {
     jobseeker?: Jobseeker;
 }
@@ -118,7 +149,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         portfolio: jobseeker?.portfolio || '',
         isVerified: jobseeker?.isVerified || false,
         isActive: jobseeker?.isActive ?? true,
-        experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities?.join('\n'), achievements: exp.achievements?.join('\n') })) || [],
+        experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities?.join('\\n'), achievements: exp.achievements?.join('\\n') })) || [],
         education: jobseeker?.education?.map(edu => ({ ...edu, startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
         projects: jobseeker?.projects || [],
         skills: jobseeker?.skills || [],
@@ -184,6 +215,21 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   };
 
 
+  const onError = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0] as keyof JobseekerFormValues;
+    if (firstErrorField) {
+      const tab = fieldToTabMap[firstErrorField];
+      if (tab && tab !== activeTab) {
+        setActiveTab(tab);
+      }
+    }
+    toast({
+        title: "Validation Error",
+        description: "Please check the form for errors and try again.",
+        variant: "destructive"
+    });
+  };
+
   const onSubmit = (data: JobseekerFormValues) => {
     console.log(data);
     toast({
@@ -194,7 +240,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit, onError)}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>

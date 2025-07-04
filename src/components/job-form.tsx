@@ -76,6 +76,43 @@ const jobSchema = z.object({
 
 type JobFormValues = z.infer<typeof jobSchema>;
 
+const fieldToTabMap: Record<keyof JobFormValues, string> = {
+  title: 'details',
+  description: 'details',
+  companyId: 'details',
+  jobCategoryId: 'details',
+  type: 'type',
+  payrollType: 'type',
+  contractDuration: 'type',
+  contractDurationUnit: 'type',
+  expectedMinHoursPerWeek: 'type',
+  expectedMaxHoursPerWeek: 'type',
+  shiftType: 'type',
+  otherShiftType: 'type',
+  ctcCurrency: 'compensation',
+  ctcMinAmount: 'compensation',
+  ctcMaxAmount: 'compensation',
+  ctcFrequency: 'compensation',
+  supplementalPayments: 'compensation',
+  otherSupplementalPaymentType: 'compensation',
+  benefits: 'compensation',
+  minExperience: 'skills',
+  maxExperience: 'skills',
+  skills: 'skills',
+  languagesRequired: 'skills',
+  workMode: 'logistics',
+  otherWorkModeType: 'logistics',
+  address: 'logistics',
+  country: 'logistics',
+  state: 'logistics',
+  city: 'logistics',
+  zipCode: 'logistics',
+  expectedStartDate: 'logistics',
+  questions: 'questions',
+  status: 'publish',
+  numberOfPosts: 'publish',
+};
+
 const currencies = [
   { value: 'USD', label: 'USD - United States Dollar' },
   { value: 'EUR', label: 'EUR - Euro' },
@@ -212,6 +249,21 @@ export function JobForm({ job }: { job?: Job }) {
   };
 
 
+  const onError = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0] as keyof JobFormValues;
+    if (firstErrorField) {
+      const tab = fieldToTabMap[firstErrorField];
+      if (tab && tab !== activeTab) {
+        setActiveTab(tab);
+      }
+    }
+    toast({
+        title: "Validation Error",
+        description: "Please check the form for errors and try again.",
+        variant: "destructive"
+    });
+  };
+
   const onSubmit = (data: JobFormValues) => {
     console.log(data);
     toast({
@@ -223,7 +275,7 @@ export function JobForm({ job }: { job?: Job }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit, onError)}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="w-full overflow-x-auto mb-6">
                 <TabsList>

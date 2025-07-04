@@ -52,6 +52,25 @@ const universitySchema = z.object({
 
 type UniversityFormValues = z.infer<typeof universitySchema>;
 
+const fieldToTabMap: Record<keyof UniversityFormValues, string> = {
+  name: 'university',
+  email: 'university',
+  phoneNumber: 'university',
+  type: 'university',
+  otherType: 'university',
+  about: 'university',
+  address: 'location',
+  country: 'location',
+  state: 'location',
+  city: 'location',
+  zipCode: 'location',
+  logo: 'account',
+  password: 'account',
+  isVerified: 'account',
+  isActive: 'account',
+};
+
+
 type UniversityFormProps = {
     university?: University;
 }
@@ -104,6 +123,21 @@ export function UniversityForm({ university }: UniversityFormProps) {
     }
   };
 
+  const onError = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0] as keyof UniversityFormValues;
+    if (firstErrorField) {
+      const tab = fieldToTabMap[firstErrorField];
+      if (tab && tab !== activeTab) {
+        setActiveTab(tab);
+      }
+    }
+    toast({
+        title: "Validation Error",
+        description: "Please check the form for errors and try again.",
+        variant: "destructive"
+    });
+  };
+
   const onSubmit = (data: UniversityFormValues) => {
     console.log(data);
     toast({
@@ -114,7 +148,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit, onError)}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="university">University Info</TabsTrigger>

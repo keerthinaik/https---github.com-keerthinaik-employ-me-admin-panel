@@ -44,6 +44,24 @@ const businessSchema = z.object({
 
 type BusinessFormValues = z.infer<typeof businessSchema>;
 
+const fieldToTabMap: Record<keyof BusinessFormValues, string> = {
+  name: 'business',
+  email: 'business',
+  phoneNumber: 'business',
+  about: 'business',
+  address: 'location',
+  country: 'location',
+  state: 'location',
+  city: 'location',
+  zipCode: 'location',
+  website: 'account',
+  logo: 'account',
+  password: 'account',
+  isVerified: 'account',
+  isActive: 'account',
+};
+
+
 type BusinessFormProps = {
     business?: Business;
 }
@@ -159,6 +177,21 @@ export function BusinessForm({ business }: BusinessFormProps) {
     }
   };
 
+   const onError = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0] as keyof BusinessFormValues;
+    if (firstErrorField) {
+      const tab = fieldToTabMap[firstErrorField];
+      if (tab && tab !== activeTab) {
+        setActiveTab(tab);
+      }
+    }
+    toast({
+        title: "Validation Error",
+        description: "Please check the form for errors and try again.",
+        variant: "destructive"
+    });
+  };
+
   const onSubmit = async (data: BusinessFormValues) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
@@ -211,7 +244,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit, onError)}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="business">Business Info</TabsTrigger>

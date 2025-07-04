@@ -44,6 +44,29 @@ const employerSchema = z.object({
 
 type EmployerFormValues = z.infer<typeof employerSchema>;
 
+const fieldToTabMap: Record<keyof EmployerFormValues, string> = {
+  companyName: 'company',
+  name: 'company',
+  email: 'company',
+  phoneNumber: 'company',
+  about: 'company',
+  address: 'location',
+  country: 'location',
+  state: 'location',
+  city: 'location',
+  zipCode: 'location',
+  website: 'legal',
+  taxNumber: 'legal',
+  registrationNumber: 'legal',
+  logo: 'account',
+  taxCertificate: 'account',
+  registrationCertificate: 'account',
+  password: 'account',
+  isVerified: 'account',
+  isActive: 'account',
+};
+
+
 type EmployerFormProps = {
     employer?: Employer;
 }
@@ -97,6 +120,21 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     }
   };
 
+  const onError = (errors: any) => {
+    const firstErrorField = Object.keys(errors)[0] as keyof EmployerFormValues;
+    if (firstErrorField) {
+      const tab = fieldToTabMap[firstErrorField];
+      if (tab && tab !== activeTab) {
+        setActiveTab(tab);
+      }
+    }
+    toast({
+        title: "Validation Error",
+        description: "Please check the form for errors and try again.",
+        variant: "destructive"
+    });
+  };
+
   const onSubmit = (data: EmployerFormValues) => {
     console.log(data);
     toast({
@@ -107,7 +145,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit, onError)}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="company">Company Info</TabsTrigger>
@@ -149,7 +187,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-                <div className="flex justify-end">
+                <div className="mt-6 flex justify-end">
                     <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                 </div>
             </TabsContent>
@@ -182,7 +220,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-                 <div className="flex justify-between">
+                 <div className="mt-6 flex justify-between">
                     <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                     <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                 </div>
@@ -209,7 +247,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-                <div className="flex justify-between">
+                <div className="mt-6 flex justify-between">
                     <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                     <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                 </div>
