@@ -16,12 +16,18 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Separator } from '@/components/ui/separator';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
   phoneNumber: z.string().optional(),
   avatar: z.any().optional(),
+  address: z.string().optional(),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, {message: "Please provide a valid US zip code"}).optional().or(z.literal('')),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -57,6 +63,11 @@ export default function ProfilePage() {
       name: 'Admin User',
       email: 'admin@talent.hub',
       phoneNumber: '+1-555-0199',
+      address: '123 Admin Lane',
+      city: 'Techville',
+      state: 'CA',
+      country: 'USA',
+      zipCode: '90210',
     },
   })
   
@@ -152,11 +163,11 @@ export default function ProfilePage() {
         <PageHeader title="My Profile" />
         <Card>
           <CardHeader>
-            <CardTitle>Public Profile</CardTitle>
-            <CardDescription>This is how others will see you on the site.</CardDescription>
+            <CardTitle>Profile Details</CardTitle>
+            <CardDescription>Update your personal information and photo.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="flex items-center gap-6">
+          <CardContent className="space-y-6">
+             <div className="flex items-center gap-6">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={croppedImageUrl || "https://placehold.co/80x80.png"} alt="User avatar" />
                 <AvatarFallback>AD</AvatarFallback>
@@ -164,8 +175,17 @@ export default function ProfilePage() {
               <div className="flex-grow space-y-2">
                 <Label htmlFor="avatar-input">Update your photo</Label>
                 <Input id="avatar-input" type="file" accept="image/*" onChange={onFileChange} />
+                <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
               </div>
             </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="text-lg font-medium">Contact Information</h3>
+              <p className="text-sm text-muted-foreground">How we can reach you.</p>
+            </div>
+            
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
@@ -182,6 +202,40 @@ export default function ProfilePage() {
               <Label htmlFor="phoneNumber">Phone Number</Label>
               <Input id="phoneNumber" {...register('phoneNumber')} />
             </div>
+
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-medium">Location</h3>
+              <p className="text-sm text-muted-foreground">Your location details.</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" {...register('address')} />
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input id="city" {...register('city')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State / Province</Label>
+                <Input id="state" {...register('state')} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input id="country" {...register('country')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="zipCode">Zip / Postal Code</Label>
+                <Input id="zipCode" {...register('zipCode')} />
+                {errors.zipCode && <p className="text-sm text-destructive">{errors.zipCode.message}</p>}
+              </div>
+            </div>
+
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
             <Button type="submit" disabled={isSubmitting}>
