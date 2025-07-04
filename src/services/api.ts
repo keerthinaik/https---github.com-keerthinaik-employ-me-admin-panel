@@ -361,19 +361,25 @@ export async function deleteSkill(id: string): Promise<null> {
 // Businesses
 export async function getBusinesses(params: GetAllParams = {}): Promise<{ data: Business[], pagination: Pagination }> {
   const queryString = buildQueryString(params);
-  const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/businesses?${queryString}`);
+  const response = await authedFetch(`/api/v1/businesses?${queryString}`);
   
-  const data = response.data.map(item => ({
+  const data = response.data.map((item: any) => ({
     ...mapItem(item),
     createdAt: new Date(item.createdAt),
     updatedAt: new Date(item.updatedAt),
   }));
+  
+  const paginationInfo = response.pagination;
+
+  if (!paginationInfo) {
+    throw new Error("Pagination data is missing from the business API response.");
+  }
 
   const pagination: Pagination = {
-    currentPage: response.page,
-    limit: response.limit,
-    totalRecords: response.total,
-    totalPages: Math.ceil(response.total / response.limit),
+    currentPage: paginationInfo.currentPage,
+    limit: paginationInfo.limit,
+    totalRecords: paginationInfo.totalRecords,
+    totalPages: paginationInfo.totalPages,
   };
 
   return { data, pagination };
