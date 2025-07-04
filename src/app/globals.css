@@ -87,31 +87,3 @@ body {
     @apply bg-background text-foreground;
   }
 }
-
-/* Custom react-phone-number-input styles for ShadCN look and feel */
-.PhoneInput {
-  @apply flex h-10 w-full items-center rounded-md border border-input bg-transparent text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2;
-}
-
-/* This is the container for my custom select. Resetting some library styles. */
-.PhoneInputCountry {
-  position: static !important;
-  margin-right: 0 !important;
-  border-right: 1px solid hsl(var(--input));
-  display: flex !important;
-  align-items: center !important;
-}
-
-.PhoneInputCountrySelect {
-  display: none !important;
-}
-
-/* The custom SelectTrigger from shadcn/ui */
-.PhoneInput .SelectTrigger {
-  @apply h-full border-none bg-transparent shadow-none;
-}
-
-/* The text input part */
-.PhoneInputInput {
-  @apply h-auto flex-1 border-none bg-transparent px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 md:text-sm;
-}
