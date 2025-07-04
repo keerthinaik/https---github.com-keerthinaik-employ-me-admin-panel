@@ -423,7 +423,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
           for (let i = 0; i < value.length; i++) {
               formData.append(key, value[i]);
           }
+      } else if (key === 'skills' && Array.isArray(value)) {
+          // Append each skill ID individually for proper array handling in backend
+          value.forEach(skillId => {
+              formData.append('skills', skillId);
+          });
       } else if (Array.isArray(value)) {
+          // For complex arrays of objects, stringify is appropriate
           formData.append(key, JSON.stringify(value));
       } else if (value instanceof Date) {
           formData.append(key, value.toISOString());
@@ -496,8 +502,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
                     <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
-                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
                     <TabsTrigger value="social">Social</TabsTrigger>
+                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -698,7 +704,22 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </TabsContent>
 
-                 <TabsContent value="portfolio" className="space-y-6">
+                <TabsContent value="social" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Social & Portfolio Links</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="portfolio" className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Projects</CardTitle>
@@ -723,21 +744,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </TabsContent>
                 
-                <TabsContent value="social" className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle>Social & Portfolio Links</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
-                        </CardContent>
-                    </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-
                 <TabsContent value="account" className="space-y-6">
                     <Card>
                         <CardHeader>
@@ -771,7 +777,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
+                             <FormField
                                 control={control}
                                 name="bannerImage"
                                 render={() => (
