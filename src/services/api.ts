@@ -1,5 +1,5 @@
 
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -286,7 +286,7 @@ export async function getSkills(params: GetAllParams = {}): Promise<{ data: Skil
   const queryString = buildQueryString(params);
   const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/skills?${queryString}`);
   
-  const data = response.data.map(item => ({
+  const data = response.data.map((item:any) => ({
     ...mapItem(item),
     skillCategory: item.skillCategory ? mapItem(item.skillCategory) : undefined,
     createdAt: new Date(item.createdAt),
@@ -569,6 +569,73 @@ export async function updateEmployer(id: string, employerData: FormData): Promis
 
 export async function deleteEmployer(id: string): Promise<null> {
   return authedFetch(`/api/v1/employers/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Jobseekers
+export async function getJobseekers(params: GetAllParams = {}): Promise<{ data: Jobseeker[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/jobseekers?${queryString}`);
+  
+  const data = response.data.map((item: any) => ({
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getJobseeker(id: string): Promise<Jobseeker> {
+    const response = await authedFetch(`/api/v1/jobseekers/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("Jobseeker not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+        dateOfBirth: item.dateOfBirth ? new Date(item.dateOfBirth) : undefined,
+        experience: item.experience?.map((exp: any) => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined })) || [],
+        education: item.education?.map((edu: any) => ({ ...edu, startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
+    };
+}
+
+export async function createJobseeker(jobseekerData: FormData): Promise<Jobseeker> {
+  const response = await authedFetch(`/api/v1/jobseekers`, {
+    method: 'POST',
+    body: jobseekerData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Created jobseeker data not found in API response.");
+  }
+  return { ...mapItem(item) };
+}
+
+export async function updateJobseeker(id: string, jobseekerData: FormData): Promise<Jobseeker> {
+  const response = await authedFetch(`/api/v1/jobseekers/${id}`, {
+    method: 'PUT',
+    body: jobseekerData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated jobseeker data not found in API response.");
+  }
+  return { ...mapItem(item) };
+}
+
+export async function deleteJobseeker(id: string): Promise<null> {
+  return authedFetch(`/api/v1/jobseekers/${id}`, {
     method: 'DELETE',
   });
 }

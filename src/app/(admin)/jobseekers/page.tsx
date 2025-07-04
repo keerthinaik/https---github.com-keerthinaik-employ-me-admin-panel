@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useMemo, useEffect, type Key } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { jobseekers, type Jobseeker } from "@/lib/data";
+import { type Jobseeker, type Pagination, type GetAllParams } from "@/lib/types";
 import { format } from "date-fns";
 import {
     MoreHorizontal,
@@ -43,6 +42,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/lib/hooks';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { getJobseekers, deleteJobseeker } from '@/services/api';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 type SortConfig = {
     key: keyof Jobseeker;
@@ -50,106 +55,104 @@ type SortConfig = {
 } | null;
 
 const columnsConfig = [
-    { key: 'user' as const, label: 'User', sortable: true, sortKey: 'name' as keyof Jobseeker },
-    { key: 'phone' as const, label: 'Phone', sortable: false },
-    { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'isActive' as keyof Jobseeker },
-    { key: 'verified' as const, label: 'Verified', sortable: true, sortKey: 'isVerified' as keyof Jobseeker },
-    { key: 'joinedOn' as const, label: 'Joined On', sortable: true, sortKey: 'createdAt' as keyof Jobseeker },
+    { key: 'name' as const, label: 'User', sortable: true, sortKey: 'name' as keyof Jobseeker },
+    { key: 'phoneNumber' as const, label: 'Phone', sortable: true, sortKey: 'phoneNumber' as keyof Jobseeker },
+    { key: 'isActive' as const, label: 'Status', sortable: true, sortKey: 'isActive' as keyof Jobseeker },
+    { key: 'isVerified' as const, label: 'Verified', sortable: true, sortKey: 'isVerified' as keyof Jobseeker },
+    { key: 'createdAt' as const, label: 'Joined On', sortable: true, sortKey: 'createdAt' as keyof Jobseeker },
     { key: 'actions' as const, label: 'Actions', sortable: false },
 ];
 
 type ColumnKeys = typeof columnsConfig[number]['key'];
 
-const ROWS_PER_PAGE = 5;
+const ROWS_PER_PAGE = 10;
 
 export default function JobseekersPage() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const { toast } = useToast();
+    const [jobseekers, setJobseekers] = useState<Jobseeker[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
     const [filters, setFilters] = useState({
         isVerified: 'all',
         isActive: 'all',
     });
-    const [isLoading, setIsLoading] = useState(true);
 
-    const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
-        user: true,
-        phone: true,
-        status: true,
-        verified: true,
-        joinedOn: true,
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+        name: true,
+        phoneNumber: true,
+        isActive: true,
+        isVerified: true,
+        createdAt: true,
         actions: true,
     });
     
     const [currentPage, setCurrentPage] = useState(1);
-    
-    const filteredAndSortedJobseekers = useMemo(() => {
-        let sortedItems = [...jobseekers];
+    const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
+    const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
 
-        // Filtering
-        sortedItems = sortedItems.filter(js => {
-            if (filters.isVerified !== 'all') {
-                const verifiedMatch = filters.isVerified === 'verified';
-                if (js.isVerified !== verifiedMatch) return false;
-            }
-             if (filters.isActive !== 'all') {
-                const activeMatch = filters.isActive === 'active';
-                if (js.isActive !== activeMatch) return false;
-            }
-
-            if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                    js.name.toLowerCase().includes(searchLower) ||
-                    js.email.toLowerCase().includes(searchLower) ||
-                    (js.phoneNumber && js.phoneNumber.toLowerCase().includes(searchLower))
-                );
-            }
-            return true;
-        });
-
-        // Sorting
-        if (sortConfig !== null) {
-            sortedItems.sort((a, b) => {
-                const key = sortConfig.key;
-                const valA = a[key as keyof Jobseeker];
-                const valB = b[key as keyof Jobseeker];
-
-                if (typeof valA === 'boolean' && typeof valB === 'boolean') {
-                    if (valA === valB) return 0;
-                    return sortConfig.direction === 'asc' ? (valA ? 1 : -1) : (valA ? -1 : 1);
-                }
-
-                if (valA instanceof Date && valB instanceof Date) {
-                    return sortConfig.direction === 'asc' ? valA.getTime() - valB.getTime() : valB.getTime() - valA.getTime();
-                }
-                
-                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+    const fetchJobseekers = useCallback(() => {
+        setIsLoading(true);
+        const apiFilters: Record<string, any> = {};
+        if (debouncedSearchTerm) {
+            apiFilters.name = debouncedSearchTerm;
+            apiFilters.email = debouncedSearchTerm;
+        }
+        if (filters.isVerified !== 'all') {
+            apiFilters.isVerified = filters.isVerified === 'verified';
+        }
+        if (filters.isActive !== 'all') {
+            apiFilters.isActive = filters.isActive === 'active';
         }
 
-        return sortedItems;
-    }, [searchTerm, sortConfig, filters]);
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
 
-    const totalPages = Math.ceil(filteredAndSortedJobseekers.length / ROWS_PER_PAGE);
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
 
-    const paginatedJobseekers = useMemo(() => {
-        const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-        return filteredAndSortedJobseekers.slice(startIndex, startIndex + ROWS_PER_PAGE);
-    }, [currentPage, filteredAndSortedJobseekers]);
+        getJobseekers(params)
+            .then(data => {
+                setJobseekers(data.data);
+                setPagination(data.pagination);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching jobseekers',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
 
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, [currentPage, searchTerm, filters]);
-
-
+        fetchJobseekers();
+    }, [fetchJobseekers]);
+    
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
 
+    const handleDelete = async (jobseekerId: string) => {
+        try {
+            await deleteJobseeker(jobseekerId);
+            toast({
+                title: 'Jobseeker Deleted',
+                description: 'The jobseeker has been successfully deleted.',
+            });
+            fetchJobseekers();
+        } catch (error: any) {
+            toast({
+                title: 'Error deleting jobseeker',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
     const requestSort = (key: keyof Jobseeker) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -177,12 +180,21 @@ export default function JobseekersPage() {
 
     const SkeletonRow = () => (
         <TableRow>
-            {columnVisibility.user && <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-40" /></div></div></TableCell>}
-            {columnVisibility.phone && <TableCell><Skeleton className="h-4 w-28" /></TableCell>}
-            {columnVisibility.status && <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>}
-            {columnVisibility.verified && <TableCell><Skeleton className="h-5 w-5 rounded-full" /></TableCell>}
-            {columnVisibility.joinedOn && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
-            {columnVisibility.actions && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
+            {columnsConfig.map(col => columnVisibility[col.key] && (
+                <TableCell key={col.key}>
+                    {col.key === 'name' ? (
+                        <div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-40" /></div></div>
+                    ) : col.key === 'isVerified' ? (
+                        <Skeleton className="h-5 w-5 rounded-full" />
+                    ) : col.key === 'isActive' ? (
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                    ) : col.key === 'actions' ? (
+                        <Skeleton className="h-8 w-8" />
+                    ) : (
+                        <Skeleton className="h-4 w-24" />
+                    )}
+                </TableCell>
+            ))}
         </TableRow>
     );
 
@@ -280,7 +292,7 @@ export default function JobseekersPage() {
                     <TableHeader>
                         <TableRow>
                             {columnsConfig.map(col => (
-                                columnVisibility[col.key as ColumnKeys] && (
+                                columnVisibility[col.key] && (
                                     <TableHead key={col.key}>
                                         {col.sortable ? (
                                             <Button variant="ghost" onClick={() => requestSort(col.sortKey as keyof Jobseeker)} className="px-0 h-auto hover:bg-transparent capitalize">
@@ -296,15 +308,15 @@ export default function JobseekersPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <SkeletonRow key={i} />)
-                        ) : paginatedJobseekers.length > 0 ? (
-                            paginatedJobseekers.map(js => (
+                            Array.from({ length: rowsPerPage }).map((_, i) => <SkeletonRow key={i} />)
+                        ) : jobseekers.length > 0 ? (
+                            jobseekers.map(js => (
                                 <TableRow key={js.id}>
-                                    {columnVisibility.user && (
+                                    {columnVisibility.name && (
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={js.profilePhoto} alt={js.name} />
+                                                    <AvatarImage src={js.profilePhoto ? `${API_BASE_URL}${js.profilePhoto.startsWith('/') ? '' : '/'}${js.profilePhoto}` : undefined} alt={js.name} />
                                                     <AvatarFallback>{js.name.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
@@ -314,49 +326,65 @@ export default function JobseekersPage() {
                                             </div>
                                         </TableCell>
                                     )}
-                                    {columnVisibility.phone && <TableCell>{js.phoneNumber}</TableCell>}
-                                    {columnVisibility.status && (
+                                    {columnVisibility.phoneNumber && <TableCell>{js.phoneNumber}</TableCell>}
+                                    {columnVisibility.isActive && (
                                         <TableCell>
                                             <Badge variant={js.isActive ? 'default' : 'destructive'} className={js.isActive ? 'bg-green-500 hover:bg-green-600' : ''}>
                                                 {js.isActive ? 'Active' : 'Inactive'}
                                             </Badge>
                                         </TableCell>
                                     )}
-                                     {columnVisibility.verified && (
+                                     {columnVisibility.isVerified && (
                                         <TableCell>
                                             {js.isVerified ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground" />}
                                         </TableCell>
                                     )}
-                                    {columnVisibility.joinedOn && <TableCell>{format(new Date(js.createdAt), 'MMM d, yyyy')}</TableCell>}
+                                    {columnVisibility.createdAt && <TableCell>{format(new Date(js.createdAt), 'MMM d, yyyy')}</TableCell>}
                                     {columnVisibility.actions && (
                                         <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                        <span className="sr-only">Toggle menu</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/jobseekers/${js.id}`}>
-                                                            <Eye className="mr-1 h-4 w-4" />
-                                                            View Details
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/jobseekers/${js.id}/edit`}>
-                                                            <Edit className="mr-1 h-4 w-4" />
-                                                            Edit
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                        <Trash2 className="mr-1 h-4 w-4"/>
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            <AlertDialog>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">Toggle menu</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/jobseekers/${js.id}`}>
+                                                                <Eye className="mr-1 h-4 w-4" />
+                                                                View Details
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/jobseekers/${js.id}/edit`}>
+                                                                <Edit className="mr-1 h-4 w-4" />
+                                                                Edit
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <AlertDialogTrigger asChild>
+                                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                                <Trash2 className="mr-1 h-4 w-4"/>
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </AlertDialogTrigger>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This action cannot be undone. This will permanently delete the jobseeker account.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(js.id)}>Continue</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     )}
                                 </TableRow>
@@ -364,7 +392,7 @@ export default function JobseekersPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-24 text-center">
-                                    No jobseekers found.
+                                    No results found.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -372,35 +400,67 @@ export default function JobseekersPage() {
                 </Table>
             </div>
              <div className="flex items-center justify-between mt-4">
-                {isLoading ? (
-                    <Skeleton className="h-5 w-72" />
-                ) : (
-                    <div className="text-sm text-muted-foreground">
-                        Showing {Math.min((currentPage - 1) * ROWS_PER_PAGE + 1, filteredAndSortedJobseekers.length)} to {Math.min(currentPage * ROWS_PER_PAGE, filteredAndSortedJobseekers.length)} of {filteredAndSortedJobseekers.length} jobseekers.
+                 <div className="text-sm text-muted-foreground">
+                    {isLoading || !pagination ? (
+                        <Skeleton className="h-5 w-48" />
+                    ) : (
+                        `Showing ${pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to ${Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of ${pagination.totalRecords} jobseekers.`
+                    )}
+                </div>
+                <div className="flex items-center gap-6 lg:gap-8">
+                    <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium">Rows per page</p>
+                        <Input
+                            type="number"
+                            className="h-8 w-[70px]"
+                            value={rowsPerPageInput}
+                            onChange={(e) => setRowsPerPageInput(e.target.value)}
+                            onBlur={() => {
+                                const newRows = Number(rowsPerPageInput);
+                                if (newRows > 0) {
+                                    setRowsPerPage(newRows);
+                                } else {
+                                    setRowsPerPageInput(rowsPerPage);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const newRows = Number(rowsPerPageInput);
+                                    if (newRows > 0) {
+                                        setRowsPerPage(newRows);
+                                    } else {
+                                        setRowsPerPageInput(rowsPerPage);
+                                    }
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            min={1}
+                            disabled={isLoading}
+                        />
                     </div>
-                )}
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1 || isLoading}
-                    >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                        Page {isLoading ? '...' : currentPage} of {isLoading ? '...' : totalPages}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages || isLoading}
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || isLoading}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                            disabled={currentPage === pagination?.totalPages || isLoading}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
