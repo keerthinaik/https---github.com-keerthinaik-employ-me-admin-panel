@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import { useState, useMemo, useEffect, type Key } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { universities, type University } from "@/lib/data";
+import { type University, type Pagination, type GetAllParams } from "@/lib/types";
 import {
     Eye,
     Search,
@@ -38,13 +36,17 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/lib/hooks';
+import { getUniversities, updateUniversity } from '@/services/api';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
+const universityTypes = ["Public", "Private", "Community College", "Technical Institute", "Research University", "Liberal Arts College", "Online University", "Vocational School", "Other"];
 
 type SortConfig = {
     key: keyof University;
     direction: 'asc' | 'desc';
 } | null;
-
-const universityTypes = ["Public", "Private", "Community College", "Technical Institute", "Research University", "Liberal Arts College", "Online University", "Vocational School", "Other"];
 
 const columnsConfig = [
     { key: 'university' as const, label: 'University', sortable: true, sortKey: 'name' as keyof University },
@@ -57,17 +59,23 @@ const columnsConfig = [
 
 type ColumnKeys = typeof columnsConfig[number]['key'];
 
-const ROWS_PER_PAGE = 5;
+const ROWS_PER_PAGE = 10;
 
 export default function UniversityVerificationPage() {
+    const { toast } = useToast();
+    const [universities, setUniversities] = useState<University[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'createdAt', direction: 'desc' });
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
     const [filters, setFilters] = useState({
         isVerified: 'all',
         isActive: 'all',
         type: 'all',
     });
-    const [isLoading, setIsLoading] = useState(true);
 
     const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
         university: true,
@@ -79,68 +87,70 @@ export default function UniversityVerificationPage() {
     });
     
     const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
+    const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
 
-    const filteredAndSortedUniversities = useMemo(() => {
-        let sortedItems = [...universities];
-
-        // Filtering
-        sortedItems = sortedItems.filter(uni => {
-            if (filters.isVerified !== 'all') {
-                if ((filters.isVerified === 'verified') !== uni.isVerified) return false;
-            }
-             if (filters.isActive !== 'all') {
-                if ((filters.isActive === 'active') !== uni.isActive) return false;
-            }
-            if (filters.type !== 'all' && uni.type !== filters.type) return false;
-
-            if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                    uni.name.toLowerCase().includes(searchLower) ||
-                    uni.email.toLowerCase().includes(searchLower) ||
-                    (uni.city && uni.city.toLowerCase().includes(searchLower))
-                );
-            }
-            return true;
-        });
-
-        // Sorting
-        if (sortConfig !== null) {
-            sortedItems.sort((a, b) => {
-                const key = sortConfig.key;
-                const valA = a[key as keyof University];
-                const valB = b[key as keyof University];
-
-                if (typeof valA === 'boolean' && typeof valB === 'boolean') {
-                    if (valA === valB) return 0;
-                    return sortConfig.direction === 'asc' ? (valA ? 1 : -1) : (valA ? -1 : 1);
-                }
-                
-                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+    const fetchUniversities = useCallback(() => {
+        setIsLoading(true);
+        const apiFilters: Record<string, any> = {};
+        if (debouncedSearchTerm) {
+            apiFilters.name = debouncedSearchTerm;
+        }
+        if (filters.isVerified !== 'all') {
+            apiFilters.isVerified = filters.isVerified === 'verified';
+        }
+        if (filters.isActive !== 'all') {
+            apiFilters.isActive = filters.isActive === 'active';
+        }
+        if (filters.type !== 'all') {
+            apiFilters.type = filters.type;
         }
 
-        return sortedItems;
-    }, [searchTerm, sortConfig, filters]);
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
 
-    const totalPages = Math.ceil(filteredAndSortedUniversities.length / ROWS_PER_PAGE);
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
 
-    const paginatedUniversities = useMemo(() => {
-        const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-        return filteredAndSortedUniversities.slice(startIndex, startIndex + ROWS_PER_PAGE);
-    }, [currentPage, filteredAndSortedUniversities]);
-
+        getUniversities(params)
+            .then(data => {
+                setUniversities(data.data);
+                setPagination(data.pagination);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching universities',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
+    
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, [currentPage, searchTerm, filters]);
-
+        fetchUniversities();
+    }, [fetchUniversities]);
+    
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
+
+    const handleVerification = async (university: University, isVerified: boolean) => {
+        try {
+            const formData = new FormData();
+            formData.append('isVerified', String(isVerified));
+            await updateUniversity(university.id, formData);
+            toast({
+                title: 'Verification Status Updated',
+                description: `${university.name} has been ${isVerified ? 'approved' : 'disapproved'}.`,
+            });
+            fetchUniversities();
+        } catch (error: any) {
+            toast({
+                title: 'Error updating status',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
 
     const requestSort = (key: keyof University) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -160,7 +170,7 @@ export default function UniversityVerificationPage() {
     const clearFilters = () => {
         setSearchTerm('');
         setFilters({ isVerified: 'all', isActive: 'all', type: 'all' });
-        setSortConfig({ key: 'createdAt', direction: 'desc' });
+        setSortConfig({ key: 'updatedAt', direction: 'desc' });
     }
 
     const handleFilterChange = (key: keyof typeof filters, value: string) => {
@@ -186,7 +196,7 @@ export default function UniversityVerificationPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by university name, email..."
+                        placeholder="Search by university name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -294,15 +304,15 @@ export default function UniversityVerificationPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <SkeletonRow key={i} />)
-                        ) : paginatedUniversities.length > 0 ? (
-                            paginatedUniversities.map(uni => (
+                            Array.from({ length: rowsPerPage }).map((_, i) => <SkeletonRow key={i} />)
+                        ) : universities.length > 0 ? (
+                            universities.map(uni => (
                                 <TableRow key={uni.id}>
                                     {columnVisibility.university && (
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={uni.profilePhoto} alt={uni.name} />
+                                                    <AvatarImage src={uni.profilePhoto ? `${API_BASE_URL}${uni.profilePhoto.startsWith('/') ? '' : '/'}${uni.profilePhoto}` : undefined} alt={uni.name} />
                                                     <AvatarFallback>{uni.name.slice(0,2)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
@@ -335,11 +345,11 @@ export default function UniversityVerificationPage() {
                                                     <Link href={`/universities/verification/${uni.id}`}><Eye className="mr-1 h-4 w-4"/> View</Link>
                                                 </Button>
                                                 {!uni.isVerified ? (
-                                                    <Button size="sm" className="w-28 justify-center bg-green-500 hover:bg-green-600">
+                                                    <Button size="sm" className="w-28 justify-center bg-green-500 hover:bg-green-600" onClick={() => handleVerification(uni, true)}>
                                                         <Check className="mr-1 h-4 w-4"/> Approve
                                                     </Button>
                                                 ) : (
-                                                    <Button variant="destructive" size="sm" className="w-28 justify-center">
+                                                    <Button variant="destructive" size="sm" className="w-28 justify-center" onClick={() => handleVerification(uni, false)}>
                                                         <X className="mr-1 h-4 w-4"/> Disapprove
                                                     </Button>
                                                 )}
@@ -359,35 +369,67 @@ export default function UniversityVerificationPage() {
                 </Table>
             </div>
              <div className="flex items-center justify-between mt-4">
-                {isLoading ? (
-                    <Skeleton className="h-5 w-72" />
-                ) : (
-                    <div className="text-sm text-muted-foreground">
-                        Showing {Math.min((currentPage - 1) * ROWS_PER_PAGE + 1, filteredAndSortedUniversities.length)} to {Math.min(currentPage * ROWS_PER_PAGE, filteredAndSortedUniversities.length)} of {filteredAndSortedUniversities.length} universities.
+                 <div className="text-sm text-muted-foreground">
+                    {isLoading || !pagination ? (
+                        <Skeleton className="h-5 w-48" />
+                    ) : (
+                        `Showing ${pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to ${Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of ${pagination.totalRecords} universities.`
+                    )}
+                </div>
+                <div className="flex items-center gap-6 lg:gap-8">
+                    <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium">Rows per page</p>
+                        <Input
+                            type="number"
+                            className="h-8 w-[70px]"
+                            value={rowsPerPageInput}
+                            onChange={(e) => setRowsPerPageInput(e.target.value)}
+                            onBlur={() => {
+                                const newRows = Number(rowsPerPageInput);
+                                if (newRows > 0) {
+                                    setRowsPerPage(newRows);
+                                } else {
+                                    setRowsPerPageInput(rowsPerPage);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const newRows = Number(rowsPerPageInput);
+                                    if (newRows > 0) {
+                                        setRowsPerPage(newRows);
+                                    } else {
+                                        setRowsPerPageInput(rowsPerPage);
+                                    }
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            min={1}
+                            disabled={isLoading}
+                        />
                     </div>
-                )}
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1 || isLoading}
-                    >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                        Page {isLoading ? '...' : currentPage} of {isLoading ? '...' : totalPages}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages || isLoading}
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || isLoading}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                            disabled={currentPage === pagination?.totalPages || isLoading}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
