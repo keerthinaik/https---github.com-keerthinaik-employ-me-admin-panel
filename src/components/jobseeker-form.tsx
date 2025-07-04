@@ -53,41 +53,52 @@ const educationSchema = z.object({
     endDate: z.date(),
 });
 
+const projectSchema = z.object({
+  title: z.string().min(1, "Project title is required"),
+  description: z.string().optional(),
+  url: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+});
+
 const jobseekerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be at most 50 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
   
-  address: z.string().optional(),
-  country: z.string().optional(),
-  state: z.string().optional(),
-  city: z.string().optional(),
-  zipCode: z.string().optional(),
-  
-  profilePhoto: z.any().optional(),
-  bannerImage: z.any().optional(),
-  resume: z.any().optional(),
-  certifications: z.any().optional(),
-  
+  // Profile
   headline: z.string().optional(),
   summary: z.string().optional(),
   about: z.string().optional(),
+  
+  // Personal Details
   dateOfBirth: z.date().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   passportNumber: z.string().optional(),
-  
-  fieldOfStudy: z.string().optional(),
 
-  isVerified: z.boolean().default(false),
-  isActive: z.boolean().default(true),
+  // Social & Portfolio
+  linkedInProfile: z.string().url().optional().or(z.literal('')),
+  githubProfile: z.string().url().optional().or(z.literal('')),
+  portfolio: z.string().url().optional().or(z.literal('')),
+  projects: z.array(projectSchema).optional(),
 
-  experience: z.array(experienceSchema).optional(),
-  education: z.array(educationSchema).optional(),
-  skills: z.array(z.string()).optional(),
-
+  // Others / Associations
   businessAssociationId: z.string().optional(),
   universityAssociationId: z.string().optional(),
+  
+  // Skills & Documents
+  skills: z.array(z.string()).optional(),
+  resume: z.any().optional(),
+  certifications: z.any().optional(),
+  
+  // Account
+  isVerified: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  
+  // Nested Objects
+  experience: z.array(experienceSchema).optional(),
+  education: z.array(educationSchema).optional(),
 }).refine(data => {
     return !(data.businessAssociationId && data.universityAssociationId);
 }, {
@@ -95,36 +106,16 @@ const jobseekerSchema = z.object({
     path: ["businessAssociationId"], 
 });
 
+
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
 
 const fieldToTabMap: Record<keyof JobseekerFormValues, string> = {
-  name: 'profile',
-  email: 'profile',
-  phoneNumber: 'profile',
-  headline: 'profile',
-  experience: 'career',
-  education: 'career',
-  skills: 'skills',
-  profilePhoto: 'account',
-  bannerImage: 'account',
-  resume: 'account',
-  certifications: 'account',
-  password: 'account',
-  isVerified: 'account',
-  isActive: 'account',
-  businessAssociationId: 'profile',
-  universityAssociationId: 'profile',
-  address: 'profile',
-  country: 'profile',
-  state: 'profile',
-  city: 'profile',
-  zipCode: 'profile',
-  summary: 'profile',
-  about: 'profile',
-  dateOfBirth: 'profile',
-  gender: 'profile',
-  passportNumber: 'profile',
-  fieldOfStudy: 'profile',
+  name: 'profile', email: 'profile', phoneNumber: 'profile', headline: 'profile', summary: 'profile', about: 'profile',
+  dateOfBirth: 'profile', gender: 'profile', passportNumber: 'profile', businessAssociationId: 'profile', universityAssociationId: 'profile',
+  experience: 'career', education: 'career',
+  skills: 'skills', resume: 'skills', certifications: 'skills',
+  linkedInProfile: 'portfolio', githubProfile: 'portfolio', portfolio: 'portfolio', projects: 'portfolio',
+  password: 'account', isVerified: 'account', isActive: 'account',
 };
 
 
@@ -170,7 +161,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'portfolio', 'account'];
   
   // State for profile photo cropping
   const [imgSrc, setImgSrc] = React.useState('')
@@ -195,18 +186,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         email: jobseeker?.email || '',
         password: '',
         phoneNumber: jobseeker?.phoneNumber || '',
-        address: jobseeker?.address || '',
-        country: jobseeker?.country || '',
-        state: jobseeker?.state || '',
-        city: jobseeker?.city || '',
-        zipCode: jobseeker?.zipCode || '',
         headline: jobseeker?.headline || '',
         summary: jobseeker?.summary || '',
         about: jobseeker?.about || '',
         dateOfBirth: jobseeker?.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
         gender: jobseeker?.gender,
         passportNumber: jobseeker?.passportNumber || '',
-        fieldOfStudy: jobseeker?.fieldOfStudy || '',
         businessAssociationId: jobseeker?.businessAssociationId || '',
         universityAssociationId: jobseeker?.universityAssociationId || '',
         isVerified: jobseeker?.isVerified || false,
@@ -214,10 +199,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
         education: jobseeker?.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
         skills: jobseeker?.skills || [],
-        profilePhoto: undefined,
-        bannerImage: undefined,
-        resume: undefined,
-        certifications: undefined,
+        linkedInProfile: jobseeker?.linkedInProfile || '',
+        githubProfile: jobseeker?.githubProfile || '',
+        portfolio: jobseeker?.portfolio || '',
+        projects: jobseeker?.projects?.map(proj => ({ ...proj, startDate: proj.startDate ? new Date(proj.startDate) : undefined, endDate: proj.endDate ? new Date(proj.endDate) : undefined})) || [],
     }
   });
 
@@ -225,6 +210,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
+  const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({ control, name: "projects" });
   
   React.useEffect(() => {
     if (jobseeker?.profilePhoto) {
@@ -438,10 +424,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
     Object.entries(data).forEach(([key, value]) => {
         if (value === null || value === undefined) return;
-        if (key === 'businessAssociationId' && value === '---none---') return;
-        if (key === 'universityAssociationId' && value === '---none---') return;
 
-        if (['experience', 'education'].includes(key) && Array.isArray(value)) {
+        if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
               if (itemValue !== null && itemValue !== undefined && itemValue !== '') { 
@@ -534,10 +518,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsList className="grid w-full grid-cols-5 mb-6">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
-                    <TabsTrigger value="skills">Skills</TabsTrigger>
+                    <TabsTrigger value="skills">Skills & Docs</TabsTrigger>
+                    <TabsTrigger value="portfolio">Social & Portfolio</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -553,18 +538,19 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 <FormField name="phoneNumber" control={control} render={({field}) => <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                 <FormField name="headline" control={control} render={({field}) => <FormItem><FormLabel>Headline</FormLabel><FormControl><Input {...field} placeholder="e.g. Senior Software Engineer" /></FormControl><FormMessage /></FormItem>}/>
                             </div>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <FormField name="passportNumber" control={control} render={({field}) => <FormItem><FormLabel>Passport Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                <FormField name="fieldOfStudy" control={control} render={({field}) => <FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                            </div>
-                            <FormField name="summary" control={control} render={({field}) => <FormItem><FormLabel>Summary</FormLabel><FormControl><Textarea {...field} placeholder="A brief summary..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="about" control={control} render={({field}) => <FormItem><FormLabel>About</FormLabel><FormControl><Textarea {...field} className="min-h-32" placeholder="More detailed information..."/></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="summary" control={control} render={({field}) => <FormItem><FormLabel>Summary</FormLabel><FormControl><Textarea {...field} placeholder="A brief career summary..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="about" control={control} render={({field}) => <FormItem><FormLabel>About</FormLabel><FormControl><Textarea {...field} className="min-h-32" placeholder="More detailed information about yourself..."/></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader><CardTitle>Associations</CardTitle><CardDescription>Associate with a business or university.</CardDescription></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
+                        <CardHeader><CardTitle>Personal Details & Associations</CardTitle></CardHeader>
+                         <CardContent className="space-y-4">
+                            <div className="grid md:grid-cols-3 gap-4">
+                               <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                               <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                               <FormField name="passportNumber" control={control} render={({field}) => <FormItem><FormLabel>Passport Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                            </div>
+                             <div className="grid md:grid-cols-2 gap-4">
                                 <FormField
                                     control={control}
                                     name="businessAssociationId"
@@ -704,7 +690,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="skills">
+                <TabsContent value="skills" className="space-y-6">
                     <Card>
                         <CardHeader><CardTitle>Skills</CardTitle><CardDescription>Select all relevant skills.</CardDescription></CardHeader>
                         <CardContent>
@@ -770,6 +756,46 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             />
                         </CardContent>
                     </Card>
+                     <Card>
+                        <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                           <FormField control={control} name="resume" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
+                           <FormField control={control} name="certifications" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+                
+                 <TabsContent value="portfolio" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Social & Professional Links</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                           <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
+                           <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
+                           <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://your-portfolio.com" /></FormControl><FormMessage /></FormItem>}/>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                           {projectFields.map((field, index) => (
+                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProject(index)}><Trash2 className="h-4 w-4"/></Button>
+                                    <FormField control={control} name={`projects.${index}.title`} render={({field}) => (<FormItem><FormLabel>Project Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={control} name={`projects.${index}.description`} render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={control} name={`projects.${index}.url`} render={({field}) => (<FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..."/></FormControl><FormMessage /></FormItem>)} />
+                                     <div className="grid md:grid-cols-2 gap-4">
+                                        <FormField control={control} name={`projects.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`projects.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                    </div>
+                                </div>
+                            ))}
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
+                        </CardContent>
+                    </Card>
                     <div className="mt-6 flex justify-between">
                         <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                         <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
@@ -778,7 +804,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 
                 <TabsContent value="account" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Media & Documents</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Media</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
                            <FormField
                                 control={control}
@@ -806,12 +832,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     </FormItem>
                                 )}
                             />
-                            
                             <FormField
                                 control={control}
                                 name="bannerImage"
                                 render={() => (
-                                    <FormItem>
+                                    <FormItem className="pt-6 border-t">
                                         <FormLabel>Banner Image</FormLabel>
                                         <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
                                             {croppedBannerImageUrl ? (
@@ -820,7 +845,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                 <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
                                             )}
                                         </div>
-                                        <FormControl>
+                                         <FormControl>
                                             <Input
                                                 id="bannerImage-input"
                                                 type="file"
@@ -833,11 +858,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField control={control} name="resume" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField control={control} name="certifications" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
-                    <Card>
+                     <Card>
                         <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                                 <FormField control={control} name="password" render={({ field }) => ( <FormItem><FormLabel>Set New Password</FormLabel><FormControl><Input type="password" {...field} placeholder={jobseeker ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>)}/>
