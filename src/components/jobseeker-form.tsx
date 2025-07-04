@@ -156,7 +156,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'social', 'portfolio', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'social', 'account'];
   
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -411,32 +411,24 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     });
   };
 
- const onSubmit = async (data: JobseekerFormValues) => {
+  const onSubmit = async (data: JobseekerFormValues) => {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (value === undefined || value === null || (typeof value === 'string' && value === '')) {
+      if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
         return;
       }
       
       const keyString = key as keyof JobseekerFormValues;
-
-      if (keyString === 'experience') {
-        (value as Experience[]).forEach(item => {
-            formData.append('experience', JSON.stringify(item));
-        });
-      } else if (keyString === 'education') {
-          (value as Education[]).forEach(item => {
-              formData.append('education', JSON.stringify(item));
-          });
-      } else if (keyString === 'projects') {
-          (value as Project[]).forEach(item => {
-              formData.append('projects', JSON.stringify(item));
-          });
-      } else if (keyString === 'skills') {
-          (value as string[]).forEach(item => {
-              formData.append('skills', item);
-          });
+      
+      if (Array.isArray(value)) {
+        if (keyString === 'skills') {
+            (value as string[]).forEach(item => formData.append('skills', item));
+        } else if (['experience', 'education', 'projects'].includes(keyString)) {
+            (value as (Experience[] | Education[] | Project[])).forEach((item) => {
+                formData.append(keyString, JSON.stringify(item));
+            });
+        }
       } else if (value instanceof File) {
         formData.append(key, value);
       } else if (value instanceof FileList) {
@@ -470,12 +462,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
             let firstErrorField: keyof JobseekerFormValues | null = null;
             
             Object.keys(serverErrors).forEach((key) => {
-                const fieldKey = key as keyof JobseekerFormValues;
+                const fieldKey = key.split('.')[0] as keyof JobseekerFormValues;
                 if (!firstErrorField) {
                     firstErrorField = fieldKey;
                 }
                 if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, fieldKey)) {
-                    setError(fieldKey, {
+                    setError(fieldKey as any, {
                         type: 'server',
                         message: serverErrors[key],
                     });
@@ -510,11 +502,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-6 mb-6">
+                <TabsList className="grid w-full grid-cols-5 mb-6">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
                     <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
-                    <TabsTrigger value="social">Social &amp; Portfolio</TabsTrigger>
+                    <TabsTrigger value="social">Social &amp; Projects</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -570,7 +562,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             </div>
                              <div className="grid md:grid-cols-2 gap-4">
                                 <FormField name="phoneNumber" control={control} render={({field}) => <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                             </div>
                             <div className="grid md:grid-cols-2 gap-4">
                                <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
@@ -758,13 +750,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                              <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
-                     <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="portfolio" className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Projects</CardTitle>
@@ -785,7 +770,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             </div>
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
+                     <div className="mt-6 flex justify-between">
                         <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                         <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                     </div>
@@ -873,4 +858,3 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
-
