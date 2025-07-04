@@ -344,7 +344,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
     } catch (error: any) {
         if (error.data && error.data.errors) {
             Object.keys(error.data.errors).forEach((key) => {
-                if (Object.prototype.hasOwnProperty.call(universitySchema.shape, key)) {
+                if (Object.prototype.hasOwnProperty.call(universitySchema._def.schema.shape, key)) {
                     setError(key as keyof UniversityFormValues, {
                         type: 'server',
                         message: error.data.errors[key],
@@ -634,3 +634,4 @@ export function UniversityForm({ university }: UniversityFormProps) {
     </>
   );
 }
+
