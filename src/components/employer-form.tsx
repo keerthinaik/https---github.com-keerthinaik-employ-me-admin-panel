@@ -26,12 +26,11 @@ import { Skeleton } from './ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
-import { Label } from '@/components/ui/label';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 const employerSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
+  name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
@@ -351,14 +350,28 @@ export function EmployerForm({ employer }: EmployerFormProps) {
         router.refresh();
     } catch (error: any) {
         if (error.data && error.data.errors) {
-            Object.keys(error.data.errors).forEach((key) => {
+            const serverErrors = error.data.errors;
+            let firstErrorField: keyof EmployerFormValues | null = null;
+
+            Object.keys(serverErrors).forEach((key) => {
+                 if (!firstErrorField) {
+                    firstErrorField = key as keyof EmployerFormValues;
+                }
                 if (Object.prototype.hasOwnProperty.call(employerSchema.shape, key)) {
                     setError(key as keyof EmployerFormValues, {
                         type: 'server',
-                        message: error.data.errors[key],
+                        message: serverErrors[key],
                     });
                 }
             });
+
+            if (firstErrorField) {
+                const tab = fieldToTabMap[firstErrorField];
+                if (tab && tab !== activeTab) {
+                    setActiveTab(tab);
+                }
+            }
+
             toast({
                 title: 'Could not save employer',
                 description: error.data.message || 'Please correct the errors and try again.',
@@ -664,7 +677,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                                     <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-grow space-y-2">
-                                    <Label htmlFor="profilePhoto-input">Company Profile Photo</Label>
+                                    <FormLabel htmlFor="profilePhoto-input">Company Profile Photo</FormLabel>
                                     <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
                                     <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
                                     {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
@@ -754,3 +767,4 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     </>
   );
 }
+

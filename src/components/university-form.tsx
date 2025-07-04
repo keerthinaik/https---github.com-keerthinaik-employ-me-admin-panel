@@ -352,14 +352,28 @@ export function UniversityForm({ university }: UniversityFormProps) {
         router.refresh();
     } catch (error: any) {
         if (error.data && error.data.errors) {
-            Object.keys(error.data.errors).forEach((key) => {
+            const serverErrors = error.data.errors;
+            let firstErrorField: keyof UniversityFormValues | null = null;
+
+            Object.keys(serverErrors).forEach((key) => {
+                if (!firstErrorField) {
+                    firstErrorField = key as keyof UniversityFormValues;
+                }
                 if (Object.prototype.hasOwnProperty.call(universitySchema._def.schema.shape, key)) {
                     setError(key as keyof UniversityFormValues, {
                         type: 'server',
-                        message: error.data.errors[key],
+                        message: serverErrors[key],
                     });
                 }
             });
+
+            if (firstErrorField) {
+                const tab = fieldToTabMap[firstErrorField];
+                if (tab && tab !== activeTab) {
+                    setActiveTab(tab);
+                }
+            }
+            
             toast({
                 title: 'Could not save university',
                 description: error.data.message || 'Please correct the errors and try again.',
@@ -643,5 +657,6 @@ export function UniversityForm({ university }: UniversityFormProps) {
     </>
   );
 }
+
 
 

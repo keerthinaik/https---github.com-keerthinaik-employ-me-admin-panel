@@ -338,14 +338,28 @@ export function BusinessForm({ business }: BusinessFormProps) {
         router.refresh();
     } catch (error: any) {
         if (error.data && error.data.errors) {
-            Object.keys(error.data.errors).forEach((key) => {
+            const serverErrors = error.data.errors;
+            let firstErrorField: keyof BusinessFormValues | null = null;
+            
+            Object.keys(serverErrors).forEach((key) => {
+                if (!firstErrorField) {
+                    firstErrorField = key as keyof BusinessFormValues;
+                }
                 if (Object.prototype.hasOwnProperty.call(businessSchema.shape, key)) {
                     setError(key as keyof BusinessFormValues, {
                         type: 'server',
-                        message: error.data.errors[key],
+                        message: serverErrors[key],
                     });
                 }
             });
+
+             if (firstErrorField) {
+                const tab = fieldToTabMap[firstErrorField];
+                if (tab && tab !== activeTab) {
+                    setActiveTab(tab);
+                }
+            }
+
             toast({
                 title: 'Could not save business',
                 description: error.data.message || 'Please correct the errors and try again.',
@@ -608,5 +622,6 @@ export function BusinessForm({ business }: BusinessFormProps) {
     </>
   );
 }
+
 
 
