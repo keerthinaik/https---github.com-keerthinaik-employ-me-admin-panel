@@ -1,4 +1,5 @@
 
+
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
@@ -607,6 +608,7 @@ export async function getJobseeker(id: string): Promise<Jobseeker> {
         dateOfBirth: item.dateOfBirth ? new Date(item.dateOfBirth) : undefined,
         experience: item.experience?.map((exp: any) => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined })) || [],
         education: item.education?.map((edu: any) => ({ ...edu, startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
+        skills: Array.isArray(item.skills) ? item.skills.map((skill: any) => typeof skill === 'object' ? skill?._id || skill?.id : skill) : [],
     };
 }
 
