@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,6 +17,10 @@ import { useToast } from '@/hooks/use-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator';
+import { getMe, updateAdminUser } from '@/services/api'
+import type { ProfileUser } from '@/lib/types';
+import { useAuth } from '@/context/auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const profileSchema = z.object({
@@ -50,24 +54,63 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
   );
 }
 
+function ProfilePageSkeleton() {
+    return (
+        <div>
+            <PageHeader title="My Profile" />
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center gap-6">
+                        <Skeleton className="h-20 w-20 rounded-full" />
+                        <div className="flex-grow space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                        <Skeleton className="h-5 w-1/5 mb-4" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                            <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                        </div>
+                         <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-1/2" /></div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                        <Skeleton className="h-5 w-1/5 mb-4" />
+                        <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                            <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="border-t px-6 py-4">
+                    <Skeleton className="h-10 w-32" />
+                </CardFooter>
+            </Card>
+        </div>
+    )
+}
+
+const API_BASE_URL = 'http://148.72.244.169:3000';
+
 export default function ProfilePage() {
   const { toast } = useToast()
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<ProfileFormValues>({
+  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<ProfileUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: 'Admin User',
-      email: 'admin@talent.hub',
-      phoneNumber: '+1-555-0199',
-      address: '123 Admin Lane',
-      city: 'Techville',
-      state: 'CA',
-      country: 'USA',
-      zipCode: '90210',
+      name: '', email: '', phoneNumber: '', address: '', city: '',
+      state: '', country: '', zipCode: '',
     },
   })
   
@@ -77,8 +120,36 @@ export default function ProfilePage() {
   const [completedCrop, setCompletedCrop] = useState<Crop>()
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [aspect, setAspect] = useState<number | undefined>(1)
   
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const response = await getMe();
+        const userData = response.data.user;
+        setProfileData(userData);
+        form.reset({
+          name: userData.name || '',
+          email: userData.email || '',
+          phoneNumber: userData.phoneNumber || '',
+          address: userData.address || '',
+          city: userData.city || '',
+          state: userData.state || '',
+          country: userData.country || '',
+          zipCode: userData.zipCode || '',
+        });
+        if (userData.profilePhoto) {
+          setCroppedImageUrl(`${API_BASE_URL}/${userData.profilePhoto}`);
+        }
+      } catch (error: any) {
+        toast({ title: "Failed to load profile", description: error.message, variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchProfile();
+  }, [form, toast]);
+
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -143,23 +214,51 @@ export default function ProfilePage() {
         }
         const croppedUrl = URL.createObjectURL(blob);
         setCroppedImageUrl(croppedUrl);
-        setValue('avatar', new File([blob], 'avatar.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
+        form.setValue('avatar', new File([blob], 'avatar.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
         setDialogOpen(false);
     }, 'image/jpeg');
   }
 
-  const onSubmit = (data: ProfileFormValues) => {
-    console.log(data)
-    // Here you would typically upload the data.avatar file
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile has been successfully updated.',
-    })
+  const onSubmit = async (data: ProfileFormValues) => {
+    if (!user?.id) {
+        toast({ title: 'Error', description: 'Could not find user ID to update.', variant: 'destructive' });
+        return;
+    }
+
+    const formData = new FormData();
+    // Use Object.entries to handle all keys from the schema
+    for (const [key, value] of Object.entries(data)) {
+        if (key === 'avatar') {
+            if (value instanceof File) {
+                formData.append('profilePhoto', value);
+            }
+        } else if (value !== undefined && value !== null && value !== '') {
+            formData.append(key, value as string);
+        }
+    }
+
+    try {
+        await updateAdminUser(user.id, formData);
+        toast({
+            title: 'Profile Updated',
+            description: 'Your profile has been successfully updated.',
+        });
+    } catch (error: any) {
+        toast({
+            title: 'Update Failed',
+            description: error.message || 'An unexpected error occurred.',
+            variant: 'destructive',
+        });
+    }
+  }
+  
+  if (isLoading) {
+      return <ProfilePageSkeleton />
   }
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <PageHeader title="My Profile" />
         <Card>
           <CardHeader>
@@ -170,7 +269,7 @@ export default function ProfilePage() {
              <div className="flex items-center gap-6">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={croppedImageUrl || "https://placehold.co/80x80.png"} alt="User avatar" />
-                <AvatarFallback>AD</AvatarFallback>
+                <AvatarFallback>{profileData?.name.slice(0,2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-grow space-y-2">
                 <Label htmlFor="avatar-input">Update your photo</Label>
@@ -189,18 +288,18 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" {...register('name')} />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                <Input id="name" {...form.register('name')} />
+                {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                <Input id="email" type="email" {...form.register('email')} />
+                {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input id="phoneNumber" {...register('phoneNumber')} />
+              <Input id="phoneNumber" {...form.register('phoneNumber')} />
             </div>
 
             <Separator />
@@ -212,33 +311,33 @@ export default function ProfilePage() {
             
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
-              <Input id="address" {...register('address')} />
+              <Input id="address" {...form.register('address')} />
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
-                <Input id="city" {...register('city')} />
+                <Input id="city" {...form.register('city')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="state">State / Province</Label>
-                <Input id="state" {...register('state')} />
+                <Input id="state" {...form.register('state')} />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
-                <Input id="country" {...register('country')} />
+                <Input id="country" {...form.register('country')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="zipCode">Zip / Postal Code</Label>
-                <Input id="zipCode" {...register('zipCode')} />
-                {errors.zipCode && <p className="text-sm text-destructive">{errors.zipCode.message}</p>}
+                <Input id="zipCode" {...form.register('zipCode')} />
+                {form.formState.errors.zipCode && <p className="text-sm text-destructive">{form.formState.errors.zipCode.message}</p>}
               </div>
             </div>
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
           </CardFooter>
         </Card>
@@ -254,7 +353,7 @@ export default function ProfilePage() {
                     crop={crop}
                     onChange={(_, percentCrop) => setCrop(percentCrop)}
                     onComplete={(c) => setCompletedCrop(c)}
-                    aspect={aspect}
+                    aspect={1}
                     circularCrop
                     minWidth={200}
                     minHeight={200}

@@ -1,13 +1,14 @@
-
-
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
   
   const headers = new Headers(options.headers);
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  // Do not set Content-Type if body is FormData, browser will do it
+  if (!(options.body instanceof FormData)) {
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
   }
 
   if (token) {
@@ -85,6 +86,19 @@ export async function loginUser(credentials: { email: string; password: string }
   return data;
 }
 
+export async function getMe(): Promise<GetMeResponse> {
+  return authedFetch(`/api/v1/auth/me`);
+}
+
+export async function updateAdminUser(id: string, userData: FormData): Promise<AuthUser> {
+  const response = await authedFetch(`/api/v1/admin-users/${id}`, {
+    method: 'PUT',
+    body: userData,
+  });
+  return response.data.user;
+}
+
+
 // Skill Categories
 export async function getSkillCategories(params: GetAllParams = {}): Promise<{ data: SkillCategory[], pagination: Pagination }> {
   const queryString = buildQueryString(params);
@@ -152,7 +166,7 @@ export async function updateSkillCategory(id: string, categoryData: Partial<Omit
 }
 
 export async function deleteSkillCategory(id: string): Promise<null> {
-  return await authedFetch(`/api/v1/skill-categories/${id}`, {
+  return authedFetch(`/api/v1/skill-categories/${id}`, {
     method: 'DELETE',
   });
 }
@@ -224,7 +238,7 @@ export async function updateJobCategory(id: string, categoryData: Partial<Omit<J
 }
 
 export async function deleteJobCategory(id: string): Promise<null> {
-  return await authedFetch(`/api/v1/job-categories/${id}`, {
+  return authedFetch(`/api/v1/job-categories/${id}`, {
     method: 'DELETE',
   });
 }

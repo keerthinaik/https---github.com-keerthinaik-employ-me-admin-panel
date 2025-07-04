@@ -1,5 +1,4 @@
 
-
 export interface AuthUser {
   id: string;
   name: string;
@@ -12,6 +11,34 @@ export interface LoginSuccessResponse {
   data: {
     user: AuthUser;
   };
+}
+
+export interface ProfileUser {
+  _id: string;
+  id: string;
+  name: string;
+  email: string;
+  isVerified: boolean;
+  isActive: boolean;
+  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter";
+  permissions: string[];
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  profilePhoto?: string;
+  phoneNumber?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  zipCode?: string;
+}
+
+export interface GetMeResponse {
+    status: string;
+    data: {
+        user: ProfileUser;
+    }
 }
 
 export interface LoginErrorResponse {
