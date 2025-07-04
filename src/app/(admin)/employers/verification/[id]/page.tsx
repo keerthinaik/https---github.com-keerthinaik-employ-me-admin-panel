@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
@@ -36,7 +37,6 @@ function EmployerDetailsSkeleton() {
                         <CardHeader className="items-center text-center p-6">
                             <Skeleton className="h-24 w-24 rounded-full mb-4" />
                             <Skeleton className="h-7 w-40" />
-                            <Skeleton className="h-5 w-32" />
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <Skeleton className="h-5 w-full" />
@@ -113,7 +113,7 @@ export default function EmployerVerificationDetailsPage() {
             await updateEmployer(employer.id, formData);
             toast({
                 title: 'Verification Status Updated',
-                description: `${employer.companyName} has been ${isVerified ? 'approved' : 'disapproved'}.`,
+                description: `${employer.name} has been ${isVerified ? 'approved' : 'disapproved'}.`,
             });
             fetchEmployer(); // Refetch data to show updated status
         } catch (error: any) {
@@ -158,11 +158,10 @@ export default function EmployerVerificationDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={employer.profilePhoto ? `${API_BASE_URL}${employer.profilePhoto.startsWith('/') ? '' : '/'}${employer.profilePhoto}` : undefined} alt={employer.companyName} />
-                                <AvatarFallback>{employer.companyName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={employer.profilePhoto ? `${API_BASE_URL}${employer.profilePhoto.startsWith('/') ? '' : '/'}${employer.profilePhoto}` : undefined} alt={employer.name} />
+                                <AvatarFallback>{employer.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <CardTitle className="text-2xl">{employer.companyName}</CardTitle>
-                            <CardDescription>{employer.name}</CardDescription>
+                            <CardTitle className="text-2xl">{employer.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground space-y-4">
                            <div className="flex items-start gap-3">

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -8,7 +9,6 @@ import { z } from 'zod';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { type Employer, type Country, type State, type City } from '@/lib/types';
@@ -30,6 +30,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 const employerSchema = z.object({
+  name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
@@ -40,7 +41,6 @@ const employerSchema = z.object({
   city: z.string().optional(),
   zipCode: z.string().optional(),
   
-  companyName: z.string().min(2, 'Company name is required'),
   profilePhoto: z.any().optional(),
   about: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
@@ -56,7 +56,7 @@ const employerSchema = z.object({
 type EmployerFormValues = z.infer<typeof employerSchema>;
 
 const fieldToTabMap: Record<keyof EmployerFormValues, string> = {
-  companyName: 'company',
+  name: 'company',
   email: 'company',
   phoneNumber: 'company',
   about: 'company',
@@ -126,6 +126,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
   const form = useForm<EmployerFormValues>({
     resolver: zodResolver(employerSchema),
     defaultValues: {
+        name: employer?.name || '',
         email: employer?.email || '',
         phoneNumber: employer?.phoneNumber || '',
         address: employer?.address || '',
@@ -133,7 +134,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
         state: employer?.state || '',
         city: employer?.city || '',
         zipCode: employer?.zipCode || '',
-        companyName: employer?.companyName || '',
         about: employer?.about || '',
         website: employer?.website || '',
         taxNumber: employer?.taxNumber || '',
@@ -344,7 +344,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
         }
         toast({
             title: employer ? 'Employer Updated' : 'Employer Created',
-            description: `${data.companyName} has been successfully ${employer ? 'updated' : 'created'}.`,
+            description: `${data.name} has been successfully ${employer ? 'updated' : 'created'}.`,
         });
         router.push('/employers');
         router.refresh();
@@ -391,7 +391,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                         <CardContent className="space-y-4">
                             <FormField
                                 control={control}
-                                name="companyName"
+                                name="name"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Name</FormLabel>
@@ -660,7 +660,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                             <div className="flex items-center gap-6">
                                 <Avatar className="h-20 w-20">
                                     <AvatarImage src={croppedImageUrl} alt="Company profile photo" />
-                                    <AvatarFallback>{form.getValues('companyName')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-grow space-y-2">
                                     <Label htmlFor="profilePhoto-input">Company Profile Photo</Label>

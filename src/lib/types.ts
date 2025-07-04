@@ -1,6 +1,5 @@
 
 
-
 export interface AuthUser {
   id: string;
   name: string;
@@ -143,7 +142,7 @@ export interface University {
 export interface Employer {
   id: string;
   _id?: string;
-  name?: string; // Contact Person
+  name: string; // Company Name
   email: string;
   phoneNumber?: string;
   address?: string;
@@ -152,8 +151,7 @@ export interface Employer {
   city?: string;
   zipCode?: string;
 
-  companyName: string;
-  profilePhoto?: string; // Replaces logo
+  profilePhoto?: string;
   about?: string;
   website?: string;
   

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, type Key } from 'react';
@@ -43,7 +44,7 @@ type SortConfig = {
 } | null;
 
 const columnsConfig = [
-    { key: 'company' as const, label: 'Company', sortable: true, sortKey: 'companyName' as keyof Employer },
+    { key: 'company' as const, label: 'Company', sortable: true, sortKey: 'name' as keyof Employer },
     { key: 'location' as const, label: 'Location', sortable: false },
     { key: 'verification' as const, label: 'Verified', sortable: true, sortKey: 'isVerified' as keyof Employer },
     { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'isActive' as keyof Employer },
@@ -90,7 +91,6 @@ export default function EmployerVerificationPage() {
             if (searchTerm) {
                 const searchLower = searchTerm.toLowerCase();
                 return (
-                    employer.companyName.toLowerCase().includes(searchLower) ||
                     employer.name.toLowerCase().includes(searchLower) ||
                     employer.email.toLowerCase().includes(searchLower)
                 );
@@ -184,7 +184,7 @@ export default function EmployerVerificationPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by company, contact, email..."
+                        placeholder="Search by company name, email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -290,11 +290,11 @@ export default function EmployerVerificationPage() {
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={employer.logo} alt={employer.companyName} />
-                                                    <AvatarFallback>{employer.companyName.slice(0,2)}</AvatarFallback>
+                                                    <AvatarImage src={employer.profilePhoto} alt={employer.name} />
+                                                    <AvatarFallback>{employer.name.slice(0,2)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-medium">{employer.companyName}</p>
+                                                    <p className="font-medium">{employer.name}</p>
                                                     <p className="text-sm text-muted-foreground">{employer.email}</p>
                                                 </div>
                                             </div>
