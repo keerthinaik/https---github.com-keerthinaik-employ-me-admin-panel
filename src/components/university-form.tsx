@@ -155,8 +155,8 @@ export function UniversityForm({ university }: UniversityFormProps) {
   const watchedCountry = watch('country');
   const watchedState = watch('state');
 
-  const countryRef = React.useRef<string | undefined>();
-  const stateRef = React.useRef<string | undefined>();
+  const countryRef = React.useRef(university?.country);
+  const stateRef = React.useRef(university?.state);
   
   React.useEffect(() => {
     const fetchCountries = async () => {
@@ -186,7 +186,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== undefined && countryRef.current !== watchedCountry) {
+        if (countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -209,7 +209,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== undefined && stateRef.current !== watchedState) {
+        if (stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {
@@ -354,7 +354,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
         if (error.data && error.data.errors) {
             const serverErrors = error.data.errors;
             let firstErrorField: keyof UniversityFormValues | null = null;
-
+            
             Object.keys(serverErrors).forEach((key) => {
                 if (!firstErrorField) {
                     firstErrorField = key as keyof UniversityFormValues;
@@ -480,7 +480,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
                                                   <Command>
                                                       <CommandInput placeholder="Search country..." />
                                                       <CommandEmpty>No country found.</CommandEmpty>
-                                                      <CommandGroup>
+                                                      <CommandGroup className="max-h-60 overflow-auto">
                                                           {countries.map(c => (
                                                               <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
                                                                   <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
@@ -511,7 +511,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
                                                   <Command>
                                                       <CommandInput placeholder="Search state..." />
                                                       <CommandEmpty>No state found.</CommandEmpty>
-                                                      <CommandGroup>
+                                                      <CommandGroup className="max-h-60 overflow-auto">
                                                           {states.map(s => (
                                                               <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
                                                                   <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
@@ -542,7 +542,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
                                                   <Command>
                                                       <CommandInput placeholder="Search city..." />
                                                       <CommandEmpty>No city found.</CommandEmpty>
-                                                      <CommandGroup>
+                                                      <CommandGroup className="max-h-60 overflow-auto">
                                                           {cities.map(c => (
                                                               <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
                                                                   <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
@@ -657,6 +657,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
     </>
   );
 }
+
 
 
 

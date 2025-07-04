@@ -151,8 +151,8 @@ export function EmployerForm({ employer }: EmployerFormProps) {
   const watchedCountry = watch('country');
   const watchedState = watch('state');
 
-  const countryRef = React.useRef<string | undefined>(employer?.country);
-  const stateRef = React.useRef<string | undefined>(employer?.state);
+  const countryRef = React.useRef(employer?.country);
+  const stateRef = React.useRef(employer?.state);
   
   React.useEffect(() => {
     const fetchCountries = async () => {
@@ -182,7 +182,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== undefined && countryRef.current !== watchedCountry) {
+        if (countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -205,7 +205,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== undefined && stateRef.current !== watchedState) {
+        if (stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {
@@ -491,7 +491,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                                                     <Command>
                                                         <CommandInput placeholder="Search country..." />
                                                         <CommandEmpty>No country found.</CommandEmpty>
-                                                        <CommandGroup>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
                                                             {countries.map(c => (
                                                                 <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
                                                                     <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
@@ -525,7 +525,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                                                     <Command>
                                                         <CommandInput placeholder="Search state..." />
                                                         <CommandEmpty>No state found.</CommandEmpty>
-                                                        <CommandGroup>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
                                                             {states.map(s => (
                                                                 <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
                                                                     <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
@@ -559,7 +559,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                                                     <Command>
                                                         <CommandInput placeholder="Search city..." />
                                                         <CommandEmpty>No city found.</CommandEmpty>
-                                                        <CommandGroup>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
                                                             {cities.map(c => (
                                                                 <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
                                                                     <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
@@ -722,7 +722,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="flex justify-between">
+                    <div className="mt-6 flex justify-between">
                         <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                     </div>
                 </TabsContent>
@@ -767,4 +767,3 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     </>
   );
 }
-

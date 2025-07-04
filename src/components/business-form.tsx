@@ -141,8 +141,8 @@ export function BusinessForm({ business }: BusinessFormProps) {
   const watchedCountry = watch('country');
   const watchedState = watch('state');
 
-  const countryRef = React.useRef<string | undefined>();
-  const stateRef = React.useRef<string | undefined>();
+  const countryRef = React.useRef(business?.country);
+  const stateRef = React.useRef(business?.state);
 
   React.useEffect(() => {
     const fetchCountries = async () => {
@@ -172,7 +172,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== undefined && countryRef.current !== watchedCountry) {
+        if (countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -195,7 +195,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== undefined && stateRef.current !== watchedState) {
+        if (stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {
@@ -442,7 +442,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                                   <Command>
                                                       <CommandInput placeholder="Search country..." />
                                                       <CommandEmpty>No country found.</CommandEmpty>
-                                                      <CommandGroup>
+                                                      <CommandGroup className="max-h-60 overflow-auto">
                                                           {countries.map(c => (
                                                               <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode); setOpenCountry(false); }}>
                                                                   <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
@@ -473,7 +473,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                                   <Command>
                                                       <CommandInput placeholder="Search state..." />
                                                       <CommandEmpty>No state found.</CommandEmpty>
-                                                      <CommandGroup>
+                                                      <CommandGroup className="max-h-60 overflow-auto">
                                                           {states.map(s => (
                                                               <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode); setOpenState(false); }}>
                                                                   <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
@@ -504,7 +504,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                                   <Command>
                                                       <CommandInput placeholder="Search city..." />
                                                       <CommandEmpty>No city found.</CommandEmpty>
-                                                      <CommandGroup>
+                                                      <CommandGroup className="max-h-60 overflow-auto">
                                                           {cities.map(c => (
                                                               <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name); setOpenCity(false);}}>
                                                                   <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
@@ -622,6 +622,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
     </>
   );
 }
+
 
 
 
