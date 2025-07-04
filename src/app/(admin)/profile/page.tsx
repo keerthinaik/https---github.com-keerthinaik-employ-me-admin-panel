@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -127,34 +127,38 @@ export default function ProfilePage() {
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
   
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const response = await getMe();
-        const userData = response.data;
-        setProfileData(userData);
-        reset({
-          name: userData.name || '',
-          email: userData.email || '',
-          phoneNumber: userData.phoneNumber || '',
-          address: userData.address || '',
-          city: userData.city || '',
-          state: userData.state || '',
-          country: userData.country || '',
-          zipCode: userData.zipCode || '',
-        });
-        if (userData.profilePhoto) {
-          const fullUrl = `${API_BASE_URL}/${userData.profilePhoto}`;
-          setCroppedImageUrl(fullUrl);
-        }
-      } catch (error: any) {
-        toast({ title: "Failed to load profile", description: error.message, variant: "destructive" });
-      } finally {
-        setIsLoading(false);
+  const fetchProfile = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await getMe();
+      const userData = response.data;
+      setProfileData(userData);
+      reset({
+        name: userData.name || '',
+        email: userData.email || '',
+        phoneNumber: userData.phoneNumber || '',
+        address: userData.address || '',
+        city: userData.city || '',
+        state: userData.state || '',
+        country: userData.country || '',
+        zipCode: userData.zipCode || '',
+      });
+      if (userData.profilePhoto) {
+        const fullUrl = `${API_BASE_URL}/${userData.profilePhoto}`;
+        setCroppedImageUrl(fullUrl);
+      } else {
+        setCroppedImageUrl('');
       }
+    } catch (error: any) {
+      toast({ title: "Failed to load profile", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
-    fetchProfile();
   }, [reset, toast]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,6 +254,7 @@ export default function ProfilePage() {
             title: 'Profile Updated',
             description: 'Your profile has been successfully updated.',
         });
+        await fetchProfile(); // Re-fetch data to get new photo URL from server
     } catch (error: any) {
         toast({
             title: 'Update Failed',
@@ -275,7 +280,7 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
              <div className="flex items-center gap-6">
               <Avatar className="h-20 w-20">
-                <AvatarImage src="http://148.72.244.169:3000/uploads/AdminUser/profilePhoto/profilePhoto-1751602627552-962777425.jpg" alt="User avatar" />
+                <AvatarImage src={croppedImageUrl} alt="User avatar" />
                 <AvatarFallback>{profileData?.name.slice(0,2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-grow space-y-2">
