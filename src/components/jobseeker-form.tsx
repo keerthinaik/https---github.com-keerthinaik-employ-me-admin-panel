@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -67,38 +68,33 @@ const jobseekerSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
   
-  // Profile
+  profilePhoto: z.any().optional(),
+  bannerImage: z.any().optional(),
   headline: z.string().optional(),
   summary: z.string().optional(),
   about: z.string().optional(),
   
-  // Personal Details
   dateOfBirth: z.date().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   passportNumber: z.string().optional(),
 
-  // Social & Portfolio
   linkedInProfile: z.string().url().optional().or(z.literal('')),
   githubProfile: z.string().url().optional().or(z.literal('')),
   portfolio: z.string().url().optional().or(z.literal('')),
-  projects: z.array(projectSchema).optional(),
-
-  // Others / Associations
+  
   businessAssociationId: z.string().optional(),
   universityAssociationId: z.string().optional(),
   
-  // Skills & Documents
   skills: z.array(z.string()).optional(),
   resume: z.any().optional(),
   certifications: z.any().optional(),
   
-  // Account
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
   
-  // Nested Objects
   experience: z.array(experienceSchema).optional(),
   education: z.array(educationSchema).optional(),
+  projects: z.array(projectSchema).optional(),
 }).refine(data => {
     return !(data.businessAssociationId && data.universityAssociationId);
 }, {
@@ -109,9 +105,10 @@ const jobseekerSchema = z.object({
 
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
 
-const fieldToTabMap: Record<keyof JobseekerFormValues, string> = {
+const fieldToTabMap: Record<string, string> = {
   name: 'profile', email: 'profile', phoneNumber: 'profile', headline: 'profile', summary: 'profile', about: 'profile',
   dateOfBirth: 'profile', gender: 'profile', passportNumber: 'profile', businessAssociationId: 'profile', universityAssociationId: 'profile',
+  profilePhoto: 'profile', bannerImage: 'profile',
   experience: 'career', education: 'career',
   skills: 'skills', resume: 'skills', certifications: 'skills',
   linkedInProfile: 'portfolio', githubProfile: 'portfolio', portfolio: 'portfolio', projects: 'portfolio',
@@ -139,8 +136,6 @@ const ArrayTextarea = ({ value, onChange, ...props }: { value?: string[], onChan
     return <Textarea {...props} value={text} onChange={handleChange} />;
 };
 
-
-// Function to center the crop
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
   return centerCrop(
     makeAspectCrop(
@@ -163,7 +158,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [activeTab, setActiveTab] = React.useState('profile');
   const TABS = ['profile', 'career', 'skills', 'portfolio', 'account'];
   
-  // State for profile photo cropping
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
   const [crop, setCrop] = React.useState<Crop>()
@@ -171,7 +165,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [croppedImageUrl, setCroppedImageUrl] = React.useState<string>('')
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
-  // State for banner image cropping
   const [bannerImgSrc, setBannerImgSrc] = React.useState('')
   const bannerImgRef = React.useRef<HTMLImageElement>(null)
   const [bannerCrop, setBannerCrop] = React.useState<Crop>()
@@ -206,7 +199,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, getValues, register } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, getValues } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
@@ -403,9 +396,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   };
 
   const onError = (errors: any) => {
-    const firstErrorField = Object.keys(errors)[0] as keyof JobseekerFormValues;
-    if (firstErrorField) {
-      // If the error is in a nested object (like experience), we need to get the top-level key.
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const firstErrorField = errorKeys[0] as keyof JobseekerFormValues;
       const topLevelField = firstErrorField.split('.')[0] as keyof JobseekerFormValues;
       const tab = fieldToTabMap[topLevelField];
       if (tab && tab !== activeTab) {
@@ -546,7 +539,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                         <CardHeader><CardTitle>Personal Details & Associations</CardTitle></CardHeader>
                          <CardContent className="space-y-4">
                             <div className="grid md:grid-cols-3 gap-4">
-                               <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                               <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                                <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                <FormField name="passportNumber" control={control} render={({field}) => <FormItem><FormLabel>Passport Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                             </div>
@@ -557,17 +550,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
-                                            <Select
-                                                onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)}
-                                                value={field.value || '---none---'}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="None" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="---none---">None</SelectItem>
+                                                    <SelectItem value="">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -581,17 +567,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
-                                            <Select
-                                                 onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)}
-                                                 value={field.value || '---none---'}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="None" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="---none---">None</SelectItem>
+                                                    <SelectItem value="">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -616,31 +595,15 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <div className="space-y-2">
-                                        <Label>Job Title</Label>
-                                        <Input {...register(`experience.${index}.jobTitle`)} />
-                                        {errors.experience?.[index]?.jobTitle && <p className="text-sm text-destructive">{errors.experience[index]?.jobTitle?.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Company</Label>
-                                        <Input {...register(`experience.${index}.companyName`)} />
-                                        {errors.experience?.[index]?.companyName && <p className="text-sm text-destructive">{errors.experience[index]?.companyName?.message}</p>}
-                                    </div>
+                                    <FormField name={`experience.${index}.jobTitle`} control={control} render={({field}) => <FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    <FormField name={`experience.${index}.companyName`} control={control} render={({field}) => <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField control={control} name={`experience.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
-                                        <FormField control={control} name={`experience.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`experience.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`experience.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
-                                    <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>} />
-                                    <div className="space-y-2">
-                                        <Label>Responsibilities (one per line)</Label>
-                                        <Controller name={`experience.${index}.responsibilities`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
-                                        {errors.experience?.[index]?.responsibilities && <p className="text-sm text-destructive">{errors.experience[index]?.responsibilities?.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Achievements (one per line)</Label>
-                                        <Controller name={`experience.${index}.achievements`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
-                                        {errors.experience?.[index]?.achievements && <p className="text-sm text-destructive">{errors.experience[index]?.achievements?.message}</p>}
-                                    </div>
+                                    <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel><FormMessage /></FormItem>} />
+                                    <FormField name={`experience.${index}.responsibilities`} control={control} render={({ field }) => <FormItem><FormLabel>Responsibilities (one per line)</FormLabel><FormControl><ArrayTextarea {...field} /></FormControl><FormMessage /></FormItem>} />
+                                    <FormField name={`experience.${index}.achievements`} control={control} render={({ field }) => <FormItem><FormLabel>Achievements (one per line)</FormLabel><FormControl><ArrayTextarea {...field} /></FormControl><FormMessage /></FormItem>} />
                                 </div>
                             )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendExp({ jobTitle: '', companyName: '', startDate: new Date(), isCurrent: false, responsibilities: [], achievements: [] })}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
@@ -653,31 +616,15 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <div className="space-y-2">
-                                        <Label>Institution</Label>
-                                        <Input {...register(`education.${index}.institution`)} />
-                                        {errors.education?.[index]?.institution && <p className="text-sm text-destructive">{errors.education[index]?.institution?.message}</p>}
-                                    </div>
+                                    <FormField name={`education.${index}.institution`} control={control} render={({field}) => <FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Degree</Label>
-                                            <Input {...register(`education.${index}.degree`)} />
-                                            {errors.education?.[index]?.degree && <p className="text-sm text-destructive">{errors.education[index]?.degree?.message}</p>}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Field of Study</Label>
-                                            <Input {...register(`education.${index}.fieldOfStudy`)} />
-                                            {errors.education?.[index]?.fieldOfStudy && <p className="text-sm text-destructive">{errors.education[index]?.fieldOfStudy?.message}</p>}
-                                        </div>
+                                        <FormField name={`education.${index}.degree`} control={control} render={({field}) => <FormItem><FormLabel>Degree</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                        <FormField name={`education.${index}.fieldOfStudy`} control={control} render={({field}) => <FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <FormField control={control} name={`education.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
-                                        <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
-                                        <div className="space-y-2">
-                                            <Label>CGPA/Grade</Label>
-                                            <Input {...register(`education.${index}.cgpa`)} />
-                                            {errors.education?.[index]?.cgpa && <p className="text-sm text-destructive">{errors.education[index]?.cgpa?.message}</p>}
-                                        </div>
+                                        <FormField control={control} name={`education.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField name={`education.${index}.cgpa`} control={control} render={({field}) => <FormItem><FormLabel>CGPA/Grade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     </div>
                                 </div>
                             )})}
@@ -788,8 +735,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <FormField control={control} name={`projects.${index}.description`} render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                                     <FormField control={control} name={`projects.${index}.url`} render={({field}) => (<FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..."/></FormControl><FormMessage /></FormItem>)} />
                                      <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField control={control} name={`projects.${index}.startDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
-                                        <FormField control={control} name={`projects.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <FormField control={control} name={`projects.${index}.startDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name={`projects.${index}.endDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
                                 </div>
                             ))}
@@ -804,75 +751,17 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 
                 <TabsContent value="account" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Media</CardTitle></CardHeader>
-                        <CardContent className="space-y-6">
-                           <FormField
-                                control={control}
-                                name="profilePhoto"
-                                render={() => (
-                                    <FormItem>
-                                        <div className="flex items-center gap-6">
-                                            <Avatar className="h-20 w-20">
-                                                <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
-                                                <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-grow space-y-2">
-                                                <FormLabel>Profile Photo</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={onFileChange}
-                                                    />
-                                                </FormControl>
-                                                <FormDescription>Image must be at least 200x200px.</FormDescription>
-                                                <FormMessage />
-                                            </div>
-                                        </div>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={control}
-                                name="bannerImage"
-                                render={() => (
-                                    <FormItem className="pt-6 border-t">
-                                        <FormLabel>Banner Image</FormLabel>
-                                        <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
-                                            {croppedBannerImageUrl ? (
-                                                <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
-                                            )}
-                                        </div>
-                                         <FormControl>
-                                            <Input
-                                                id="bannerImage-input"
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={onBannerFileChange}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>Recommended size: 1128x191px.</FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-                     <Card>
                         <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                                 <FormField control={control} name="password" render={({ field }) => ( <FormItem><FormLabel>Set New Password</FormLabel><FormControl><Input type="password" {...field} placeholder={jobseeker ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>)}/>
-                                <FormField control={control} name="isVerified" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Verification Status</FormLabel><CardDescription>Indicates if the jobseeker has been verified.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)}/>
-                                <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel><CardDescription>Inactive jobseekers cannot log in or apply for jobs.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)}/>
+                                <FormField control={control} name="isVerified" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Verification Status</FormLabel><CardDescription>Indicates if the jobseeker has been verified.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
+                                <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel><CardDescription>Inactive jobseekers cannot log in or apply for jobs.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
                         </CardContent>
                     </Card>
                     <div className="mt-6 flex justify-between">
                         <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                     </div>
                 </TabsContent>
-
             </Tabs>
         <CardFooter className="flex justify-end gap-2 mt-6 px-0">
             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
@@ -942,3 +831,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+
