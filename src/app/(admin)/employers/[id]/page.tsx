@@ -129,7 +129,6 @@ export default function EmployerDetailsPage() {
                                 <AvatarFallback>{employer.companyName.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{employer.companyName}</CardTitle>
-                            <CardDescription>{employer.name}</CardDescription>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground space-y-4">
                            <div className="flex items-start gap-3">

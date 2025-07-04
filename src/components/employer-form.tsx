@@ -29,7 +29,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 const employerSchema = z.object({
-  name: z.string().min(1, 'Contact person name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   phoneNumber: z.string().optional(),
@@ -57,7 +56,6 @@ type EmployerFormValues = z.infer<typeof employerSchema>;
 
 const fieldToTabMap: Record<keyof EmployerFormValues, string> = {
   companyName: 'company',
-  name: 'company',
   email: 'company',
   phoneNumber: 'company',
   about: 'company',
@@ -127,7 +125,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
   const form = useForm<EmployerFormValues>({
     resolver: zodResolver(employerSchema),
     defaultValues: {
-        name: employer?.name || '',
         email: employer?.email || '',
         phoneNumber: employer?.phoneNumber || '',
         address: employer?.address || '',
@@ -388,19 +385,12 @@ export function EmployerForm({ employer }: EmployerFormProps) {
               
               <TabsContent value="company" className="space-y-6">
                   <Card>
-                      <CardHeader><CardTitle>Company & Contact Information</CardTitle></CardHeader>
+                      <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
                       <CardContent className="space-y-4">
-                          <div className="grid md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                  <Label htmlFor="companyName">Company Name</Label>
-                                  <Input id="companyName" {...register('companyName')} />
-                                  {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
-                              </div>
-                               <div className="space-y-2">
-                                  <Label htmlFor="name">Contact Person Name</Label>
-                                  <Input id="name" {...register('name')} />
-                                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-                              </div>
+                           <div className="space-y-2">
+                              <Label htmlFor="companyName">Name</Label>
+                              <Input id="companyName" {...register('companyName')} />
+                              {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
                           </div>
                            <div className="grid md:grid-cols-2 gap-4">
                                <div className="space-y-2">

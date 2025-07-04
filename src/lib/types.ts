@@ -143,7 +143,7 @@ export interface University {
 export interface Employer {
   id: string;
   _id?: string;
-  name: string; // Contact Person
+  name?: string; // Contact Person
   email: string;
   phoneNumber?: string;
   address?: string;
