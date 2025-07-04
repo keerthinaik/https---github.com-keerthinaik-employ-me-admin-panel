@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser } from '@/services/api';
+import { loginUser, getMe } from '@/services/api';
 import type { AuthUser } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +13,7 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  refetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+
+  const refetchUser = useCallback(async () => {
+    try {
+      const response = await getMe();
+      setUser(response.data);
+      localStorage.setItem('user', JSON.stringify(response.data));
+    } catch (error) {
+      console.error("Failed to refetch user data", error);
+      // Optional: handle error, e.g., by logging out
+      // logout();
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -80,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!token && !!user;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading, isAuthenticated, refetchUser }}>
       {children}
     </AuthContext.Provider>
   );

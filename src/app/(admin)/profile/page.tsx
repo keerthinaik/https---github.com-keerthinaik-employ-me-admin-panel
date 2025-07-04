@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -24,7 +23,7 @@ import type { ProfileUser } from '@/lib/types';
 import { useAuth } from '@/context/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Contact, Shield, ShieldCheck } from 'lucide-react';
+import { Contact, Shield, ShieldCheck, CheckIcon } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -35,7 +34,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { CheckIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 
 const profileSchema = z.object({
@@ -196,7 +195,7 @@ CountrySelect.displayName = 'CountrySelect';
 
 export default function ProfilePage() {
   const { toast } = useToast()
-  const { user } = useAuth();
+  const { user, refetchUser } = useAuth();
   const [profileData, setProfileData] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -231,7 +230,7 @@ export default function ProfilePage() {
       reset({
         name: userData.name || '',
         email: userData.email || '',
-        phoneNumber: (userData.phoneNumber && isValidPhoneNumber(userData.phoneNumber)) ? userData.phoneNumber : '',
+        phoneNumber: (userData.phoneNumber && isValidPhoneNumber(userData.phoneNumber)) ? userData.phoneNumber : undefined,
         address: userData.address || '',
         city: userData.city || '',
         state: userData.state || '',
@@ -350,6 +349,7 @@ export default function ProfilePage() {
             description: 'Your profile has been successfully updated.',
         });
         await fetchProfile(); // Re-fetch data to get new photo URL from server
+        await refetchUser(); // Re-fetch user in auth context
     } catch (error: any) {
         toast({
             title: 'Update Failed',
