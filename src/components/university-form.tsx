@@ -154,6 +154,9 @@ export function UniversityForm({ university }: UniversityFormProps) {
   const selectedType = watch('type');
   const watchedCountry = watch('country');
   const watchedState = watch('state');
+
+  const countryRef = React.useRef<string | undefined>();
+  const stateRef = React.useRef<string | undefined>();
   
   React.useEffect(() => {
     const fetchCountries = async () => {
@@ -183,8 +186,10 @@ export function UniversityForm({ university }: UniversityFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        setValue('state', '');
-        setValue('city', '');
+        if (countryRef.current !== undefined && countryRef.current !== watchedCountry) {
+          setValue('state', '');
+          setValue('city', '');
+        }
         try {
           const stateData = await getStates(watchedCountry);
           setStates(stateData);
@@ -196,6 +201,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
       }
     };
     fetchStates();
+    countryRef.current = watchedCountry;
   }, [watchedCountry, toast, setValue]);
 
   React.useEffect(() => {
@@ -203,7 +209,9 @@ export function UniversityForm({ university }: UniversityFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        setValue('city', '');
+        if (stateRef.current !== undefined && stateRef.current !== watchedState) {
+          setValue('city', '');
+        }
         try {
           const cityData = await getCities(watchedCountry, watchedState);
           setCities(cityData);
@@ -215,6 +223,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
       }
     };
     fetchCities();
+    stateRef.current = watchedState;
   }, [watchedCountry, watchedState, toast, setValue]);
   
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -634,4 +643,5 @@ export function UniversityForm({ university }: UniversityFormProps) {
     </>
   );
 }
+
 
