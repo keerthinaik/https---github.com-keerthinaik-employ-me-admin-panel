@@ -23,8 +23,9 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -145,13 +146,13 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     }
   });
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue } = form;
+  const { handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue } = form;
   
   const watchedCountry = watch('country');
   const watchedState = watch('state');
 
-  const countryRef = React.useRef<string | undefined>();
-  const stateRef = React.useRef<string | undefined>();
+  const countryRef = React.useRef<string | undefined>(employer?.country);
+  const stateRef = React.useRef<string | undefined>(employer?.state);
   
   React.useEffect(() => {
     const fetchCountries = async () => {
@@ -374,251 +375,352 @@ export function EmployerForm({ employer }: EmployerFormProps) {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit, onError)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                  <TabsTrigger value="company">Company Info</TabsTrigger>
-                  <TabsTrigger value="location">Location</TabsTrigger>
-                  <TabsTrigger value="legal">Legal & Web</TabsTrigger>
-                  <TabsTrigger value="account">Account</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="company" className="space-y-6">
-                  <Card>
-                      <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                           <div className="space-y-2">
-                              <Label htmlFor="companyName">Name</Label>
-                              <Input id="companyName" {...register('companyName')} />
-                              {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
-                          </div>
-                           <div className="grid md:grid-cols-2 gap-4">
-                               <div className="space-y-2">
-                                  <Label htmlFor="email">Email</Label>
-                                  <Input id="email" type="email" {...register('email')} />
-                                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                              </div>
-                              <div className="space-y-2">
-                                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                                  <Input id="phoneNumber" {...register('phoneNumber')} />
-                              </div>
-                          </div>
-                          <div className="space-y-2">
-                              <Label htmlFor="about">About Company</Label>
-                              <Textarea id="about" {...register('about')} className="min-h-32" placeholder="Brief description of the company..." />
-                          </div>
-                      </CardContent>
-                  </Card>
-                  <div className="mt-6 flex justify-end">
-                      <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                  </div>
-              </TabsContent>
+      <Form {...form}>
+        <form onSubmit={handleSubmit(onSubmit, onError)}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsTrigger value="company">Company Info</TabsTrigger>
+                    <TabsTrigger value="location">Location</TabsTrigger>
+                    <TabsTrigger value="legal">Legal & Web</TabsTrigger>
+                    <TabsTrigger value="account">Account</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="company" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={control}
+                                name="companyName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Email</FormLabel>
+                                            <FormControl><Input type="email" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="phoneNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Phone Number</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <FormField
+                                control={control}
+                                name="about"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>About Company</FormLabel>
+                                        <FormControl><Textarea {...field} className="min-h-32" placeholder="Brief description of the company..." /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-end">
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
 
-              <TabsContent value="location" className="space-y-6">
-                   <Card>
-                      <CardHeader><CardTitle>Location</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <div className="space-y-2">
-                              <Label htmlFor="address">Address</Label>
-                              <Input id="address" {...register('address')} />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <Controller
-                                  name="country"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <div className="space-y-2">
-                                          <Label>Country</Label>
-                                          <Popover open={openCountry} onOpenChange={setOpenCountry}>
-                                              <PopoverTrigger asChild>
-                                                  <Button variant="outline" role="combobox" className="w-full justify-between">
-                                                      {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
-                                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                  <Command>
-                                                      <CommandInput placeholder="Search country..." />
-                                                      <CommandEmpty>No country found.</CommandEmpty>
-                                                      <CommandGroup>
-                                                          {countries.map(c => (
-                                                              <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
-                                                                  <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
-                                                                  {c.name}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </Command>
-                                              </PopoverContent>
-                                          </Popover>
-                                      </div>
-                                  )}
-                              />
-                              <Controller
-                                  name="state"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <div className="space-y-2">
-                                          <Label>State / Province</Label>
-                                          <Popover open={openState} onOpenChange={setOpenState}>
-                                              <PopoverTrigger asChild>
-                                                  <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
-                                                      {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
-                                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                  <Command>
-                                                      <CommandInput placeholder="Search state..." />
-                                                      <CommandEmpty>No state found.</CommandEmpty>
-                                                      <CommandGroup>
-                                                          {states.map(s => (
-                                                              <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
-                                                                  <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
-                                                                  {s.name}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </Command>
-                                              </PopoverContent>
-                                          </Popover>
-                                      </div>
-                                  )}
-                              />
-                              <Controller
-                                  name="city"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <div className="space-y-2">
-                                          <Label>City</Label>
-                                          <Popover open={openCity} onOpenChange={setOpenCity}>
-                                              <PopoverTrigger asChild>
-                                                  <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
-                                                      {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
-                                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                  <Command>
-                                                      <CommandInput placeholder="Search city..." />
-                                                      <CommandEmpty>No city found.</CommandEmpty>
-                                                      <CommandGroup>
-                                                          {cities.map(c => (
-                                                              <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
-                                                                  <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
-                                                                  {c.name}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </Command>
-                                              </PopoverContent>
-                                          </Popover>
-                                      </div>
-                                  )}
-                              />
-                          </div>
-                           <div className="space-y-2">
-                              <Label htmlFor="zipCode">Zip Code</Label>
-                              <Input id="zipCode" {...register('zipCode')} />
-                          </div>
-                      </CardContent>
-                  </Card>
-                   <div className="mt-6 flex justify-between">
-                      <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                      <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                  </div>
-              </TabsContent>
+                <TabsContent value="location" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Location</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Address</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <FormField
+                                    control={control}
+                                    name="country"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Country</FormLabel>
+                                            <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                                            {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search country..." />
+                                                        <CommandEmpty>No country found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {countries.map(c => (
+                                                                <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {c.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="state"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>State / Province</FormLabel>
+                                            <Popover open={openState} onOpenChange={setOpenState}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
+                                                            {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search state..." />
+                                                        <CommandEmpty>No state found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {states.map(s => (
+                                                                <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {s.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="city"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>City</FormLabel>
+                                            <Popover open={openCity} onOpenChange={setOpenCity}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
+                                                            {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search city..." />
+                                                        <CommandEmpty>No city found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {cities.map(c => (
+                                                                <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {c.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                             <FormField
+                                control={control}
+                                name="zipCode"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Zip Code</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+                
+                <TabsContent value="legal" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Website & Legal Information</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={control}
+                                name="website"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Website</FormLabel>
+                                        <FormControl><Input {...field} placeholder="https://..." /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid md:grid-cols-2 gap-4 items-start">
+                                <FormField
+                                    control={control}
+                                    name="taxNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Tax Number</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="taxCertificate"
+                                    render={({ field: { value, onChange, ...fieldProps } }) => (
+                                        <FormItem>
+                                            <FormLabel>Tax Certificate</FormLabel>
+                                            <FormControl><Input type="file" {...fieldProps} onChange={(e) => onChange(e.target.files)} accept="application/pdf,image/*,.doc,.docx" /></FormControl>
+                                            {employer?.taxCertificate && <p className="text-xs text-muted-foreground mt-1">Current: <a href={employer.taxCertificate} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Certificate</a></p>}
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-4 items-start">
+                                <FormField
+                                    control={control}
+                                    name="registrationNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Registration Number</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="registrationCertificate"
+                                    render={({ field: { value, onChange, ...fieldProps } }) => (
+                                        <FormItem>
+                                            <FormLabel>Registration Certificate</FormLabel>
+                                            <FormControl><Input type="file" {...fieldProps} onChange={(e) => onChange(e.target.files)} accept="application/pdf,image/*,.doc,.docx" /></FormControl>
+                                            {employer?.registrationCertificate && <p className="text-xs text-muted-foreground mt-1">Current: <a href={employer.registrationCertificate} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Certificate</a></p>}
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
 
-              <TabsContent value="legal" className="space-y-6">
-                  <Card>
-                      <CardHeader><CardTitle>Website & Legal Information</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                           <div className="space-y-2">
-                              <Label htmlFor="website">Website</Label>
-                              <Input id="website" {...register('website')} placeholder="https://..." />
-                              {errors.website && <p className="text-sm text-destructive">{errors.website.message}</p>}
-                          </div>
-                          <div className="grid md:grid-cols-2 gap-4 items-start">
-                              <div className="space-y-2">
-                                  <Label htmlFor="taxNumber">Tax Number</Label>
-                                  <Input id="taxNumber" {...register('taxNumber')} />
-                              </div>
-                              <div className="space-y-2">
-                                  <Label htmlFor="taxCertificate">Tax Certificate</Label>
-                                  <Input id="taxCertificate" type="file" {...register('taxCertificate')} accept="application/pdf,image/*,.doc,.docx" />
-                                  {employer?.taxCertificate && <p className="text-xs text-muted-foreground mt-1">Current: <a href={employer.taxCertificate} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Certificate</a></p>}
-                                  {errors.taxCertificate && <p className="text-sm text-destructive">{errors.taxCertificate.message as string}</p>}
-                              </div>
-                          </div>
-                           <div className="grid md:grid-cols-2 gap-4 items-start">
-                              <div className="space-y-2">
-                                  <Label htmlFor="registrationNumber">Registration Number</Label>
-                                  <Input id="registrationNumber" {...register('registrationNumber')} />
-                              </div>
-                               <div className="space-y-2">
-                                  <Label htmlFor="registrationCertificate">Registration Certificate</Label>
-                                  <Input id="registrationCertificate" type="file" {...register('registrationCertificate')} accept="application/pdf,image/*,.doc,.docx" />
-                                  {employer?.registrationCertificate && <p className="text-xs text-muted-foreground mt-1">Current: <a href={employer.registrationCertificate} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Certificate</a></p>}
-                                  {errors.registrationCertificate && <p className="text-sm text-destructive">{errors.registrationCertificate.message as string}</p>}
-                              </div>
-                          </div>
-                      </CardContent>
-                  </Card>
-                  <div className="mt-6 flex justify-between">
-                      <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                      <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                  </div>
-              </TabsContent>
-
-              <TabsContent value="account" className="space-y-6">
-                  <Card>
-                      <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <div className="flex items-center gap-6">
-                              <Avatar className="h-20 w-20">
-                                  <AvatarImage src={croppedImageUrl} alt="Company profile photo" />
-                                  <AvatarFallback>{form.getValues('companyName')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-grow space-y-2">
-                                  <Label htmlFor="profilePhoto-input">Company Profile Photo</Label>
-                                  <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
-                                  <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
-                                  {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
-                              </div>
-                           </div>
-                          <div className="space-y-2 pt-4 border-t">
-                              <Label htmlFor="password">Set New Password</Label>
-                              <Input id="password" type="password" {...register('password')} placeholder={employer ? "Leave blank to keep unchanged" : ""} />
-                              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-                          </div>
-                          <div className="flex items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                  <Label>Verification Status</Label>
-                                  <CardDescription>Indicates if the employer's identity has been verified.</CardDescription>
-                              </div>
-                              <Controller name="isVerified" control={control} render={({ field }) => (<Switch checked={field.value} onCheckedChange={field.onChange} />)} />
-                          </div>
-                          <div className="flex items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                  <Label>Active Status</Label>
-                                  <CardDescription>Inactive employers cannot log in or post jobs.</CardDescription>
-                              </div>
-                              <Controller name="isActive" control={control} render={({ field }) => (<Switch checked={field.value} onCheckedChange={field.onChange} />)} />
-                          </div>
-                      </CardContent>
-                  </Card>
-                   <div className="flex justify-between">
-                      <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                  </div>
-              </TabsContent>
-          </Tabs>
-          <CardFooter className="flex justify-end gap-2 mt-6 px-0">
-              <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : employer ? 'Save Changes' : 'Create Employer'}
-              </Button>
-          </CardFooter>
-      </form>
+                <TabsContent value="account" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-6">
+                                <Avatar className="h-20 w-20">
+                                    <AvatarImage src={croppedImageUrl} alt="Company profile photo" />
+                                    <AvatarFallback>{form.getValues('companyName')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-grow space-y-2">
+                                    <Label htmlFor="profilePhoto-input">Company Profile Photo</Label>
+                                    <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
+                                    <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
+                                    {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
+                                </div>
+                            </div>
+                            <FormField
+                                control={control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem className="pt-4 border-t">
+                                        <FormLabel>Set New Password</FormLabel>
+                                        <FormControl><Input type="password" {...field} placeholder={employer ? "Leave blank to keep unchanged" : ""} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name="isVerified"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Verification Status</FormLabel>
+                                            <CardDescription>Indicates if the employer's identity has been verified.</CardDescription>
+                                        </div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={control}
+                                name="isActive"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Active Status</FormLabel>
+                                            <CardDescription>Inactive employers cannot log in or post jobs.</CardDescription>
+                                        </div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <div className="flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    </div>
+                </TabsContent>
+            </Tabs>
+            <CardFooter className="flex justify-end gap-2 mt-6 px-0">
+                <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : employer ? 'Save Changes' : 'Create Employer'}
+                </Button>
+            </CardFooter>
+        </form>
+      </Form>
        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
             <DialogHeader>
