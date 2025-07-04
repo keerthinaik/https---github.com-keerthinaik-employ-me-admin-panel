@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -225,8 +224,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         githubProfile: jobseeker?.githubProfile || '',
         portfolio: jobseeker?.portfolio || '',
         fieldOfStudy: jobseeker?.fieldOfStudy || '',
-        businessAssociationId: jobseeker?.businessAssociationId || undefined,
-        universityAssociationId: jobseeker?.universityAssociationId || undefined,
+        businessAssociationId: jobseeker?.businessAssociationId || '',
+        universityAssociationId: jobseeker?.universityAssociationId || '',
         isVerified: jobseeker?.isVerified || false,
         isActive: jobseeker?.isActive ?? true,
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
@@ -592,7 +591,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                             <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -607,7 +605,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                             <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
