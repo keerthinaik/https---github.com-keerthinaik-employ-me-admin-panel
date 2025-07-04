@@ -458,6 +458,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         if (value === null || value === undefined || value === '') return;
 
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
+            if (jobseeker && (key === 'experience' || key === 'education' || key === 'projects')) {
+                // Don't send these on update for now
+                return;
+            }
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
               if (itemValue !== null && itemValue !== undefined) { 
@@ -584,14 +588,30 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     control={control}
                                     name="businessAssociationId"
                                     render={({ field }) => (
-                                        <FormItem><FormLabel>Business Association</FormLabel><Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || '--none--'}><FormControl><SelectTrigger><SelectValue placeholder="Select a business" /></SelectTrigger></FormControl><SelectContent><SelectItem value="--none--">None</SelectItem>{businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Business Association</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="">None</SelectItem>
+                                                    {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        <FormMessage /></FormItem>
                                     )}
                                 />
                                 <FormField
                                     control={control}
                                     name="universityAssociationId"
                                     render={({ field }) => (
-                                        <FormItem><FormLabel>University Association</FormLabel><Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || '--none--'}><FormControl><SelectTrigger><SelectValue placeholder="Select a university" /></SelectTrigger></FormControl><SelectContent><SelectItem value="--none--">None</SelectItem>{universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>University Association</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="">None</SelectItem>
+                                                    {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        <FormMessage /></FormItem>
                                     )}
                                 />
                             </div>
