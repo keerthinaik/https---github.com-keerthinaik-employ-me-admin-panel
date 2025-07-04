@@ -89,6 +89,11 @@ const jobseekerSchema = z.object({
   
   experience: z.array(experienceSchema).optional(),
   education: z.array(educationSchema).optional(),
+  projects: z.array(projectSchema).optional(),
+
+  linkedInProfile: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
+  githubProfile: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
+  portfolio: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
   
 }).refine(data => {
     return !(data.businessAssociationId && data.universityAssociationId);
@@ -104,8 +109,9 @@ const fieldToTabMap: Record<string, string> = {
   name: 'profile', email: 'profile', phoneNumber: 'profile', headline: 'profile', summary: 'profile', about: 'profile',
   dateOfBirth: 'profile', gender: 'profile', passportNumber: 'profile', businessAssociationId: 'profile', universityAssociationId: 'profile',
   profilePhoto: 'profile', bannerImage: 'profile',
-  experience: 'career', education: 'career',
+  experience: 'career', education: 'career', projects: 'career',
   skills: 'skills', resume: 'skills', certifications: 'skills',
+  linkedInProfile: 'social', githubProfile: 'social', portfolio: 'social',
   password: 'account', isVerified: 'account', isActive: 'account',
 };
 
@@ -150,7 +156,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'social', 'account'];
   
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -181,10 +187,14 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         passportNumber: jobseeker?.passportNumber || '',
         businessAssociationId: jobseeker?.businessAssociationId || '',
         universityAssociationId: jobseeker?.universityAssociationId || '',
+        linkedInProfile: jobseeker?.linkedInProfile || '',
+        githubProfile: jobseeker?.githubProfile || '',
+        portfolio: jobseeker?.portfolio || '',
         isVerified: jobseeker?.isVerified || false,
         isActive: jobseeker?.isActive ?? true,
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
         education: jobseeker?.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
+        projects: jobseeker?.projects?.map(p => ({ ...p, startDate: p.startDate ? new Date(p.startDate) : undefined, endDate: p.endDate ? new Date(p.endDate) : undefined })) || [],
         skills: jobseeker?.skills || [],
     }
   });
@@ -193,7 +203,48 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
+  const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({ control, name: "projects" });
   
+  // FOR TESTING: Display errors on all fields
+  React.useEffect(() => {
+    setError("name", { type: "manual", message: "Name is too short." });
+    setError("email", { type: "manual", message: "This email is already in use." });
+    setError("headline", { type: "manual", message: "Headline cannot be empty." });
+    setError("summary", { type: "manual", message: "A summary is required." });
+    setError("about", { type: "manual", message: "Please tell us more about yourself." });
+    setError("dateOfBirth", { type: "manual", message: "Please enter a valid date." });
+    setError("gender", { type: "manual", message: "Please select a gender." });
+    setError("passportNumber", { type: "manual", message: "Invalid passport number format." });
+    setError("businessAssociationId", { type: "manual", message: "Invalid association." });
+    
+    if (!getValues('experience') || getValues('experience')?.length === 0) {
+        appendExp({ jobTitle: 'Test Job', companyName: 'Test Co', startDate: new Date(), isCurrent: true }, { shouldFocus: false });
+    }
+    if (!getValues('education') || getValues('education')?.length === 0) {
+        appendEdu({ institution: 'Test Uni', degree: 'BSc', fieldOfStudy: 'Testing', startDate: new Date(), endDate: new Date() }, { shouldFocus: false });
+    }
+    if (!getValues('projects') || getValues('projects')?.length === 0) {
+        appendProject({ title: 'Test Project', description: 'A test project' }, { shouldFocus: false });
+    }
+    
+    setTimeout(() => {
+      setError("experience.0.jobTitle", { type: 'manual', message: 'Job title is required.' });
+      setError("education.0.institution", { type: 'manual', message: 'Institution is required.' });
+      setError("projects.0.title", { type: 'manual', message: 'Project title is required.' });
+    }, 0);
+
+
+    setError("skills", { type: "manual", message: "Please select at least one skill." });
+    setError("resume", { type: "manual", message: "A resume file is required." });
+    setError("certifications", { type: "manual", message: "Please provide valid certification files." });
+
+    setError("linkedInProfile", { type: "manual", message: "Please enter a valid LinkedIn URL." });
+    setError("githubProfile", { type: "manual", message: "Please enter a valid GitHub URL." });
+    setError("portfolio", { type: "manual", message: "Please enter a valid portfolio URL." });
+    
+    setError("password", { type: "manual", message: "Password is too weak." });
+  }, [setError, getValues, appendExp, appendEdu, appendProject]);
+
   React.useEffect(() => {
     if (jobseeker?.profilePhoto) {
         const fullUrl = `${API_BASE_URL}${jobseeker.profilePhoto.startsWith('/') ? '' : '/'}${jobseeker.profilePhoto}`;
@@ -387,9 +438,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const onError = (errors: any) => {
     const errorKeys = Object.keys(errors);
     if (errorKeys.length > 0) {
-      const firstErrorField = errorKeys[0] as keyof JobseekerFormValues;
-      const topLevelField = firstErrorField.split('.')[0] as keyof JobseekerFormValues;
-      const tab = fieldToTabMap[topLevelField];
+      const firstErrorField = errorKeys[0].split('.')[0] as keyof JobseekerFormValues;
+      const tab = fieldToTabMap[firstErrorField];
       if (tab && tab !== activeTab) {
         setActiveTab(tab);
       }
@@ -402,97 +452,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   };
 
   const onSubmit = async (data: JobseekerFormValues) => {
-    const formData = new FormData();
-
-    Object.entries(data).forEach(([key, value]) => {
-        if (value === null || value === undefined) return;
-
-        if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
-          value.forEach((item, index) => {
-            Object.entries(item).forEach(([itemKey, itemValue]) => {
-              if (itemValue !== null && itemValue !== undefined && itemValue !== '') { 
-                const formattedKey = `${key}[${index}][${itemKey}]`;
-                
-                if (Array.isArray(itemValue)) {
-                    itemValue.forEach((arrVal, arrIndex) => {
-                        if (arrVal !== null && arrVal !== undefined && arrVal !== '') {
-                            const nestedFormattedKey = `${formattedKey}[${arrIndex}]`;
-                            formData.append(nestedFormattedKey, String(arrVal));
-                        }
-                    });
-                } else if (itemValue instanceof Date) {
-                  formData.append(formattedKey, itemValue.toISOString());
-                } else {
-                  formData.append(formattedKey, String(itemValue));
-                }
-              }
-            });
-          });
-        } else if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
-            formData.append(key, value);
-        } else if (key === 'resume' && value instanceof FileList) {
-             if (value.length > 0) formData.append(key, value[0]);
-        } else if (key === 'certifications' && value instanceof FileList) {
-            for (let i = 0; i < value.length; i++) {
-                formData.append('certifications', value[i]);
-            }
-        } else if (key === 'skills' && Array.isArray(value)) {
-            value.forEach(v => formData.append('skills[]', v));
-        } else if (value instanceof Date) {
-            formData.append(key, value.toISOString());
-        } else if (value !== '') {
-            formData.append(key, String(value));
-        }
+    // This is a test, so we'll just log the data
+    console.log("Form Submitted", data);
+    toast({
+        title: "Test Submission",
+        description: "Form is configured for testing and validation display.",
     });
-    
-    try {
-        if (jobseeker) {
-            await updateJobseeker(jobseeker.id, formData);
-        } else {
-            await createJobseeker(formData);
-        }
-        toast({
-            title: jobseeker ? 'Jobseeker Updated' : 'Jobseeker Created',
-            description: `${data.name} has been successfully ${jobseeker ? 'updated' : 'created'}.`,
-        });
-        router.push('/jobseekers');
-        router.refresh();
-    } catch (error: any) {
-        if (error.data && error.data.errors) {
-            const serverErrors = error.data.errors;
-             let firstErrorField: keyof JobseekerFormValues | null = null;
-            Object.keys(serverErrors).forEach((key) => {
-                 if (!firstErrorField) {
-                    firstErrorField = key.split('.')[0] as keyof JobseekerFormValues;
-                }
-                if (jobseekerSchema.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
-                    setError(key as keyof JobseekerFormValues, {
-                        type: 'server',
-                        message: serverErrors[key],
-                    });
-                }
-            });
-            
-            if (firstErrorField) {
-                const tab = fieldToTabMap[firstErrorField];
-                if (tab && tab !== activeTab) {
-                    setActiveTab(tab);
-                }
-            }
-
-            toast({
-                title: 'Could not save jobseeker',
-                description: error.data.message || 'Please correct the errors and try again.',
-                variant: 'destructive',
-            });
-        } else {
-           toast({
-              title: 'An error occurred',
-              description: error.message,
-              variant: 'destructive',
-          });
-        }
-    }
   };
 
   return (
@@ -500,10 +465,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsList className="grid w-full grid-cols-5 mb-6">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="career">Career</TabsTrigger>
-                    <TabsTrigger value="skills">Skills & Docs</TabsTrigger>
+                    <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
+                    <TabsTrigger value="social">Social &amp; Portfolio</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
                 
@@ -704,6 +670,36 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     </div>
                 </TabsContent>
                 
+                <TabsContent value="social" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Social & Portfolio</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            {projectFields.map((field, index) => {
+                                return (
+                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProject(index)}><Trash2 className="h-4 w-4"/></Button>
+                                    <FormField name={`projects.${index}.title`} control={control} render={({field}) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    <FormField name={`projects.${index}.description`} control={control} render={({field}) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    <FormField name={`projects.${index}.url`} control={control} render={({field}) => <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                </div>
+                            )})}
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+
                 <TabsContent value="account" className="space-y-6">
                     <Card>
                         <CardHeader>
@@ -723,11 +719,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                             </Avatar>
                                             <div className="flex-grow space-y-2">
                                                 <FormLabel>Profile Photo</FormLabel>
+                                                <FormControl>
                                                     <Input
                                                         type="file"
                                                         accept="image/*"
                                                         onChange={onFileChange}
                                                     />
+                                                </FormControl>
                                                 <FormDescription>Image must be at least 200x200px.</FormDescription>
                                                 <FormMessage />
                                             </div>
