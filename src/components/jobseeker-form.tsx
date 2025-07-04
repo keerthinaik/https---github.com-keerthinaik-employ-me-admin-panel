@@ -239,7 +239,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, getValues } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, getValues, register } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
@@ -456,8 +456,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-        if (value === null || value === undefined || value === '') return;
+        if (value === null || value === undefined) return;
 
+        if (key === 'businessAssociationId' || key === 'universityAssociationId') {
+            if (value === '') return; // Don't append if empty string (i.e. 'None' was selected)
+        }
+        
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
@@ -466,12 +470,14 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 
                 if (Array.isArray(itemValue)) {
                     itemValue.forEach((arrVal, arrIndex) => {
-                        const nestedFormattedKey = `${formattedKey}[${arrIndex}]`;
-                        formData.append(nestedFormattedKey, String(arrVal));
+                        if (arrVal !== null && arrVal !== undefined && arrVal !== '') {
+                            const nestedFormattedKey = `${formattedKey}[${arrIndex}]`;
+                            formData.append(nestedFormattedKey, String(arrVal));
+                        }
                     });
                 } else if (itemValue instanceof Date) {
                   formData.append(formattedKey, itemValue.toISOString());
-                } else {
+                } else if (itemValue !== '') {
                   formData.append(formattedKey, String(itemValue));
                 }
               }
@@ -489,12 +495,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
             value.forEach(v => formData.append('skills[]', v));
         } else if (value instanceof Date) {
             formData.append(key, value.toISOString());
-        } else {
+        } else if (value !== '') {
             formData.append(key, String(value));
         }
     });
-    
-    // The workaround for experience/education/projects is no longer needed with correct FormData formatting
     
     try {
         if (jobseeker) {
@@ -587,28 +591,42 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     control={control}
                                     name="businessAssociationId"
                                     render={({ field }) => (
-                                        <FormItem><FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
+                                        <FormItem>
+                                            <FormLabel>Business Association</FormLabel>
+                                            <Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="None" />
+                                                    </SelectTrigger>
+                                                </FormControl>
                                                 <SelectContent>
+                                                    <SelectItem value="--none--">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
-                                        <FormMessage /></FormItem>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
                                 <FormField
                                     control={control}
                                     name="universityAssociationId"
                                     render={({ field }) => (
-                                        <FormItem><FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
+                                        <FormItem>
+                                            <FormLabel>University Association</FormLabel>
+                                            <Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="None" />
+                                                    </SelectTrigger>
+                                                </FormControl>
                                                 <SelectContent>
+                                                    <SelectItem value="--none--">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
-                                        <FormMessage /></FormItem>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
                             </div>
@@ -630,12 +648,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Job Title</Label>
-                                        <Input {...form.register(`experience.${index}.jobTitle`)} />
+                                        <Input {...register(`experience.${index}.jobTitle`)} />
                                         {errors.experience?.[index]?.jobTitle && <p className="text-sm text-destructive">{errors.experience[index]?.jobTitle?.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Company</Label>
-                                        <Input {...form.register(`experience.${index}.companyName`)} />
+                                        <Input {...register(`experience.${index}.companyName`)} />
                                         {errors.experience?.[index]?.companyName && <p className="text-sm text-destructive">{errors.experience[index]?.companyName?.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
@@ -667,18 +685,18 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Institution</Label>
-                                        <Input {...form.register(`education.${index}.institution`)} />
+                                        <Input {...register(`education.${index}.institution`)} />
                                         {errors.education?.[index]?.institution && <p className="text-sm text-destructive">{errors.education[index]?.institution?.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label>Degree</Label>
-                                            <Input {...form.register(`education.${index}.degree`)} />
+                                            <Input {...register(`education.${index}.degree`)} />
                                             {errors.education?.[index]?.degree && <p className="text-sm text-destructive">{errors.education[index]?.degree?.message}</p>}
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Field of Study</Label>
-                                            <Input {...form.register(`education.${index}.fieldOfStudy`)} />
+                                            <Input {...register(`education.${index}.fieldOfStudy`)} />
                                             {errors.education?.[index]?.fieldOfStudy && <p className="text-sm text-destructive">{errors.education[index]?.fieldOfStudy?.message}</p>}
                                         </div>
                                     </div>
@@ -687,7 +705,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
                                         <div className="space-y-2">
                                             <Label>CGPA/Grade</Label>
-                                            <Input {...form.register(`education.${index}.cgpa`)} />
+                                            <Input {...register(`education.${index}.cgpa`)} />
                                             {errors.education?.[index]?.cgpa && <p className="text-sm text-destructive">{errors.education[index]?.cgpa?.message}</p>}
                                         </div>
                                     </div>
@@ -778,21 +796,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Online Presence</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                             <div className="space-y-2">
-                                <Label>LinkedIn Profile</Label>
-                                <Input {...form.register('linkedInProfile')} placeholder="https://linkedin.com/in/..."/>
-                                {errors.linkedInProfile && <p className="text-sm text-destructive">{errors.linkedInProfile.message}</p>}
-                            </div>
-                             <div className="space-y-2">
-                                <Label>GitHub Profile</Label>
-                                <Input {...form.register('githubProfile')} placeholder="https://github.com/..."/>
-                                {errors.githubProfile && <p className="text-sm text-destructive">{errors.githubProfile.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Portfolio Website</Label>
-                                <Input {...form.register('portfolio')} placeholder="https://..."/>
-                                {errors.portfolio && <p className="text-sm text-destructive">{errors.portfolio.message}</p>}
-                            </div>
+                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..."/> </FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..."/> </FormControl><FormMessage /></FormItem>}/>
+                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://..."/> </FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
                     <Card>
@@ -802,21 +808,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 return (
                                 <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <div className="space-y-2">
-                                        <Label>Project Title</Label>
-                                        <Input {...form.register(`projects.${index}.title`)} />
-                                        {errors.projects?.[index]?.title && <p className="text-sm text-destructive">{errors.projects[index]?.title?.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Project URL</Label>
-                                        <Input {...form.register(`projects.${index}.url`)} />
-                                        {errors.projects?.[index]?.url && <p className="text-sm text-destructive">{errors.projects[index]?.url?.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Description</Label>
-                                        <Textarea {...form.register(`projects.${index}.description`)} />
-                                        {errors.projects?.[index]?.description && <p className="text-sm text-destructive">{errors.projects[index]?.description?.message}</p>}
-                                    </div>
+                                    <FormField name={`projects.${index}.title`} control={control} render={({field}) => <FormItem><FormLabel>Project Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    <FormField name={`projects.${index}.url`} control={control} render={({field}) => <FormItem><FormLabel>Project URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    <FormField name={`projects.${index}.description`} control={control} render={({field}) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>}/>
                                 </div>
                             )})}
                             <Button type="button" variant="outline" size="sm" onClick={() => appendProj({ title: '', url: '', description: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
@@ -840,7 +834,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <div className="flex items-center gap-6">
                                         <Avatar className="h-20 w-20">
                                             <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
-                                            <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                            <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
                                         </Avatar>
                                         <div className="flex-grow space-y-2">
                                             <FormLabel>Profile Photo</FormLabel>
