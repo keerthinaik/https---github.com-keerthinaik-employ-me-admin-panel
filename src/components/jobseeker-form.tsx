@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -156,7 +155,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'portfolio', 'social', 'account'];
+  const TABS = ['profile', 'career', 'skills', 'social', 'portfolio', 'account'];
   
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -194,7 +193,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         isActive: jobseeker?.isActive ?? true,
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
         education: jobseeker?.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
-        projects: jobseeker?.projects?.map(p => ({ ...p, startDate: p.startDate ? new Date(p.startDate) : undefined, endDate: p.endDate ? new Date(p.endDate) : undefined })) || [],
+        projects: jobseeker?.projects?.map(p => ({ ...p, url: p.url || '' })) || [],
         skills: jobseeker?.skills || [],
     }
   });
@@ -428,15 +427,19 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
           value.forEach(skillId => {
               formData.append('skills', skillId);
           });
-      } else if (Array.isArray(value)) {
-          // For complex arrays of objects, stringify is appropriate
-          formData.append(key, JSON.stringify(value));
+      } else if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
+          // Append each object in the array stringified.
+          value.forEach(item => {
+              formData.append(key, JSON.stringify(item));
+          });
       } else if (value instanceof Date) {
           formData.append(key, value.toISOString());
       } else if (typeof value === 'boolean') {
           formData.append(key, String(value));
       } else {
-          formData.append(key, value as string);
+        if (!Array.isArray(value)) {
+            formData.append(key, value as string);
+        }
       }
     });
 
