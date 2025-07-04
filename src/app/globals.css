@@ -88,49 +88,30 @@ body {
   }
 }
 
-/* Styles for react-phone-number-input */
-.PhoneInputInput {
-  display: flex;
-  height: 2.5rem; /* h-10 */
-  width: 100%;
-  border-radius: 0.375rem; /* rounded-md */
-  border: 1px solid hsl(var(--input));
-  background-color: transparent;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem; /* text-sm */
-  line-height: 1.25rem;
-  ring-offset: hsl(var(--background));
-  transition: all 0.2s;
+/* Custom react-phone-number-input styles for ShadCN look and feel */
+.PhoneInput {
+  @apply flex h-10 w-full items-center rounded-md border border-input bg-transparent text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2;
 }
 
-.PhoneInputInput:focus {
-  outline: none;
-  border-color: hsl(var(--ring));
-  box-shadow: 0 0 0 1px hsl(var(--ring));
-}
-
+/* This is the container for my custom select. Resetting some library styles. */
 .PhoneInputCountry {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  padding-left: 0.75rem;
+  position: static !important;
+  margin-right: 0 !important;
+  border-right: 1px solid hsl(var(--input));
+  display: flex !important;
+  align-items: center !important;
 }
 
 .PhoneInputCountrySelect {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  z-index: 1;
-  border: none;
-  opacity: 0;
-  cursor: pointer;
+  display: none !important;
 }
 
-.PhoneInput {
-  position: relative;
+/* The custom SelectTrigger from shadcn/ui */
+.PhoneInput .SelectTrigger {
+  @apply h-full border-none bg-transparent shadow-none;
+}
+
+/* The text input part */
+.PhoneInputInput {
+  @apply h-auto flex-1 border-none bg-transparent px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 md:text-sm;
 }

@@ -7,8 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import 'react-phone-number-input/style.css'
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
+import PhoneInput, { isValidPhoneNumber, getCountryCallingCode, type Country } from 'react-phone-number-input'
+import flags from 'react-phone-number-input/flags'
 
 import { PageHeader } from '@/components/page-header'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +25,17 @@ import { useAuth } from '@/context/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Contact, Shield, ShieldCheck } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { CheckIcon } from 'lucide-react';
 
 
 const profileSchema = z.object({
@@ -121,6 +132,67 @@ function ProfilePageSkeleton() {
 }
 
 const API_BASE_URL = 'http://148.72.244.169:3000';
+
+const CountrySelect = React.forwardRef<
+  HTMLButtonElement,
+  { value?: Country, onChange: (value: Country) => void, options: { value?: Country; label: string }[] }
+>(({ value, onChange, options }, ref) => {
+  const [open, setOpen] = useState(false)
+  const Flag = value ? flags[value] : undefined;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+            ref={ref}
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-auto h-full justify-start pl-3 pr-2 border-r rounded-r-none focus:ring-0 focus:ring-offset-0 bg-transparent"
+          >
+            {Flag && <Flag className="w-6 h-auto rounded-sm" />}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0">
+        <Command>
+          <CommandInput placeholder="Search country..." />
+          <CommandEmpty>No country found.</CommandEmpty>
+           <ScrollArea className="h-72">
+            <CommandGroup>
+                {options.filter(option => option.value).map((option) => {
+                    const FlagComponent = flags[option.value!]
+                    return (
+                        <CommandItem
+                            key={option.value}
+                            value={`${option.label} (+${getCountryCallingCode(option.value!)})`}
+                            onSelect={() => {
+                                onChange(option.value!)
+                                setOpen(false)
+                            }}
+                        >
+                             <CheckIcon
+                                className={cn(
+                                "mr-2 h-4 w-4",
+                                value === option.value ? "opacity-100" : "opacity-0"
+                                )}
+                            />
+                            <div className="flex items-center gap-2">
+                                {FlagComponent && <FlagComponent className="w-6 h-auto rounded-sm" />}
+                                <span>{option.label}</span>
+                                <span className="text-muted-foreground">{`+${getCountryCallingCode(option.value!)}`}</span>
+                            </div>
+                        </CommandItem>
+                    )
+                })}
+            </CommandGroup>
+          </ScrollArea>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+})
+CountrySelect.displayName = 'CountrySelect';
+
 
 export default function ProfilePage() {
   const { toast } = useToast()
@@ -341,12 +413,14 @@ export default function ProfilePage() {
                 name="phoneNumber"
                 control={control}
                 render={({ field }) => (
-                  <PhoneInput
+                   <PhoneInput
                     id="phoneNumber"
                     international
                     defaultCountry="US"
-                    className="w-full"
+                    countrySelectComponent={CountrySelect}
+                    className="PhoneInput"
                     {...field}
+                    value={isValidPhoneNumber(field.value || '') ? field.value : undefined}
                   />
                 )}
               />
