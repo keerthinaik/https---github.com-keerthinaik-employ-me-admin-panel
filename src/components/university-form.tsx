@@ -9,7 +9,6 @@ import { z } from 'zod';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { type University, type Country, type State, type City } from '@/lib/types';
@@ -27,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -149,7 +149,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
         profilePhoto: undefined,
     }
   });
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue } = form;
+  const { handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue } = form;
 
   const selectedType = watch('type');
   const watchedCountry = watch('country');
@@ -391,232 +391,309 @@ export function UniversityForm({ university }: UniversityFormProps) {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit, onError)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-               <TabsList className="grid w-full grid-cols-3 mb-6">
-                  <TabsTrigger value="university">University Info</TabsTrigger>
-                  <TabsTrigger value="location">Location</TabsTrigger>
-                  <TabsTrigger value="account">Account & Media</TabsTrigger>
-              </TabsList>
+      <Form {...form}>
+        <form onSubmit={handleSubmit(onSubmit, onError)}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                    <TabsTrigger value="university">University Info</TabsTrigger>
+                    <TabsTrigger value="location">Location</TabsTrigger>
+                    <TabsTrigger value="account">Account & Media</TabsTrigger>
+                </TabsList>
 
-               <TabsContent value="university">
-                  <Card>
-                      <CardHeader><CardTitle>University Information</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <div className="grid md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                  <Label htmlFor="name">University Name</Label>
-                                  <Input id="name" {...register('name')} />
-                                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
-                              </div>
-                              <div className="space-y-2">
-                                  <Label htmlFor="email">Email Address</Label>
-                                  <Input id="email" type="email" {...register('email')} />
-                                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                              </div>
-                          </div>
-                          <div className="grid md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                                  <Input id="phoneNumber" {...register('phoneNumber')} />
-                              </div>
-                              <div className="space-y-2">
-                                  <Label>Type</Label>
-                                  <Controller
-                                      name="type"
-                                      control={control}
-                                      render={({ field }) => (
-                                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                                              <SelectContent>
-                                                  {universityTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                                              </SelectContent>
-                                          </Select>
-                                      )}
-                                  />
-                              </div>
-                          </div>
-                          {selectedType === 'Other' && (
-                               <div className="space-y-2">
-                                  <Label htmlFor="otherType">Please Specify Type</Label>
-                                  <Input id="otherType" {...register('otherType')} />
-                                  {errors.otherType && <p className="text-sm text-destructive">{errors.otherType.message}</p>}
-                              </div>
-                          )}
-                          <div className="space-y-2">
-                              <Label htmlFor="about">About University</Label>
-                              <Textarea id="about" {...register('about')} placeholder="Brief description of the university..."/>
-                          </div>
-                      </CardContent>
-                  </Card>
-                  <div className="mt-6 flex justify-end">
-                      <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                  </div>
-              </TabsContent>
-
-               <TabsContent value="location">
-                   <Card>
-                      <CardHeader><CardTitle>Location Information</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                           <div className="space-y-2">
-                              <Label htmlFor="address">Address</Label>
-                              <Input id="address" {...register('address')} />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <Controller
-                                  name="country"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <div className="space-y-2">
-                                          <Label>Country</Label>
-                                          <Popover open={openCountry} onOpenChange={setOpenCountry}>
-                                              <PopoverTrigger asChild>
-                                                  <Button variant="outline" role="combobox" className="w-full justify-between">
-                                                      {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
-                                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                  <Command>
-                                                      <CommandInput placeholder="Search country..." />
-                                                      <CommandEmpty>No country found.</CommandEmpty>
-                                                      <CommandGroup className="max-h-60 overflow-auto">
-                                                          {countries.map(c => (
-                                                              <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
-                                                                  <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
-                                                                  {c.name}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </Command>
-                                              </PopoverContent>
-                                          </Popover>
-                                      </div>
-                                  )}
-                              />
-                              <Controller
-                                  name="state"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <div className="space-y-2">
-                                          <Label>State / Province</Label>
-                                          <Popover open={openState} onOpenChange={setOpenState}>
-                                              <PopoverTrigger asChild>
-                                                  <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
-                                                      {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
-                                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                  <Command>
-                                                      <CommandInput placeholder="Search state..." />
-                                                      <CommandEmpty>No state found.</CommandEmpty>
-                                                      <CommandGroup className="max-h-60 overflow-auto">
-                                                          {states.map(s => (
-                                                              <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
-                                                                  <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
-                                                                  {s.name}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </Command>
-                                              </PopoverContent>
-                                          </Popover>
-                                      </div>
-                                  )}
-                              />
-                              <Controller
-                                  name="city"
-                                  control={control}
-                                  render={({ field }) => (
-                                      <div className="space-y-2">
-                                          <Label>City</Label>
-                                          <Popover open={openCity} onOpenChange={setOpenCity}>
-                                              <PopoverTrigger asChild>
-                                                  <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
-                                                      {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
-                                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                              </PopoverTrigger>
-                                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                  <Command>
-                                                      <CommandInput placeholder="Search city..." />
-                                                      <CommandEmpty>No city found.</CommandEmpty>
-                                                      <CommandGroup className="max-h-60 overflow-auto">
-                                                          {cities.map(c => (
-                                                              <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
-                                                                  <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
-                                                                  {c.name}
-                                                              </CommandItem>
-                                                          ))}
-                                                      </CommandGroup>
-                                                  </Command>
-                                              </PopoverContent>
-                                          </Popover>
-                                      </div>
-                                  )}
-                              />
-                          </div>
-                           <div className="space-y-2">
-                            <Label htmlFor="zipCode">Zip Code</Label>
-                            <Input id="zipCode" {...register('zipCode')} />
-                          </div>
-                      </CardContent>
-                  </Card>
-                  <div className="mt-6 flex justify-between">
-                      <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                      <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                  </div>
-              </TabsContent>
-
-               <TabsContent value="account">
-                   <Card className="mb-6">
-                      <CardHeader><CardTitle>Media & Account</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                           <div className="flex items-center gap-6">
-                            <Avatar className="h-20 w-20">
-                                <AvatarImage src={croppedImageUrl} alt="University profile photo" />
-                                <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-grow space-y-2">
-                                <Label htmlFor="profilePhoto-input">Profile Photo</Label>
-                                <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
-                                <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
-                                {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
+                <TabsContent value="university">
+                    <Card>
+                        <CardHeader><CardTitle>University Information</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>University Name</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Email Address</FormLabel>
+                                            <FormControl><Input type="email" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
-                         </div>
-                           <div className="space-y-2 pt-4 border-t">
-                              <Label htmlFor="password">Set New Password</Label>
-                              <Input id="password" type="password" {...register('password')} placeholder={university ? "Leave blank to keep unchanged" : ""} />
-                              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-                          </div>
-                      </CardContent>
-                  </Card>
-                   <Card>
-                      <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <div className="flex items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                  <Label>Verification Status</Label>
-                                  <CardDescription>Indicates if the university has been verified.</CardDescription>
-                              </div>
-                              <Controller name="isVerified" control={control} render={({ field }) => (<Switch checked={field.value} onCheckedChange={field.onChange} />)} />
-                          </div>
-                          <div className="flex items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                  <Label>Active Status</Label>
-                                  <CardDescription>Inactive universities cannot be associated with new jobseekers.</CardDescription>
-                              </div>
-                              <Controller name="isActive" control={control} render={({ field }) => (<Switch checked={field.value} onCheckedChange={field.onChange} />)} />
-                          </div>
-                      </CardContent>
-                  </Card>
-                  <div className="mt-6 flex justify-between">
-                      <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                  </div>
-              </TabsContent>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={control}
+                                    name="phoneNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Phone Number</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="type"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Type</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {universityTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            {selectedType === 'Other' && (
+                                <FormField
+                                    control={control}
+                                    name="otherType"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Please Specify Type</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                             <FormField
+                                control={control}
+                                name="about"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>About University</FormLabel>
+                                        <FormControl><Textarea {...field} placeholder="Brief description of the university..."/></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-end">
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
 
-          </Tabs>
+                <TabsContent value="location">
+                    <Card>
+                        <CardHeader><CardTitle>Location Information</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Address</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                 <FormField
+                                    control={control}
+                                    name="country"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Country</FormLabel>
+                                            <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                                            {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search country..." />
+                                                        <CommandEmpty>No country found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
+                                                            {countries.map(c => (
+                                                                <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {c.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="state"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>State / Province</FormLabel>
+                                            <Popover open={openState} onOpenChange={setOpenState}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
+                                                            {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search state..." />
+                                                        <CommandEmpty>No state found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
+                                                            {states.map(s => (
+                                                                <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {s.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name="city"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>City</FormLabel>
+                                            <Popover open={openCity} onOpenChange={setOpenCity}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
+                                                            {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search city..." />
+                                                        <CommandEmpty>No city found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
+                                                            {cities.map(c => (
+                                                                <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {c.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <FormField
+                                control={control}
+                                name="zipCode"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Zip Code</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="account">
+                    <Card className="mb-6">
+                        <CardHeader><CardTitle>Media & Account</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-6">
+                                <Avatar className="h-20 w-20">
+                                    <AvatarImage src={croppedImageUrl} alt="University profile photo" />
+                                    <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-grow space-y-2">
+                                    <FormLabel htmlFor="profilePhoto-input">Profile Photo</FormLabel>
+                                    <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
+                                    <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
+                                    {errors.profilePhoto && <p className="text-sm text-destructive">{errors.profilePhoto.message as string}</p>}
+                                </div>
+                            </div>
+                            <FormField
+                                control={control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem className="pt-4 border-t">
+                                        <FormLabel>Set New Password</FormLabel>
+                                        <FormControl><Input type="password" {...field} placeholder={university ? "Leave blank to keep unchanged" : ""} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={control}
+                                name="isVerified"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Verification Status</FormLabel>
+                                            <CardDescription>Indicates if the university has been verified.</CardDescription>
+                                        </div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name="isActive"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Active Status</FormLabel>
+                                            <CardDescription>Inactive universities cannot be associated with new jobseekers.</CardDescription>
+                                        </div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+                    <div className="mt-6 flex justify-between">
+                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
+                    </div>
+                </TabsContent>
+
+            </Tabs>
         <CardFooter className="flex justify-end gap-2 mt-6 px-0">
             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -624,6 +701,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
             </Button>
         </CardFooter>
     </form>
+    </Form>
 
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
@@ -657,7 +735,4 @@ export function UniversityForm({ university }: UniversityFormProps) {
     </>
   );
 }
-
-
-
 
