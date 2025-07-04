@@ -626,7 +626,7 @@ export async function createJobseeker(jobseekerData: FormData): Promise<Jobseeke
 
 export async function updateJobseeker(id: string, jobseekerData: FormData): Promise<Jobseeker> {
   const response = await authedFetch(`/api/v1/jobseekers/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: jobseekerData,
   });
   const item = response.data;
