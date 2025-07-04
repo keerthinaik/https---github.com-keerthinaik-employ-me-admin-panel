@@ -105,7 +105,6 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [profilePhotoPath, setProfilePhotoPath] = useState('');
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -140,7 +139,6 @@ export default function ProfilePage() {
         });
         if (userData.profilePhoto) {
           setCroppedImageUrl(`${API_BASE_URL}/${userData.profilePhoto}`);
-          setProfilePhotoPath(userData.profilePhoto);
         }
       } catch (error: any) {
         toast({ title: "Failed to load profile", description: error.message, variant: "destructive" });
@@ -290,23 +288,18 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" {...form.register('name')} />
+                <Input id="name" {...register('name')} />
                 {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...form.register('email')} />
+                <Input id="email" type="email" {...register('email')} />
                 {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input id="phoneNumber" {...form.register('phoneNumber')} />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="testPhotoPath">Test Photo Path</Label>
-                <Input id="testPhotoPath" value={profilePhotoPath} readOnly />
+              <Input id="phoneNumber" {...register('phoneNumber')} />
             </div>
 
             <Separator />
@@ -318,26 +311,26 @@ export default function ProfilePage() {
             
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
-              <Input id="address" {...form.register('address')} />
+              <Input id="address" {...register('address')} />
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
-                <Input id="city" {...form.register('city')} />
+                <Input id="city" {...register('city')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="state">State / Province</Label>
-                <Input id="state" {...form.register('state')} />
+                <Input id="state" {...register('state')} />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
-                <Input id="country" {...form.register('country')} />
+                <Input id="country" {...register('country')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="zipCode">Zip / Postal Code</Label>
-                <Input id="zipCode" {...form.register('zipCode')} />
+                <Input id="zipCode" {...register('zipCode')} />
                 {form.formState.errors.zipCode && <p className="text-sm text-destructive">{form.formState.errors.zipCode.message}</p>}
               </div>
             </div>
