@@ -18,6 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Business } from '@/lib/types';
 import { getBusiness } from '@/services/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
+
 function BusinessDetailsSkeleton() {
     return (
         <div>
@@ -117,7 +119,7 @@ export default function BusinessDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4">
-                                <AvatarImage src={business.logo} alt={business.name} />
+                                <AvatarImage src={business.profilePhoto ? `${API_BASE_URL}${business.profilePhoto.startsWith('/') ? '' : '/'}${business.profilePhoto}` : undefined} alt={business.name} />
                                 <AvatarFallback>{business.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{business.name}</CardTitle>

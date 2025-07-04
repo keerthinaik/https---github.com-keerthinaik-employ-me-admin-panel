@@ -45,6 +45,8 @@ import { useToast } from '@/hooks/use-toast';
 import { getBusinesses, deleteBusiness } from '@/services/api';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
+
 type SortConfig = {
     key: keyof Business;
     direction: 'asc' | 'desc';
@@ -301,7 +303,7 @@ export default function BusinessesPage() {
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={biz.logo} alt={biz.name} />
+                                                    <AvatarImage src={biz.profilePhoto ? `${API_BASE_URL}${biz.profilePhoto.startsWith('/') ? '' : '/'}${biz.profilePhoto}` : undefined} alt={biz.name} />
                                                     <AvatarFallback>{biz.name.slice(0,2)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>

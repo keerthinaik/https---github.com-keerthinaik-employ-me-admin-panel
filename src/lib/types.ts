@@ -1,6 +1,5 @@
 
 
-
 export interface AuthUser {
   id: string;
   name: string;
@@ -110,7 +109,7 @@ export interface Business {
   state?: string;   // This will now be ISO code
   city?: string;    // This will be name
   zipCode?: string;
-  logo?: string;
+  profilePhoto?: string;
   about?: string;
   website?: string;
   isVerified: boolean;
