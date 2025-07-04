@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -109,8 +110,9 @@ const fieldToTabMap: Record<string, string> = {
   profilePhoto: 'profile', bannerImage: 'profile',
   experience: 'career', education: 'career', 
   skills: 'skills', resume: 'skills', certifications: 'skills',
-  linkedInProfile: 'social', githubProfile: 'social', portfolio: 'social',
+  linkedInProfile: 'social', githubProfile: 'social',
   projects: 'portfolio',
+  portfolio: 'portfolio',
   password: 'account', isVerified: 'account', isActive: 'account',
 };
 
@@ -422,24 +424,21 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
           for (let i = 0; i < value.length; i++) {
               formData.append(key, value[i]);
           }
-      } else if (key === 'skills' && Array.isArray(value)) {
-          // Append each skill ID individually for proper array handling in backend
-          value.forEach(skillId => {
-              formData.append('skills', skillId);
-          });
-      } else if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
-          // Append each object in the array stringified.
-          value.forEach(item => {
-              formData.append(key, JSON.stringify(item));
-          });
+      } else if (Array.isArray(value)) {
+          if (key === 'skills') {
+              // Skills is an array of strings (IDs)
+              value.forEach(item => formData.append(key, item));
+          } else {
+              // Assumes other arrays (experience, education, projects) are arrays of objects
+              value.forEach(item => formData.append(key, JSON.stringify(item)));
+          }
       } else if (value instanceof Date) {
           formData.append(key, value.toISOString());
       } else if (typeof value === 'boolean') {
           formData.append(key, String(value));
       } else {
-        if (!Array.isArray(value)) {
-            formData.append(key, value as string);
-        }
+          // This will handle strings and numbers
+          formData.append(key, value as string);
       }
     });
 
@@ -713,7 +712,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                         <CardContent className="space-y-4">
                             <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
                             <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Personal Portfolio</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
                     <div className="mt-6 flex justify-between">
@@ -725,20 +723,25 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 <TabsContent value="portfolio" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Projects</CardTitle>
-                            <CardDescription>Showcase your work by adding projects.</CardDescription>
+                            <CardTitle>Portfolio</CardTitle>
+                            <CardDescription>Showcase your work by adding projects and your portfolio link.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {projectFields.map((field, index) => {
-                                return (
-                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProject(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField name={`projects.${index}.title`} control={control} render={({field}) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <FormField name={`projects.${index}.description`} control={control} render={({field}) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <FormField name={`projects.${index}.url`} control={control} render={({field}) => <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                </div>
-                            )})}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
+                        <CardContent className="space-y-6">
+                            <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
+
+                            <div className="space-y-2 pt-4 border-t">
+                                <Label>Projects</Label>
+                                {projectFields.map((field, index) => {
+                                    return (
+                                    <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProject(index)}><Trash2 className="h-4 w-4"/></Button>
+                                        <FormField name={`projects.${index}.title`} control={control} render={({field}) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                        <FormField name={`projects.${index}.description`} control={control} render={({field}) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                        <FormField name={`projects.${index}.url`} control={control} render={({field}) => <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
+                                    </div>
+                                )})}
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
+                            </div>
                         </CardContent>
                     </Card>
                     <div className="mt-6 flex justify-between">
@@ -749,10 +752,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 
                 <TabsContent value="account" className="space-y-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Media</CardTitle>
-                            <CardDescription>Upload profile and banner images.</CardDescription>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Media</CardTitle><CardDescription>Upload profile and banner images.</CardDescription></CardHeader>
                         <CardContent className="space-y-6">
                             <FormField
                                 control={control}
