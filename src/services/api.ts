@@ -1,3 +1,4 @@
+
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, Country, State, City } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
@@ -42,6 +43,43 @@ async function authedFetch(url: string, options: RequestInit = {}) {
   
   return data;
 }
+
+async function publicFetch(url: string, options: RequestInit = {}) {
+  const headers = new Headers(options.headers);
+  if (!(options.body instanceof FormData)) {
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    if (!response.ok) {
+        throw new Error(response.statusText || 'An error occurred with no content.');
+    }
+    return null;
+  }
+  
+  const data = await response.json().catch(() => {
+    if (!response.ok) {
+        throw new Error(response.statusText || 'An unknown error occurred.');
+    }
+    return { message: 'Failed to parse JSON response.' };
+  });
+
+  if (!response.ok) {
+    const error: any = new Error(data.message || 'An error occurred.');
+    error.data = data;
+    throw error;
+  }
+  
+  return data;
+}
+
 
 export function buildQueryString(params: GetAllParams = {}): string {
   const query = new URLSearchParams();
@@ -393,18 +431,18 @@ export async function deleteBusiness(id: string): Promise<null> {
 
 // Location APIs
 export async function getCountries(): Promise<Country[]> {
-  const response = await authedFetch(`/api/v1/location/countries`);
+  const response = await publicFetch(`/api/v1/location/countries`);
   return response.data;
 }
 
 export async function getStates(countryCode: string): Promise<State[]> {
   if (!countryCode) return [];
-  const response = await authedFetch(`/api/v1/location/states/${countryCode}`);
+  const response = await publicFetch(`/api/v1/location/states/${countryCode}`);
   return response.data;
 }
 
 export async function getCities(countryCode: string, stateCode: string): Promise<City[]> {
   if (!countryCode || !stateCode) return [];
-  const response = await authedFetch(`/api/v1/location/cities/${countryCode}/${stateCode}`);
+  const response = await publicFetch(`/api/v1/location/cities/${countryCode}/${stateCode}`);
   return response.data;
 }
