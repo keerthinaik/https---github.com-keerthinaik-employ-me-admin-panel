@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -62,6 +61,10 @@ export function BusinessForm({ business }: BusinessFormProps) {
   const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
   const [isLoadingStates, setIsLoadingStates] = React.useState(false);
   const [isLoadingCities, setIsLoadingCities] = React.useState(false);
+  
+  const [openCountry, setOpenCountry] = React.useState(false);
+  const [openState, setOpenState] = React.useState(false);
+  const [openCity, setOpenCity] = React.useState(false);
 
   const form = useForm<BusinessFormValues>({
     resolver: zodResolver(businessSchema),
@@ -262,7 +265,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                 render={({ field }) => (
                                     <div className="space-y-2">
                                         <Label>Country</Label>
-                                        <Popover>
+                                        <Popover open={openCountry} onOpenChange={setOpenCountry}>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" role="combobox" className="w-full justify-between">
                                                     {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
@@ -275,7 +278,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                                     <CommandEmpty>No country found.</CommandEmpty>
                                                     <CommandGroup>
                                                         {countries.map(c => (
-                                                            <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode); setValue('state', ''); setValue('city', ''); }}>
+                                                            <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode); setValue('state', ''); setValue('city', ''); setOpenCountry(false); }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
                                                                 {c.name}
                                                             </CommandItem>
@@ -293,7 +296,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                 render={({ field }) => (
                                     <div className="space-y-2">
                                         <Label>State / Province</Label>
-                                        <Popover>
+                                        <Popover open={openState} onOpenChange={setOpenState}>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
                                                      {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
@@ -306,7 +309,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                                     <CommandEmpty>No state found.</CommandEmpty>
                                                     <CommandGroup>
                                                         {states.map(s => (
-                                                            <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode); setValue('city', ''); }}>
+                                                            <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode); setValue('city', ''); setOpenState(false); }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
                                                                 {s.name}
                                                             </CommandItem>
@@ -324,7 +327,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                 render={({ field }) => (
                                      <div className="space-y-2">
                                         <Label>City</Label>
-                                        <Popover>
+                                        <Popover open={openCity} onOpenChange={setOpenCity}>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
                                                      {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
@@ -337,7 +340,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                                                     <CommandEmpty>No city found.</CommandEmpty>
                                                     <CommandGroup>
                                                         {cities.map(c => (
-                                                            <CommandItem key={c.name} value={c.name} onSelect={() => setValue('city', c.name)}>
+                                                            <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name); setOpenCity(false);}}>
                                                                 <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
                                                                 {c.name}
                                                             </CommandItem>
@@ -417,4 +420,3 @@ export function BusinessForm({ business }: BusinessFormProps) {
     </form>
   );
 }
-
