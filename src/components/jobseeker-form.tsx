@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -459,13 +460,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         if (value === null || value === undefined) return;
 
         if (key === 'businessAssociationId' || key === 'universityAssociationId') {
-            if (value === '') return; // Don't append if empty string (i.e. 'None' was selected)
+            if (value === '') return;
         }
         
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
-              if (itemValue !== null && itemValue !== undefined) { 
+              if (itemValue !== null && itemValue !== undefined && itemValue !== '') { 
                 const formattedKey = `${key}[${index}][${itemKey}]`;
                 
                 if (Array.isArray(itemValue)) {
@@ -477,7 +478,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     });
                 } else if (itemValue instanceof Date) {
                   formData.append(formattedKey, itemValue.toISOString());
-                } else if (itemValue !== '') {
+                } else {
                   formData.append(formattedKey, String(itemValue));
                 }
               }
@@ -593,14 +594,14 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="None" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="--none--">None</SelectItem>
+                                                    <SelectItem value="">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -614,14 +615,14 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '--none--' ? '' : value)} value={field.value || ''}>
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="None" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="--none--">None</SelectItem>
+                                                    <SelectItem value="">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -848,21 +849,19 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 </FormItem>
                                 )}
                             />
-                            <FormField
+                             <FormField
                                 control={control}
                                 name="bannerImage"
                                 render={() => (
                                 <FormItem>
                                     <FormLabel>Banner Image</FormLabel>
-                                    <FormControl>
-                                        <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
-                                            {croppedBannerImageUrl ? (
-                                                <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
-                                            )}
-                                        </div>
-                                    </FormControl>
+                                    <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
+                                        {croppedBannerImageUrl ? (
+                                            <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
+                                        )}
+                                    </div>
                                     <FormControl>
                                         <Input
                                             id="bannerImage-input"
@@ -962,3 +961,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+
