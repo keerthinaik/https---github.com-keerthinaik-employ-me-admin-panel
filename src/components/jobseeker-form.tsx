@@ -201,12 +201,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         dateOfBirth: jobseeker?.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
         gender: jobseeker?.gender,
         passportNumber: jobseeker?.passportNumber || '',
-        fieldOfStudy: jobseeker?.fieldOfStudy || '',
-        businessAssociationId: jobseeker?.businessAssociationId || '',
-        universityAssociationId: jobseeker?.universityAssociationId || '',
         linkedInProfile: jobseeker?.linkedInProfile || '',
         githubProfile: jobseeker?.githubProfile || '',
         portfolio: jobseeker?.portfolio || '',
+        fieldOfStudy: jobseeker?.fieldOfStudy || '',
+        businessAssociationId: jobseeker?.businessAssociationId || '',
+        universityAssociationId: jobseeker?.universityAssociationId || '',
         isVerified: jobseeker?.isVerified || false,
         isActive: jobseeker?.isActive ?? true,
         experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
@@ -476,7 +476,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                  if (!firstErrorField) {
                     firstErrorField = key as keyof JobseekerFormValues;
                 }
-                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
+                if (jobseekerSchema.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
                     setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
@@ -606,7 +606,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     </div>
                             </div>
                             ))}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendEdu({ institution: '', degree: '', fieldOfStudy: '', startDate: new Date(), endDate: new Date() })}><PlusCircle className="mr-2 h-4 w-4" /> Add Education</Button>
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendEdu({ institution: '', degree: '', fieldOfStudy: '', startDate: new Date(), endDate: new Date(), cgpa: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Education</Button>
                         </CardContent>
                     </Card>
                     <div className="mt-6 flex justify-between">
@@ -856,3 +856,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+
