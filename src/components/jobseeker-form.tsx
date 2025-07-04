@@ -146,7 +146,7 @@ type JobseekerFormProps = {
     jobseeker?: Jobseeker;
 }
 
-const ArrayTextarea = ({ value, onChange, ...props }: { value: string[], onChange: (value: string[]) => void } & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange'>) => {
+const ArrayTextarea = ({ value, onChange, ...props }: { value?: string[], onChange: (value: string[]) => void } & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange'>) => {
     const [text, setText] = React.useState(Array.isArray(value) ? value.join('\n') : '');
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -238,7 +238,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, register, getFieldState } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, register, getValues } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
@@ -457,9 +457,26 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     Object.entries(data).forEach(([key, value]) => {
         if (value === null || value === undefined || value === '') return;
 
-        if (['experience', 'education', 'projects'].includes(key)) {
-            // Stringify arrays of objects for backend parsing
-            formData.append(key, JSON.stringify(value));
+        // If it is an update request, do not append these fields.
+        if (jobseeker && ['experience', 'education', 'projects'].includes(key)) {
+            return;
+        }
+
+        if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
+          value.forEach((item, index) => {
+            Object.entries(item).forEach(([itemKey, itemValue]) => {
+              if (itemValue !== null && itemValue !== undefined) {
+                const formattedKey = `${key}[${index}][${itemKey}]`;
+                let formattedValue = itemValue;
+
+                if (itemValue instanceof Date) {
+                  formattedValue = itemValue.toISOString();
+                }
+                
+                formData.append(formattedKey, String(formattedValue));
+              }
+            });
+          });
         } else if (['profilePhoto', 'bannerImage'].includes(key) && value instanceof File) {
             formData.append(key, value);
         } else if (key === 'resume' && value instanceof FileList) {
@@ -469,7 +486,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 formData.append('certifications', value[i]);
             }
         } else if (key === 'skills' && Array.isArray(value)) {
-            value.forEach(v => formData.append('skills', v));
+            value.forEach(v => formData.append('skills[]', v));
         } else if (value instanceof Date) {
             formData.append(key, value.toISOString());
         } else {
@@ -608,20 +625,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         {expErrors?.companyName && <p className="text-sm text-destructive">{expErrors.companyName.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <Controller
-                                            name={`experience.${index}.startDate`}
-                                            control={control}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{expErrors?.startDate && <p className="text-sm text-destructive">{expErrors.startDate.message}</p>}</FormItem>)}
-                                        />
-                                        <Controller
-                                            name={`experience.${index}.endDate`}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{expErrors?.endDate && <p className="text-sm text-destructive">{expErrors.endDate.message}</p>}</FormItem>)}
-                                        />
+                                        <FormField name={`experience.${index}.startDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField name={`experience.${index}.endDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox id={`experience.${index}.isCurrent`} {...register(`experience.${index}.isCurrent`)} />
-                                        <Label htmlFor={`experience.${index}.isCurrent`} className="!mt-0">I currently work here</Label>
-                                    </div>
+                                    <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>} />
                                     <div className="space-y-2">
                                         <Label>Responsibilities (one per line)</Label>
                                         <Controller
@@ -633,7 +640,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Achievements (one per line)</Label>
-                                        <Controller
+                                         <Controller
                                             name={`experience.${index}.achievements`}
                                             control={control}
                                             render={({ field }) => <ArrayTextarea {...field} />}
@@ -671,16 +678,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         </div>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <Controller
-                                            name={`education.${index}.startDate`}
-                                            control={control}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{eduErrors?.startDate && <p className="text-sm text-destructive">{eduErrors.startDate.message}</p>}</FormItem>)}
-                                        />
-                                        <Controller
-                                            name={`education.${index}.endDate`}
-                                            control={control}
-                                            render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{eduErrors?.endDate && <p className="text-sm text-destructive">{eduErrors.endDate.message}</p>}</FormItem>)}
-                                        />
+                                        <FormField name={`education.${index}.startDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <FormField name={`education.${index}.endDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                         <div className="space-y-2">
                                             <Label>CGPA/Grade</Label>
                                             <Input {...register(`education.${index}.cgpa`)} />
@@ -953,3 +952,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+
