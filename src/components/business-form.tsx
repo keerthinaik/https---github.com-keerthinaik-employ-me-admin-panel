@@ -10,14 +10,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import type { Business } from '@/lib/types';
+import type { Business, Country, State, City } from '@/lib/types';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { createBusiness, updateBusiness } from '@/services/api';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { createBusiness, updateBusiness, getCountries, getStates, getCities } from '@/services/api';
+import { ChevronLeft, ChevronRight, ChevronsUpDown, Check } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
+import { cn } from '@/lib/utils';
+import { Skeleton } from './ui/skeleton';
 
 const businessSchema = z.object({
   name: z.string().min(1, 'Business name is required'),
@@ -26,9 +30,9 @@ const businessSchema = z.object({
   phoneNumber: z.string().optional(),
   
   address: z.string().optional(),
-  country: z.string().optional(),
-  state: z.string().optional(),
-  city: z.string().optional(),
+  country: z.string().optional(), // Will store isoCode
+  state: z.string().optional(),   // Will store isoCode
+  city: z.string().optional(),    // Will store name
   zipCode: z.string().optional(),
 
   logo: z.any().optional(),
@@ -51,13 +55,15 @@ export function BusinessForm({ business }: BusinessFormProps) {
   const [activeTab, setActiveTab] = React.useState('business');
   const TABS = ['business', 'location', 'account'];
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    control,
-    setError,
-  } = useForm<BusinessFormValues>({
+  const [countries, setCountries] = React.useState<Country[]>([]);
+  const [states, setStates] = React.useState<State[]>([]);
+  const [cities, setCities] = React.useState<City[]>([]);
+
+  const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
+  const [isLoadingStates, setIsLoadingStates] = React.useState(false);
+  const [isLoadingCities, setIsLoadingCities] = React.useState(false);
+
+  const form = useForm<BusinessFormValues>({
     resolver: zodResolver(businessSchema),
     defaultValues: {
         name: business?.name || '',
@@ -76,6 +82,63 @@ export function BusinessForm({ business }: BusinessFormProps) {
     }
   });
 
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue } = form;
+
+  const watchedCountry = watch('country');
+  const watchedState = watch('state');
+
+  React.useEffect(() => {
+    const fetchCountries = async () => {
+      setIsLoadingCountries(true);
+      try {
+        const countryData = await getCountries();
+        setCountries(countryData);
+      } catch (error) {
+        toast({ title: "Failed to load countries", variant: "destructive" });
+      } finally {
+        setIsLoadingCountries(false);
+      }
+    };
+    fetchCountries();
+  }, [toast]);
+
+  React.useEffect(() => {
+    const fetchStates = async () => {
+      if (watchedCountry) {
+        setIsLoadingStates(true);
+        setStates([]);
+        setCities([]);
+        try {
+          const stateData = await getStates(watchedCountry);
+          setStates(stateData);
+        } catch (error) {
+          toast({ title: "Failed to load states", variant: "destructive" });
+        } finally {
+          setIsLoadingStates(false);
+        }
+      }
+    };
+    fetchStates();
+  }, [watchedCountry, toast]);
+
+  React.useEffect(() => {
+    const fetchCities = async () => {
+      if (watchedCountry && watchedState) {
+        setIsLoadingCities(true);
+        setCities([]);
+        try {
+          const cityData = await getCities(watchedCountry, watchedState);
+          setCities(cityData);
+        } catch (error) {
+          toast({ title: "Failed to load cities", variant: "destructive" });
+        } finally {
+          setIsLoadingCities(false);
+        }
+      }
+    };
+    fetchCities();
+  }, [watchedCountry, watchedState, toast]);
+
   const goToNextTab = () => {
     const currentIndex = TABS.indexOf(activeTab);
     if (currentIndex < TABS.length - 1) {
@@ -93,7 +156,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
   const onSubmit = async (data: BusinessFormValues) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
+      if (value !== undefined && value !== null && value !== '') {
         if (key === 'logo' && value instanceof FileList && value.length > 0) {
           formData.append(key, value[0]);
         } else if (typeof value === 'boolean') {
@@ -189,27 +252,108 @@ export function BusinessForm({ business }: BusinessFormProps) {
                             <Label htmlFor="address">Address</Label>
                             <Input id="address" {...register('address')} />
                         </div>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="city">City</Label>
-                                <Input id="city" {...register('city')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="state">State / Province</Label>
-                                <Input id="state" {...register('state')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="country">Country</Label>
-                                <Input id="country" {...register('country')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="zipCode">Zip Code</Label>
-                                <Input id="zipCode" {...register('zipCode')} />
-                            </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                           <Controller
+                                name="country"
+                                control={control}
+                                render={({ field }) => (
+                                    <div className="space-y-2">
+                                        <Label>Country</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" role="combobox" className="w-full justify-between">
+                                                    {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search country..." />
+                                                    <CommandEmpty>No country found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {countries.map(c => (
+                                                            <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode); setValue('state', ''); setValue('city', ''); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {c.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
+                            />
+                            <Controller
+                                name="state"
+                                control={control}
+                                render={({ field }) => (
+                                    <div className="space-y-2">
+                                        <Label>State / Province</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
+                                                     {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search state..." />
+                                                    <CommandEmpty>No state found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {states.map(s => (
+                                                            <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode); setValue('city', ''); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {s.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
+                            />
+                            <Controller
+                                name="city"
+                                control={control}
+                                render={({ field }) => (
+                                     <div className="space-y-2">
+                                        <Label>City</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
+                                                     {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search city..." />
+                                                    <CommandEmpty>No city found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {cities.map(c => (
+                                                            <CommandItem key={c.name} value={c.name} onSelect={() => setValue('city', c.name)}>
+                                                                <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {c.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                           <Label htmlFor="zipCode">Zip Code</Label>
+                           <Input id="zipCode" {...register('zipCode')} />
                         </div>
                     </CardContent>
                 </Card>
-                 <div className="flex justify-between">
+                 <div className="mt-6 flex justify-between">
                     <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                     <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
                 </div>
@@ -227,7 +371,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                         <div className="space-y-2">
                             <Label htmlFor="logo">Company Logo</Label>
                             <Input id="logo" type="file" {...register('logo')} accept="image/*,.svg" />
-                            {business?.logo && <p className="text-sm text-muted-foreground mt-1">Current: <a href={business.logo} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Logo</a></p>}
+                            {business?.logo && <p className="text-sm text-muted-foreground mt-1">Current: <a href={`http://148.72.244.169:3000${business.logo}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Logo</a></p>}
                             {errors.logo && <p className="text-sm text-destructive">{errors.logo.message as string}</p>}
                         </div>
                      </CardContent>
@@ -256,7 +400,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-                <div className="flex justify-between">
+                <div className="mt-6 flex justify-between">
                     <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                 </div>
             </TabsContent>

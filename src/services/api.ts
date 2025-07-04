@@ -1,4 +1,4 @@
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, Country, State, City } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -389,4 +389,22 @@ export async function deleteBusiness(id: string): Promise<null> {
   return authedFetch(`/api/v1/businesses/${id}`, {
     method: 'DELETE',
   });
+}
+
+// Location APIs
+export async function getCountries(): Promise<Country[]> {
+  const response = await authedFetch(`/api/v1/location/countries`);
+  return response.data;
+}
+
+export async function getStates(countryCode: string): Promise<State[]> {
+  if (!countryCode) return [];
+  const response = await authedFetch(`/api/v1/location/states/${countryCode}`);
+  return response.data;
+}
+
+export async function getCities(countryCode: string, stateCode: string): Promise<City[]> {
+  if (!countryCode || !stateCode) return [];
+  const response = await authedFetch(`/api/v1/location/cities/${countryCode}/${stateCode}`);
+  return response.data;
 }

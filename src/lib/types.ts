@@ -105,9 +105,9 @@ export interface Business {
   email: string;
   phoneNumber?: string;
   address?: string;
-  country?: string;
-  state?: string;
-  city?: string;
+  country?: string; // This will now be ISO code
+  state?: string;   // This will now be ISO code
+  city?: string;    // This will be name
   zipCode?: string;
   logo?: string;
   about?: string;
@@ -125,4 +125,27 @@ export interface GetAllParams {
     sort?: string;
     filters?: Record<string, any>;
     fields?: string;
+}
+
+export interface Country {
+    name: string;
+    isoCode: string;
+    flag: string;
+}
+
+export interface State {
+    name: string;
+    isoCode: string;
+    countryCode: string;
+}
+
+export interface City {
+    name: string;
+    countryCode: string;
+    stateCode: string;
+}
+
+export interface LocationApiResponse<T> {
+  status: string;
+  data: T[];
 }
