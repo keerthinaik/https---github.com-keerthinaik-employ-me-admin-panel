@@ -398,8 +398,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <div className="space-y-2">
                                         <Label>Responsibilities (one per line)</Label>
                                         <Textarea
-                                            value={Array.isArray(field.value) ? field.value.join('\n') : ''}
-                                            onChange={e => field.onChange(e.target.value.split('\n'))}
+                                            value={Array.isArray(field.value) ? field.value.join('\\n') : ''}
+                                            onChange={e => field.onChange(e.target.value.split('\\n'))}
                                         />
                                     </div>
                                 )}
@@ -411,8 +411,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                      <div className="space-y-2">
                                         <Label>Achievements (one per line)</Label>
                                         <Textarea
-                                            value={Array.isArray(field.value) ? field.value.join('\n') : ''}
-                                            onChange={e => field.onChange(e.target.value.split('\n'))}
+                                            value={Array.isArray(field.value) ? field.value.join('\\n') : ''}
+                                            onChange={e => field.onChange(e.target.value.split('\\n'))}
                                         />
                                     </div>
                                 )}
