@@ -2,8 +2,6 @@
 
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, Country, State, City } from '@/lib/types';
 
-const API_BASE_URL = 'http://148.72.244.169:3000';
-
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
   
@@ -434,18 +432,18 @@ export async function deleteBusiness(id: string): Promise<null> {
 
 // Location APIs
 export async function getCountries(): Promise<Country[]> {
-  const response = await publicFetch(`${API_BASE_URL}/api/location/countries`);
+  const response = await publicFetch(`/api/location/countries`);
   return response.data;
 }
 
 export async function getStates(countryCode: string): Promise<State[]> {
   if (!countryCode) return [];
-  const response = await publicFetch(`${API_BASE_URL}/api/location/states/${countryCode}`);
+  const response = await publicFetch(`/api/location/states/${countryCode}`);
   return response.data;
 }
 
 export async function getCities(countryCode: string, stateCode: string): Promise<City[]> {
   if (!countryCode || !stateCode) return [];
-  const response = await publicFetch(`${API_BASE_URL}/api/location/cities/${countryCode}/${stateCode}`);
+  const response = await publicFetch(`/api/location/cities/${countryCode}/${stateCode}`);
   return response.data;
 }
