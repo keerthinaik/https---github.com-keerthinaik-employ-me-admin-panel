@@ -1,8 +1,8 @@
 
 'use client'
 
-import React, { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form'
+import React, { useState, useRef, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -17,6 +17,12 @@ import { useToast } from '@/hooks/use-toast'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import type { LatLng } from 'leaflet'
+import L from 'leaflet';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -28,6 +34,8 @@ const profileSchema = z.object({
   state: z.string().optional(),
   city: z.string().optional(),
   zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, {message: "Please provide a valid US zip code"}).optional().or(z.literal('')),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -49,6 +57,18 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
   );
 }
 
+// Fix for default icon issue with webpack
+const DefaultIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
 
 export default function ProfilePage() {
   const { toast } = useToast()
@@ -56,6 +76,7 @@ export default function ProfilePage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -68,6 +89,8 @@ export default function ProfilePage() {
       state: 'CA',
       country: 'USA',
       zipCode: '90210',
+      latitude: 34.0736,
+      longitude: -118.4004,
     },
   })
   
@@ -78,6 +101,14 @@ export default function ProfilePage() {
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [aspect, setAspect] = useState<number | undefined>(1)
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const lat = watch('latitude');
+  const lng = watch('longitude');
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -156,6 +187,25 @@ export default function ProfilePage() {
       description: 'Your profile has been successfully updated.',
     })
   }
+  
+  const LocationMarker = () => {
+      const map = useMapEvents({
+          click(e) {
+              setValue('latitude', e.latlng.lat, { shouldValidate: true })
+              setValue('longitude', e.latlng.lng, { shouldValidate: true })
+          },
+      })
+
+      useEffect(() => {
+          if (lat !== undefined && lng !== undefined) {
+              map.flyTo([lat, lng], map.getZoom())
+          }
+      }, [lat, lng, map])
+
+      return lat === undefined || lng === undefined ? null : (
+          <Marker position={[lat, lng]}></Marker>
+      )
+  }
 
   return (
     <>
@@ -233,6 +283,38 @@ export default function ProfilePage() {
                 <Label htmlFor="zipCode">Zip / Postal Code</Label>
                 <Input id="zipCode" {...register('zipCode')} />
                 {errors.zipCode && <p className="text-sm text-destructive">{errors.zipCode.message}</p>}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Location on Map</Label>
+                <div className="h-80 w-full rounded-md border overflow-hidden">
+                {isClient ? (
+                  <MapContainer
+                    center={[lat || 51.505, lng || -0.09]}
+                    zoom={13}
+                    scrollWheelZoom={false}
+                    className="h-full w-full z-0"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationMarker />
+                  </MapContainer>
+                ) : <Skeleton className="h-full w-full" />}
+                </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input id="latitude" type="number" {...register('latitude')} />
+                {errors.latitude && <p className="text-sm text-destructive">{errors.latitude.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input id="longitude" type="number" {...register('longitude')} />
+                 {errors.longitude && <p className="text-sm text-destructive">{errors.longitude.message}</p>}
               </div>
             </div>
 
