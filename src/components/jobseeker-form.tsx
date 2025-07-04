@@ -457,23 +457,22 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     Object.entries(data).forEach(([key, value]) => {
         if (value === null || value === undefined || value === '') return;
 
-        // If it is an update request, do not append these fields.
-        if (jobseeker && ['experience', 'education', 'projects'].includes(key)) {
-            return;
-        }
-
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
-              if (itemValue !== null && itemValue !== undefined) {
+              if (itemValue !== null && itemValue !== undefined) { 
                 const formattedKey = `${key}[${index}][${itemKey}]`;
-                let formattedValue = itemValue;
-
-                if (itemValue instanceof Date) {
-                  formattedValue = itemValue.toISOString();
-                }
                 
-                formData.append(formattedKey, String(formattedValue));
+                if (Array.isArray(itemValue)) {
+                    itemValue.forEach((arrVal, arrIndex) => {
+                        const nestedFormattedKey = `${formattedKey}[${arrIndex}]`;
+                        formData.append(nestedFormattedKey, String(arrVal));
+                    });
+                } else if (itemValue instanceof Date) {
+                  formData.append(formattedKey, itemValue.toISOString());
+                } else {
+                  formData.append(formattedKey, String(itemValue));
+                }
               }
             });
           });
@@ -514,7 +513,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                  if (!firstErrorField) {
                     firstErrorField = key.split('.')[0] as keyof JobseekerFormValues;
                 }
-                if (jobseekerSchema.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
+                if (jobseekerSchema._def.schema?.shape && Object.prototype.hasOwnProperty.call(jobseekerSchema._def.schema.shape, key)) {
                     setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
@@ -543,7 +542,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         }
     }
   };
-
 
   return (
     <>
@@ -952,4 +950,3 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
-
