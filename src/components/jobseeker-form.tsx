@@ -238,7 +238,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, register, getValues } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, getValues } = form;
 
   const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
   const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
@@ -458,10 +458,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         if (value === null || value === undefined || value === '') return;
 
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
-            if (jobseeker && (key === 'experience' || key === 'education' || key === 'projects')) {
-                // Don't send these on update for now
-                return;
-            }
           value.forEach((item, index) => {
             Object.entries(item).forEach(([itemKey, itemValue]) => {
               if (itemValue !== null && itemValue !== undefined) { 
@@ -589,10 +585,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     name="businessAssociationId"
                                     render={({ field }) => (
                                         <FormItem><FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
                                                     {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -604,10 +599,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     name="universityAssociationId"
                                     render={({ field }) => (
                                         <FormItem><FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">None</SelectItem>
                                                     {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -634,35 +628,27 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Job Title</Label>
-                                        <Input {...register(`experience.${index}.jobTitle`)} />
+                                        <Controller name={`experience.${index}.jobTitle`} control={control} render={({field}) => <Input {...field} />} />
                                         {expErrors?.jobTitle && <p className="text-sm text-destructive">{expErrors.jobTitle.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Company</Label>
-                                        <Input {...register(`experience.${index}.companyName`)} />
+                                        <Controller name={`experience.${index}.companyName`} control={control} render={({field}) => <Input {...field} />} />
                                         {expErrors?.companyName && <p className="text-sm text-destructive">{expErrors.companyName.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField name={`experience.${index}.startDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField name={`experience.${index}.endDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <Controller name={`experience.${index}.startDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <Controller name={`experience.${index}.endDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
                                     </div>
-                                    <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>} />
+                                    <Controller control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel></FormItem>} />
                                     <div className="space-y-2">
                                         <Label>Responsibilities (one per line)</Label>
-                                        <Controller
-                                            name={`experience.${index}.responsibilities`}
-                                            control={control}
-                                            render={({ field }) => <ArrayTextarea {...field} />}
-                                        />
+                                        <Controller name={`experience.${index}.responsibilities`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
                                         {expErrors?.responsibilities && <p className="text-sm text-destructive">{expErrors.responsibilities.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Achievements (one per line)</Label>
-                                         <Controller
-                                            name={`experience.${index}.achievements`}
-                                            control={control}
-                                            render={({ field }) => <ArrayTextarea {...field} />}
-                                        />
+                                         <Controller name={`experience.${index}.achievements`} control={control} render={({ field }) => <ArrayTextarea {...field} />} />
                                         {expErrors?.achievements && <p className="text-sm text-destructive">{expErrors.achievements.message}</p>}
                                     </div>
                                 </div>
@@ -680,27 +666,27 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Institution</Label>
-                                        <Input {...register(`education.${index}.institution`)} />
+                                        <Controller name={`education.${index}.institution`} control={control} render={({field}) => <Input {...field} />} />
                                         {eduErrors?.institution && <p className="text-sm text-destructive">{eduErrors.institution.message}</p>}
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label>Degree</Label>
-                                            <Input {...register(`education.${index}.degree`)} />
+                                            <Controller name={`education.${index}.degree`} control={control} render={({field}) => <Input {...field} />} />
                                             {eduErrors?.degree && <p className="text-sm text-destructive">{eduErrors.degree.message}</p>}
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Field of Study</Label>
-                                            <Input {...register(`education.${index}.fieldOfStudy`)} />
+                                            <Controller name={`education.${index}.fieldOfStudy`} control={control} render={({field}) => <Input {...field} />} />
                                             {eduErrors?.fieldOfStudy && <p className="text-sm text-destructive">{eduErrors.fieldOfStudy.message}</p>}
                                         </div>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-4">
-                                        <FormField name={`education.${index}.startDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField name={`education.${index}.endDate`} control={control} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                        <Controller name={`education.${index}.startDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
+                                        <Controller name={`education.${index}.endDate`} control={control} render={({ field: dateField, fieldState }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover>{fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}</FormItem>)}/>
                                         <div className="space-y-2">
                                             <Label>CGPA/Grade</Label>
-                                            <Input {...register(`education.${index}.cgpa`)} />
+                                            <Controller name={`education.${index}.cgpa`} control={control} render={({field}) => <Input {...field} />} />
                                             {eduErrors?.cgpa && <p className="text-sm text-destructive">{eduErrors.cgpa.message}</p>}
                                         </div>
                                     </div>
@@ -806,17 +792,17 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProj(index)}><Trash2 className="h-4 w-4"/></Button>
                                     <div className="space-y-2">
                                         <Label>Project Title</Label>
-                                        <Input {...register(`projects.${index}.title`)} />
+                                        <Controller name={`projects.${index}.title`} control={control} render={({field}) => <Input {...field} />} />
                                         {projErrors?.title && <p className="text-sm text-destructive">{projErrors.title.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Project URL</Label>
-                                        <Input {...register(`projects.${index}.url`)} />
+                                        <Controller name={`projects.${index}.url`} control={control} render={({field}) => <Input {...field} />} />
                                         {projErrors?.url && <p className="text-sm text-destructive">{projErrors.url.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Description</Label>
-                                        <Textarea {...register(`projects.${index}.description`)} />
+                                        <Controller name={`projects.${index}.description`} control={control} render={({field}) => <Textarea {...field} />} />
                                         {projErrors?.description && <p className="text-sm text-destructive">{projErrors.description.message}</p>}
                                     </div>
                                 </div>
