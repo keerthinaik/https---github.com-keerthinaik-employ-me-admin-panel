@@ -289,6 +289,11 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
               </div>
             </div>
+            
+            <div>
+              <p className="font-bold text-sm">Debug Image:</p>
+              <img src="http://148.72.244.169:3000/uploads/AdminUser/profilePhoto/profilePhoto-1751602627552-962777425.jpg" alt="Debug test image" className="w-24 h-24 border" />
+            </div>
 
             <Separator />
 
