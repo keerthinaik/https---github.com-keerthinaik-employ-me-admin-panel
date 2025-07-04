@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { type Jobseeker, skills, skillCategories } from '@/lib/data';
+import { type Jobseeker, skills, skillCategories, businesses, universities } from '@/lib/data';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +24,7 @@ import { Badge } from './ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as React from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const experienceSchema = z.object({
   jobTitle: z.string().min(1, "Job title is required"),
@@ -30,8 +32,8 @@ const experienceSchema = z.object({
   startDate: z.date(),
   endDate: z.date().optional(),
   isCurrent: z.boolean(),
-  responsibilities: z.string().optional(),
-  achievements: z.string().optional(),
+  responsibilities: z.array(z.string()).optional(),
+  achievements: z.array(z.string()).optional(),
 });
 
 const educationSchema = z.object({
@@ -71,10 +73,12 @@ const jobseekerSchema = z.object({
   about: z.string().optional(),
   dateOfBirth: z.date().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
+  passportNumber: z.string().optional(),
   
   linkedInProfile: z.string().url().optional().or(z.literal('')),
   githubProfile: z.string().url().optional().or(z.literal('')),
   portfolio: z.string().url().optional().or(z.literal('')),
+  fieldOfStudy: z.string().optional(),
 
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
@@ -83,6 +87,14 @@ const jobseekerSchema = z.object({
   education: z.array(educationSchema).optional(),
   projects: z.array(projectSchema).optional(),
   skills: z.array(z.string()).optional(),
+
+  businessAssociationId: z.string().optional(),
+  universityAssociationId: z.string().optional(),
+}).refine(data => {
+    return !(data.businessAssociationId && data.universityAssociationId);
+}, {
+    message: "A jobseeker can be associated with either a business or a university, but not both.",
+    path: ["businessAssociationId"], 
 });
 
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
@@ -101,6 +113,10 @@ const fieldToTabMap: Record<keyof JobseekerFormValues, string> = {
   about: 'profile',
   dateOfBirth: 'profile',
   gender: 'profile',
+  passportNumber: 'profile',
+  fieldOfStudy: 'profile',
+  businessAssociationId: 'profile',
+  universityAssociationId: 'profile',
   experience: 'career',
   education: 'career',
   skills: 'skills',
@@ -144,12 +160,16 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         about: jobseeker?.about || '',
         dateOfBirth: jobseeker?.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
         gender: jobseeker?.gender,
+        passportNumber: jobseeker?.passportNumber || '',
+        fieldOfStudy: jobseeker?.fieldOfStudy || '',
+        businessAssociationId: jobseeker?.businessAssociationId || '',
+        universityAssociationId: jobseeker?.universityAssociationId || '',
         linkedInProfile: jobseeker?.linkedInProfile || '',
         githubProfile: jobseeker?.githubProfile || '',
         portfolio: jobseeker?.portfolio || '',
         isVerified: jobseeker?.isVerified || false,
         isActive: jobseeker?.isActive ?? true,
-        experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities?.join('\\n'), achievements: exp.achievements?.join('\\n') })) || [],
+        experience: jobseeker?.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
         education: jobseeker?.education?.map(edu => ({ ...edu, startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
         projects: jobseeker?.projects || [],
         skills: jobseeker?.skills || [],
@@ -231,7 +251,15 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   };
 
   const onSubmit = (data: JobseekerFormValues) => {
-    console.log(data);
+    const transformedData = {
+        ...data,
+        experience: data.experience?.map(exp => ({
+            ...exp,
+            responsibilities: Array.isArray(exp.responsibilities) ? exp.responsibilities.filter(line => line.trim()) : [],
+            achievements: Array.isArray(exp.achievements) ? exp.achievements.filter(line => line.trim()) : [],
+        }))
+    }
+    console.log(transformedData);
     toast({
         title: jobseeker ? 'Jobseeker Updated' : 'Jobseeker Created',
         description: `${data.name} has been successfully ${jobseeker ? 'updated' : 'created'}.`,
@@ -276,6 +304,16 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             <Input id="headline" {...register('headline')} placeholder="e.g. Senior Software Engineer" />
                         </div>
                      </div>
+                     <div className="grid md:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="passportNumber">Passport Number</Label>
+                            <Input id="passportNumber" {...register('passportNumber')} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="fieldOfStudy">Field of Study</Label>
+                            <Input id="fieldOfStudy" {...register('fieldOfStudy')} />
+                        </div>
+                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="summary">Summary</Label>
                         <Textarea id="summary" {...register('summary')} placeholder="A brief summary..." />
@@ -287,30 +325,43 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader><CardTitle>Location</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Associations</CardTitle><CardDescription>Associate with a business or university.</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="address">Address</Label>
-                        <Input id="address" {...register('address')} />
-                    </div>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="city">City</Label>
-                            <Input id="city" {...register('city')} />
+                            <Label>Business Association</Label>
+                            <Controller
+                                name="businessAssociationId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <SelectTrigger><SelectValue placeholder="Select a business" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">None</SelectItem>
+                                            {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="state">State / Province</Label>
-                            <Input id="state" {...register('state')} />
+                            <Label>University Association</Label>
+                             <Controller
+                                name="universityAssociationId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <SelectTrigger><SelectValue placeholder="Select a university" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">None</SelectItem>
+                                            {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="country">Country</Label>
-                            <Input id="country" {...register('country')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="zipCode">Zip Code</Label>
-                            <Input id="zipCode" {...register('zipCode')} />
-                        </div>
-                    </div>
+                     </div>
+                      {errors.businessAssociationId && <p className="text-sm text-destructive">{errors.businessAssociationId.message}</p>}
                 </CardContent>
             </Card>
             <div className="mt-6 flex justify-end">
@@ -340,11 +391,35 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 </div>
                                 <div className="flex items-center gap-2"><Controller name={`experience.${index}.isCurrent`} control={control} render={({ field }) => (<Switch id={`exp-current-${index}`} checked={field.value} onCheckedChange={field.onChange} />)} /><Label htmlFor={`exp-current-${index}`}>I currently work here</Label></div>
                             </div>
-                            <div className="space-y-2"><Label>Responsibilities (one per line)</Label><Textarea {...register(`experience.${index}.responsibilities`)} /></div>
-                            <div className="space-y-2"><Label>Achievements (one per line)</Label><Textarea {...register(`experience.${index}.achievements`)} /></div>
+                            <Controller
+                                name={`experience.${index}.responsibilities`}
+                                control={control}
+                                render={({ field }) => (
+                                    <div className="space-y-2">
+                                        <Label>Responsibilities (one per line)</Label>
+                                        <Textarea
+                                            value={Array.isArray(field.value) ? field.value.join('\n') : ''}
+                                            onChange={e => field.onChange(e.target.value.split('\n'))}
+                                        />
+                                    </div>
+                                )}
+                            />
+                            <Controller
+                                name={`experience.${index}.achievements`}
+                                control={control}
+                                render={({ field }) => (
+                                     <div className="space-y-2">
+                                        <Label>Achievements (one per line)</Label>
+                                        <Textarea
+                                            value={Array.isArray(field.value) ? field.value.join('\n') : ''}
+                                            onChange={e => field.onChange(e.target.value.split('\n'))}
+                                        />
+                                    </div>
+                                )}
+                            />
                         </div>
                     ))}
-                    <Button type="button" variant="outline" onClick={() => appendExp({ jobTitle: '', companyName: '', startDate: new Date(), isCurrent: false })}>Add Experience</Button>
+                    <Button type="button" variant="outline" onClick={() => appendExp({ jobTitle: '', companyName: '', startDate: new Date(), isCurrent: false, responsibilities:[], achievements:[] })}>Add Experience</Button>
                 </CardContent>
             </Card>
             <Card>

@@ -1,7 +1,7 @@
 
 
-
-import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType } from "./types";
+import { businesses, universities } from "@/lib/data";
+import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project } from "./types";
 
 export type Question = {
     question: string;
@@ -145,34 +145,6 @@ export const permissionableModels = [
 
 export const crudOperations = ['create', 'read', 'update', 'delete'] as const;
 
-
-export type Experience = {
-    jobTitle: string;
-    companyName: string;
-    startDate: Date;
-    endDate?: Date;
-    isCurrent: boolean;
-    responsibilities?: string[];
-    achievements?: string[];
-};
-
-export type Education = {
-    institution: string;
-    degree: string;
-    fieldOfStudy: string;
-    cgpa?: string;
-    startDate: Date;
-    endDate: Date;
-};
-
-export type Project = {
-  title: string;
-  description?: string;
-  url?: string;
-  startDate?: Date;
-  endDate?: Date;
-}
-
 export type Jobseeker = {
     id: string;
     // Basic User Info
@@ -234,64 +206,29 @@ export type Skill = {
 
 export type Employer = {
   id: string;
-  // Basic User Info
   name: string;
   email: string;
-  password?: string;
   phoneNumber?: string;
+  about?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zipCode?: string;
+  website?: string;
+  profilePhoto?: string;
+  taxNumber?: string;
+  registrationNumber?: string;
+  taxCertificate?: string;
+  registrationCertificate?: string;
   isVerified: boolean;
   isActive: boolean;
-  
-  // Location Info
-  address?: string;
-  country?: string;
-  state?: string;
-  city?: string;
-  zipCode?: string;
-
-  // Employer-Specific Fields
-  companyName: string;
-  logo?: string; // Path or URL
-  about?: string;
-  website?: string;
-  taxNumber?: string;
-  taxCertificate?: string; // Path or URL
-  registrationNumber?: string;
-  registrationCertificate?: string; // Path or URL
-
-  // System Fields
   createdAt: Date;
   updatedAt: Date;
 };
 
 export type University = UniversityType;
-
-export type Business = {
-  id: string;
-  // Basic User Info
-  name: string;
-  email: string;
-  password?: string;
-  phoneNumber?: string;
-  
-  // Location Info
-  address?: string;
-  country?: string;
-  state?: string;
-  city?: string;
-  zipCode?: string;
-
-  // Business-Specific Fields
-  profilePhoto?: string;
-  about?: string;
-  website?: string;
-
-  // System Fields
-  isVerified: boolean;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
+export type Business = BusinessType;
 
 export type Faq = {
   id: string;
@@ -396,6 +333,9 @@ export const jobseekers: Jobseeker[] = [
         about: "I'm a dedicated and passionate software engineer with over 5 years of experience in the tech industry. My journey in software development started with a fascination for how things work, which led me to pursue a degree in Computer Science. Since then, I've had the opportunity to work on a variety of projects, from small-scale mobile apps to large, distributed systems.\n\nMy expertise lies in full-stack development, with a particular focus on JavaScript technologies like React and Node.js. I enjoy the challenge of solving complex problems and am always eager to learn new things. I believe in writing clean, maintainable, and efficient code, and I'm a strong advocate for best practices like TDD and CI/CD.",
         dateOfBirth: new Date('1990-05-15'),
         gender: 'male',
+        passportNumber: 'A12345678',
+        fieldOfStudy: 'Computer Science',
+        businessAssociationId: 'BIZ001',
         linkedInProfile: 'https://linkedin.com/in/johndoe',
         githubProfile: 'https://github.com/johndoe',
         portfolio: 'https://johndoe.dev',
@@ -634,8 +574,7 @@ export const universities: University[] = [
 export const employers: Employer[] = [
   {
     id: "EMP001",
-    name: "Alice Johnson",
-    companyName: "Innovate Inc.",
+    name: "Innovate Inc.",
     email: "contact@innovate.com",
     phoneNumber: "+1-555-0101",
     about: "Driving innovation through cutting-edge software solutions.",
@@ -645,7 +584,7 @@ export const employers: Employer[] = [
     country: "USA",
     zipCode: "94107",
     website: "https://innovate.com",
-    logo: "https://placehold.co/100x100.png",
+    profilePhoto: "https://placehold.co/100x100.png",
     taxNumber: "12-3456789",
     registrationNumber: "987654321",
     taxCertificate: "https://example.com/tax_cert.pdf",
@@ -657,8 +596,7 @@ export const employers: Employer[] = [
   },
   {
     id: "EMP002",
-    name: "Bob Williams",
-    companyName: "Creative Minds Agency",
+    name: "Creative Minds Agency",
     email: "hello@creativeminds.com",
     phoneNumber: "+44-20-7946-0102",
     about: "A full-service digital marketing agency.",
@@ -666,7 +604,7 @@ export const employers: Employer[] = [
     city: "London",
     country: "UK",
     website: "https://creativeminds.com",
-    logo: "https://placehold.co/100x100.png",
+    profilePhoto: "https://placehold.co/100x100.png",
     isVerified: false,
     isActive: true,
     createdAt: new Date("2022-03-10"),
@@ -674,15 +612,14 @@ export const employers: Employer[] = [
   },
   {
     id: "EMP003",
-    name: "Charlie Brown",
-    companyName: "HealthWell Solutions",
+    name: "HealthWell Solutions",
     email: "info@healthwell.com",
     phoneNumber: "+1-555-0103",
     about: "Providing comprehensive healthcare services and technology.",
     address: "3 Wellness Blvd",
     city: "Boston", state: "MA", country: "USA",
     website: "https://healthwell.com",
-    logo: "https://placehold.co/100x100.png",
+    profilePhoto: "https://placehold.co/100x100.png",
     isVerified: true,
     isActive: false,
     createdAt: new Date("2021-11-20"),

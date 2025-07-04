@@ -142,7 +142,7 @@ export interface University {
 export interface Employer {
   id: string;
   _id?: string;
-  name: string; // Company Name
+  name: string;
   email: string;
   phoneNumber?: string;
   address?: string;
@@ -164,6 +164,81 @@ export interface Employer {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Experience {
+    jobTitle: string;
+    companyName: string;
+    startDate: Date;
+    endDate?: Date;
+    isCurrent: boolean;
+    responsibilities?: string[];
+    achievements?: string[];
+}
+
+export interface Education {
+    institution: string;
+    degree: string;
+    fieldOfStudy: string;
+    cgpa?: string;
+    startDate: Date;
+    endDate: Date;
+}
+
+export interface Project {
+  title: string;
+  description?: string;
+  url?: string;
+}
+
+export interface Jobseeker {
+    id: string;
+    // Basic User Info
+    name: string;
+    email: string;
+    password?: string; // Not usually stored/retrieved on client
+    phoneNumber?: string;
+    isVerified: boolean;
+    isActive: boolean;
+    
+    // Location Info
+    address?: string;
+    country?: string;
+    state?: string;
+    city?: string;
+    zipCode?: string;
+    
+    // Profile Images & Media
+    profilePhoto?: string;
+    bannerImage?: string;
+    resume?: string;
+    certifications?: string[];
+    
+    // Personal & Social Details
+    headline?: string;
+    summary?: string;
+    about?: string;
+    dateOfBirth?: Date;
+    gender?: 'male' | 'female' | 'other';
+    passportNumber?: string;
+    linkedInProfile?: string;
+    githubProfile?: string;
+    portfolio?: string;
+    fieldOfStudy?: string;
+
+    // Associations
+    businessAssociationId?: string;
+    universityAssociationId?: string;
+    
+    skills?: string[];
+
+    // Nested Schemas
+    experience?: Experience[];
+    education?: Education[];
+    projects?: Project[];
+    
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 
