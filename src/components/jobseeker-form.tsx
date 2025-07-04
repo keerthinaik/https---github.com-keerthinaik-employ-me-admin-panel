@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { getSkills, getSkillCategories, createJobseeker, updateJobseeker } from '@/services/api';
 import type { Skill, SkillCategory, Jobseeker } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from './ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -456,7 +456,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-        if (value === null || value === undefined || value === '') return;
+        if (value === null || value === undefined) return;
+        if (key === 'businessAssociationId' && value === '') return;
+        if (key === 'universityAssociationId' && value === '') return;
 
         if (['experience', 'education', 'projects'].includes(key) && Array.isArray(value)) {
           value.forEach((item, index) => {
@@ -873,44 +875,57 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                     <Card>
                         <CardHeader><CardTitle>Media & Documents</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
-                           <FormItem>
-                                <div className="flex items-center gap-6">
-                                    <Avatar className="h-20 w-20">
-                                        <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
-                                        <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-grow space-y-2">
-                                        <FormLabel htmlFor="profilePhoto-input">Profile Photo</FormLabel>
-                                        <FormControl>
-                                             <Input id="profilePhoto-input" type="file" accept="image/*" onChange={onFileChange} />
-                                        </FormControl>
-                                        <p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p>
-                                        <FormMessage />
-                                    </div>
-                                </div>
-                           </FormItem>
-                           <FormItem>
-                                <FormLabel>Banner Image</FormLabel>
-                                <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
-                                    {croppedBannerImageUrl ? (
-                                        <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
-                                    )}
-                                </div>
-                                <FormControl>
-                                    <Input
-                                        id="bannerImage-input"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={onBannerFileChange}
+                           <div className="flex items-center gap-6">
+                                <Avatar className="h-20 w-20">
+                                    <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
+                                    <AvatarFallback>{getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-grow space-y-2">
+                                     <FormField
+                                        control={control}
+                                        name="profilePhoto"
+                                        render={() => (
+                                            <FormItem>
+                                                <FormLabel>Profile Photo</FormLabel>
+                                                <FormControl>
+                                                    <Input type="file" accept="image/*" onChange={onFileChange} />
+                                                </FormControl>
+                                                <FormDescription>Image must be at least 200x200px.</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
                                     />
-                                </FormControl>
-                                <p className="text-xs text-muted-foreground">Recommended size: 1128x191px.</p>
-                                <FormMessage />
-                           </FormItem>
-                            <FormField control={control} name="resume" render={({field}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField control={control} name="certifications" render={({field}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple onChange={(e) => field.onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
+                                </div>
+                            </div>
+                            
+                            <FormField
+                                control={control}
+                                name="bannerImage"
+                                render={() => (
+                                    <FormItem>
+                                        <FormLabel>Banner Image</FormLabel>
+                                        <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
+                                            {croppedBannerImageUrl ? (
+                                                <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">Banner Preview (1128x191px)</span>
+                                            )}
+                                        </div>
+                                        <FormControl>
+                                            <Input
+                                                id="bannerImage-input"
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={onBannerFileChange}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>Recommended size: 1128x191px.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField control={control} name="resume" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
+                            <FormField control={control} name="certifications" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
                         </CardContent>
                     </Card>
                     <Card>
