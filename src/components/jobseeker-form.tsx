@@ -194,7 +194,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== watchedCountry) {
+        if (countryRef.current && countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -217,7 +217,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== watchedState) {
+        if (stateRef.current && stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {
@@ -317,7 +317,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     // Create a mutable copy to process
     const dataToSend: { [key: string]: any } = { ...data };
     
-    // Convert null to empty string for association IDs to ensure they are sent to backend
     if (dataToSend.businessAssociationId === null) {
       dataToSend.businessAssociationId = '';
     }
@@ -581,3 +580,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+

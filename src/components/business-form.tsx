@@ -172,7 +172,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== watchedCountry) {
+        if (countryRef.current && countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -195,7 +195,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== watchedState) {
+        if (stateRef.current && stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {

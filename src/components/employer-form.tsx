@@ -182,7 +182,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== watchedCountry) {
+        if (countryRef.current && countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -205,7 +205,7 @@ export function EmployerForm({ employer }: EmployerFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== watchedState) {
+        if (stateRef.current && stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {
@@ -785,3 +785,4 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     </>
   );
 }
+

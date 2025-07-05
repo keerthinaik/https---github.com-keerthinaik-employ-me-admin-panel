@@ -186,7 +186,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
         setIsLoadingStates(true);
         setStates([]);
         setCities([]);
-        if (countryRef.current !== watchedCountry) {
+        if (countryRef.current && countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
@@ -209,7 +209,7 @@ export function UniversityForm({ university }: UniversityFormProps) {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
         setCities([]);
-        if (stateRef.current !== watchedState) {
+        if (stateRef.current && stateRef.current !== watchedState) {
           setValue('city', '');
         }
         try {
