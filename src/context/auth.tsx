@@ -3,11 +3,11 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginUser, getMe } from '@/services/api';
-import type { AuthUser } from '@/lib/types';
+import type { ProfileUser } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: ProfileUser | null;
   token: string | null;
   login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => void;
@@ -19,7 +19,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<ProfileUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -56,15 +56,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      const data = await loginUser(credentials);
-      if (data.status === 'success' && data.token) {
-        setUser(data.data.user);
-        setToken(data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-        localStorage.setItem('token', data.token);
+      const loginData = await loginUser(credentials);
+      if (loginData.status === 'success' && loginData.token) {
+        setToken(loginData.token);
+        localStorage.setItem('token', loginData.token);
+        
+        const meResponse = await getMe();
+        setUser(meResponse.data);
+        localStorage.setItem('user', JSON.stringify(meResponse.data));
+
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${data.data.user.name}!`,
+          description: `Welcome back, ${meResponse.data.name}!`,
         });
         router.push('/dashboard');
       }

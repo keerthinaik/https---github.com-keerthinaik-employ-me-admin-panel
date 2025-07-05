@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 const getRoleBadge = (role?: 'Admin' | 'SubAdmin') => {
     if (!role) return null;
@@ -56,6 +56,10 @@ export default function AdminLayout({
     logout();
   }
 
+  const profilePhotoUrl = user?.profilePhoto
+    ? `${API_BASE_URL}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`
+    : undefined;
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
@@ -76,7 +80,7 @@ export default function AdminLayout({
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="w-full justify-start gap-2 p-2 h-auto">
                          <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/40x40.png" alt={user?.name || 'Admin'} />
+                            <AvatarImage src={profilePhotoUrl} alt={user?.name || 'Admin'} />
                             <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'AD'}</AvatarFallback>
                         </Avatar>
                         <div className="truncate text-left">
