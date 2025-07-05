@@ -14,13 +14,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Trash2 } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { getCountries, getStates, getCities, createJobseeker, updateJobseeker, getBusinesses, getUniversities } from '@/services/api';
+import { getCountries, getStates, getCities, createJobseeker, updateJobseeker, getBusinesses, getUniversities, removeBusinessAssociation, removeUniversityAssociation } from '@/services/api';
 import type { Jobseeker, Country, State, City, Business, University } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
@@ -303,6 +303,24 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     }, 'image/jpeg');
   }
 
+  const handleRemoveAssociation = async (type: 'business' | 'university') => {
+    if (!jobseeker) return;
+
+    try {
+        if (type === 'business') {
+            await removeBusinessAssociation(jobseeker.id);
+            setValue('businessAssociationId', null, { shouldDirty: true });
+        } else {
+            await removeUniversityAssociation(jobseeker.id);
+            setValue('universityAssociationId', null, { shouldDirty: true });
+        }
+        toast({ title: 'Association Removed', description: `The ${type} association has been successfully removed.` });
+    } catch (error: any) {
+        toast({ title: 'Error', description: `Failed to remove association: ${error.message}`, variant: 'destructive' });
+    }
+  };
+
+
   const onError = (errors: any) => {
     toast({
         title: "Validation Error",
@@ -421,31 +439,38 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     return (
                                         <FormItem>
                                             <FormLabel>Business Association</FormLabel>
-                                            <Popover open={openBusiness} onOpenChange={setOpenBusiness}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
-                                                            {displayValue}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command>
-                                                        <CommandInput placeholder="Search business..." />
-                                                        <CommandEmpty>No business found.</CommandEmpty>
-                                                        <CommandGroup className="max-h-60 overflow-auto">
-                                                            <CommandItem value="__none__" onSelect={() => { setValue('businessAssociationId', null); setOpenBusiness(false); }}>None</CommandItem>
-                                                            {businesses.map(b => (
-                                                                <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); toast({title: "Business Selected", description: `${b.name} (ID: ${b.id})`}) }}>
-                                                                    <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                    {b.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <div className="flex items-center gap-2">
+                                                <Popover open={openBusiness} onOpenChange={setOpenBusiness}>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
+                                                                {displayValue}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                        <Command>
+                                                            <CommandInput placeholder="Search business..." />
+                                                            <CommandEmpty>No business found.</CommandEmpty>
+                                                            <CommandGroup className="max-h-60 overflow-auto">
+                                                                <CommandItem value="__none__" onSelect={() => { setValue('businessAssociationId', null); setOpenBusiness(false); }}>None</CommandItem>
+                                                                {businesses.map(b => (
+                                                                    <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); toast({title: "Business Selected", description: `${b.name} (ID: ${b.id})`}) }}>
+                                                                        <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                        {b.name}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                {field.value && (
+                                                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveAssociation('business')}>
+                                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                                  </Button>
+                                                )}
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )
@@ -465,31 +490,38 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     return (
                                         <FormItem>
                                             <FormLabel>University Association</FormLabel>
-                                            <Popover open={openUniversity} onOpenChange={setOpenUniversity}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
-                                                            {displayValue}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command>
-                                                        <CommandInput placeholder="Search university..." />
-                                                        <CommandEmpty>No university found.</CommandEmpty>
-                                                        <CommandGroup className="max-h-60 overflow-auto">
-                                                            <CommandItem value="__none__" onSelect={() => { setValue('universityAssociationId', null); setOpenUniversity(false); }}>None</CommandItem>
-                                                            {universities.map(u => (
-                                                                <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); toast({title: "University Selected", description: `${u.name} (ID: ${u.id})`}) }}>
-                                                                    <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                    {u.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <div className="flex items-center gap-2">
+                                                <Popover open={openUniversity} onOpenChange={setOpenUniversity}>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
+                                                                {displayValue}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                        <Command>
+                                                            <CommandInput placeholder="Search university..." />
+                                                            <CommandEmpty>No university found.</CommandEmpty>
+                                                            <CommandGroup className="max-h-60 overflow-auto">
+                                                                <CommandItem value="__none__" onSelect={() => { setValue('universityAssociationId', null); setOpenUniversity(false); }}>None</CommandItem>
+                                                                {universities.map(u => (
+                                                                    <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); toast({title: "University Selected", description: `${u.name} (ID: ${u.id})`}) }}>
+                                                                        <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                        {u.name}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                {field.value && (
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveAssociation('university')}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )

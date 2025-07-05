@@ -1,6 +1,5 @@
 
 
-
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job, ProfileUser, Application } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
@@ -860,6 +859,18 @@ export async function updateJobseeker(id: string, jobseekerData: FormData): Prom
 export async function deleteJobseeker(id: string): Promise<null> {
   return authedFetch(`/api/v1/jobseekers/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export async function removeBusinessAssociation(jobseekerId: string): Promise<null> {
+  return authedFetch(`/api/v1/jobseekers/${jobseekerId}/remove-business-association`, {
+    method: 'PATCH',
+  });
+}
+
+export async function removeUniversityAssociation(jobseekerId: string): Promise<null> {
+  return authedFetch(`/api/v1/jobseekers/${jobseekerId}/remove-university-association`, {
+    method: 'PATCH',
   });
 }
 
