@@ -48,8 +48,8 @@ const jobseekerSchema = z.object({
   city: z.string().optional(),
   zipCode: z.string().optional(),
 
-  businessAssociationId: z.string().optional(),
-  universityAssociationId: z.string().optional(),
+  businessAssociationId: z.string().nullable().optional(),
+  universityAssociationId: z.string().nullable().optional(),
   
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
@@ -118,8 +118,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         state: '',
         city: '',
         zipCode: '',
-        businessAssociationId: '',
-        universityAssociationId: '',
+        businessAssociationId: null,
+        universityAssociationId: null,
         gender: undefined,
         dateOfBirth: undefined,
         isVerified: false,
@@ -150,8 +150,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         state: jobseeker.state || '',
         city: jobseeker.city || '',
         zipCode: jobseeker.zipCode || '',
-        businessAssociationId: jobseeker.businessAssociationId || '',
-        universityAssociationId: jobseeker.universityAssociationId || '',
+        businessAssociationId: jobseeker.businessAssociationId || null,
+        universityAssociationId: jobseeker.universityAssociationId || null,
         isVerified: jobseeker.isVerified || false,
         isActive: jobseeker.isActive ?? true,
         profilePhoto: undefined,
@@ -308,7 +308,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (value === null || value === undefined) {
+      if (value === undefined) {
+        return;
+      }
+      if (value === null) {
+        formData.append(key, ''); // Send empty string for null
         return;
       }
       
@@ -429,13 +433,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <FormLabel>Business Association</FormLabel>
                                         <Select
                                             onValueChange={(value) => {
-                                                const newValue = value === '__none__' ? '' : value;
+                                                const newValue = value === '__none__' ? null : value;
                                                 field.onChange(newValue);
                                                 if (newValue) {
-                                                    setValue('universityAssociationId', '');
+                                                    setValue('universityAssociationId', null, { shouldValidate: true });
                                                 }
                                             }}
-                                            value={field.value || ''}>
+                                            value={field.value ?? ''}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="__none__">None</SelectItem>
@@ -454,13 +458,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                         <FormLabel>University Association</FormLabel>
                                         <Select
                                             onValueChange={(value) => {
-                                                const newValue = value === '__none__' ? '' : value;
+                                                const newValue = value === '__none__' ? null : value;
                                                 field.onChange(newValue);
                                                 if (newValue) {
-                                                    setValue('businessAssociationId', '');
+                                                    setValue('businessAssociationId', null, { shouldValidate: true });
                                                 }
                                             }}
-                                            value={field.value || ''}>
+                                            value={field.value ?? ''}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="__none__">None</SelectItem>
