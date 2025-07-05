@@ -55,6 +55,93 @@ export type User = {
   employerName?: string;
 };
 
+export const users: User[] = [
+  {
+    id: 'USR001',
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'Admin',
+    status: 'Active',
+    joinedAt: new Date('2022-01-15'),
+    updatedAt: new Date('2023-10-20'),
+    permissions: ['manageUsers', 'manageJobs', 'approveCompanies', 'viewReports', 'manageSettings', 'assignRoles'],
+  },
+  {
+    id: 'USR002',
+    name: 'Bob Williams',
+    email: 'bob@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'SubAdmin',
+    status: 'Active',
+    joinedAt: new Date('2022-02-20'),
+    updatedAt: new Date('2023-11-01'),
+    permissions: ['manageJobs', 'viewReports'],
+    employerId: 'EMP001',
+    employerName: 'Innovate Inc.',
+  },
+  {
+    id: 'USR003',
+    name: 'Charlie Brown',
+    email: 'charlie@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'Recruiter',
+    status: 'Active',
+    joinedAt: new Date('2022-03-25'),
+    updatedAt: new Date('2023-10-25'),
+    employerId: 'EMP001',
+    employerName: 'Innovate Inc.',
+  },
+  {
+    id: 'USR004',
+    name: 'Diana Prince',
+    email: 'diana@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'Member',
+    status: 'Inactive',
+    joinedAt: new Date('2023-04-10'),
+    updatedAt: new Date('2023-09-15'),
+    employerId: 'EMP002',
+    employerName: 'Creative Minds Agency',
+  },
+  {
+    id: 'USR005',
+    name: 'Eve Adams',
+    email: 'eve@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'Recruiter',
+    status: 'Active',
+    joinedAt: new Date('2023-05-18'),
+    updatedAt: new Date('2023-11-02'),
+    employerId: 'EMP002',
+    employerName: 'Creative Minds Agency',
+  },
+  {
+    id: 'USR006',
+    name: 'Frank Miller',
+    email: 'frank@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'SubAdmin',
+    status: 'Inactive',
+    joinedAt: new Date('2021-12-01'),
+    updatedAt: new Date('2023-08-30'),
+    permissions: ['manageJobs'],
+    employerId: 'EMP003',
+    employerName: 'HealthWell Solutions',
+  },
+  {
+    id: 'USR007',
+    name: 'Grace Lee',
+    email: 'grace@example.com',
+    avatar: 'https://placehold.co/40x40.png',
+    role: 'Admin',
+    status: 'Active',
+    joinedAt: new Date('2021-11-15'),
+    updatedAt: new Date('2023-10-31'),
+    permissions: ['manageUsers', 'manageJobs', 'approveCompanies', 'viewReports', 'manageSettings', 'assignRoles'],
+  }
+];
+
 export const availablePermissions = [
     'manageUsers',
     'manageJobs',
@@ -825,3 +912,5 @@ export const userSubscriptions: UserSubscription[] = [
     updatedAt: new Date(),
   }
 ];
+
+    
