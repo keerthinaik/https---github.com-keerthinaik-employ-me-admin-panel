@@ -137,7 +137,7 @@ export default function JobseekerVerificationPage() {
     
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage, selectedSearchFields]);
 
     const handleVerification = async (jobseeker: Jobseeker, isVerified: boolean) => {
         try {
@@ -225,6 +225,25 @@ export default function JobseekerVerificationPage() {
                                     <p className="text-sm text-muted-foreground">
                                         Refine jobseeker results.
                                     </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Search In</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {searchFields.map((field) => (
+                                            <div key={field.key} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`search-${field.key}`}
+                                                    checked={selectedSearchFields.includes(field.key)}
+                                                    onCheckedChange={(checked) => {
+                                                        setSelectedSearchFields(prev => 
+                                                            checked ? [...prev, field.key] : prev.filter(f => f !== field.key)
+                                                        );
+                                                    }}
+                                                />
+                                                <Label htmlFor={`search-${field.key}`} className="font-normal">{field.label}</Label>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Status</Label>
