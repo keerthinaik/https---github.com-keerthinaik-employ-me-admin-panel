@@ -389,72 +389,90 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                             <FormField
                                 control={control}
                                 name="businessAssociationId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Business Association</FormLabel>
-                                        <Popover open={openBusiness} onOpenChange={setOpenBusiness}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
-                                                        {field.value ? businesses.find(b => b.id === field.value)?.name : "Select business..."}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search business..." />
-                                                    <CommandEmpty>No business found.</CommandEmpty>
-                                                    <CommandGroup className="max-h-60 overflow-auto">
-                                                        <CommandItem value="__none__" onSelect={() => { setValue('businessAssociationId', null); setOpenBusiness(false); }}>None</CommandItem>
-                                                        {businesses.map(b => (
-                                                            <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); toast({title: "Business Selected", description: `${b.name} (ID: ${b.id})`}) }}>
-                                                                <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                {b.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                render={({ field }) => {
+                                    const displayValue = React.useMemo(() => {
+                                        if (!field.value) return "Select business...";
+                                        if (isLoadingAssociations) return <Skeleton className="h-5 w-4/5" />;
+                                        const selected = businesses.find(b => b.id === field.value);
+                                        return selected ? selected.name : "Select business...";
+                                    }, [field.value, businesses, isLoadingAssociations]);
+
+                                    return (
+                                        <FormItem>
+                                            <FormLabel>Business Association</FormLabel>
+                                            <Popover open={openBusiness} onOpenChange={setOpenBusiness}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
+                                                            {displayValue}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search business..." />
+                                                        <CommandEmpty>No business found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
+                                                            <CommandItem value="__none__" onSelect={() => { setValue('businessAssociationId', null); setOpenBusiness(false); }}>None</CommandItem>
+                                                            {businesses.map(b => (
+                                                                <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); toast({title: "Business Selected", description: `${b.name} (ID: ${b.id})`}) }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {b.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )
+                                }}
                             />
                              <FormField
                                 control={control}
                                 name="universityAssociationId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>University Association</FormLabel>
-                                        <Popover open={openUniversity} onOpenChange={setOpenUniversity}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
-                                                        {field.value ? universities.find(u => u.id === field.value)?.name : "Select university..."}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search university..." />
-                                                    <CommandEmpty>No university found.</CommandEmpty>
-                                                    <CommandGroup className="max-h-60 overflow-auto">
-                                                        <CommandItem value="__none__" onSelect={() => { setValue('universityAssociationId', null); setOpenUniversity(false); }}>None</CommandItem>
-                                                        {universities.map(u => (
-                                                            <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); toast({title: "University Selected", description: `${u.name} (ID: ${u.id})`}) }}>
-                                                                <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                {u.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                render={({ field }) => {
+                                    const displayValue = React.useMemo(() => {
+                                        if (!field.value) return "Select university...";
+                                        if (isLoadingAssociations) return <Skeleton className="h-5 w-4/5" />;
+                                        const selected = universities.find(u => u.id === field.value);
+                                        return selected ? selected.name : "Select university...";
+                                    }, [field.value, universities, isLoadingAssociations]);
+
+                                    return (
+                                        <FormItem>
+                                            <FormLabel>University Association</FormLabel>
+                                            <Popover open={openUniversity} onOpenChange={setOpenUniversity}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
+                                                            {displayValue}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search university..." />
+                                                        <CommandEmpty>No university found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-60 overflow-auto">
+                                                            <CommandItem value="__none__" onSelect={() => { setValue('universityAssociationId', null); setOpenUniversity(false); }}>None</CommandItem>
+                                                            {universities.map(u => (
+                                                                <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); toast({title: "University Selected", description: `${u.name} (ID: ${u.id})`}) }}>
+                                                                    <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                    {u.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )
+                                }}
                             />
                         </CardContent>
                     </Card>
