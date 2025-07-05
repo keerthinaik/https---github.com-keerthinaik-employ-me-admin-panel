@@ -7,7 +7,6 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { type Job, type Question, type SkillCategory, type Employer, type JobCategory } from '@/lib/types';
@@ -161,18 +160,18 @@ export function JobForm({ job }: { job?: Job }) {
       description: job?.description || '',
       minExperience: job?.minExperience || 0,
       maxExperience: job?.maxExperience || 0,
-      numberOfPosts: job?.numberOfPosts,
+      numberOfPosts: job?.numberOfPosts ?? undefined,
       type: job?.type || 'full-time',
       payrollType: job?.payrollType || 'direct',
-      contractDuration: job?.contractDuration,
+      contractDuration: job?.contractDuration ?? undefined,
       contractDurationUnit: job?.contractDurationUnit,
-      expectedMinHoursPerWeek: job?.expectedMinHoursPerWeek,
-      expectedMaxHoursPerWeek: job?.expectedMaxHoursPerWeek,
+      expectedMinHoursPerWeek: job?.expectedMinHoursPerWeek ?? undefined,
+      expectedMaxHoursPerWeek: job?.expectedMaxHoursPerWeek ?? undefined,
       shiftType: job?.shiftType || 'regular',
       otherShiftType: job?.otherShiftType,
       ctcCurrency: job?.ctcCurrency || 'USD',
-      ctcMinAmount: job?.ctcMinAmount,
-      ctcMaxAmount: job?.ctcMaxAmount,
+      ctcMinAmount: job?.ctcMinAmount ?? undefined,
+      ctcMaxAmount: job?.ctcMaxAmount ?? undefined,
       ctcFrequency: job?.ctcFrequency || 'yearly',
       supplementalPayments: job?.supplementalPayments || [],
       otherSupplementalPaymentType: job?.otherSupplementalPaymentType,
@@ -269,8 +268,6 @@ export function JobForm({ job }: { job?: Job }) {
     try {
         const createdSkillFromApi = await createSkill({ name: skillName, skillCategory: categoryId, isActive: true });
         
-        // The API returns the new skill, but the category might not be populated.
-        // We'll use the category data we already have to build the full object for our local state.
         const category = skillCategories.find(c => c.id === categoryId);
 
         const newSkillForState: Skill = {
@@ -304,12 +301,10 @@ export function JobForm({ job }: { job?: Job }) {
   };
 
   const onSubmit = async (data: JobFormValues) => {
-    // Make sure we send an empty string if otherShiftType isn't relevant
     if (data.shiftType !== 'other') {
         data.otherShiftType = '';
     }
     
-    // Convert benefits & languages from string to array if needed
     if (typeof data.benefits === 'string') {
         data.benefits = data.benefits.split(',').map(s => s.trim()).filter(Boolean);
     }
@@ -573,12 +568,12 @@ export function JobForm({ job }: { job?: Job }) {
                             <FormField
                                 control={form.control}
                                 name="expectedMinHoursPerWeek"
-                                render={({ field }) => (<FormItem><FormLabel>Min. Hours/Week</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Min. Hours/Week</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)}
                             />
                             <FormField
                                 control={form.control}
                                 name="expectedMaxHoursPerWeek"
-                                render={({ field }) => (<FormItem><FormLabel>Max. Hours/Week</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Max. Hours/Week</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)}
                             />
                         </div>
                          <FormField
@@ -674,12 +669,12 @@ export function JobForm({ job }: { job?: Job }) {
                             <FormField
                                 control={form.control}
                                 name="ctcMinAmount"
-                                render={({ field }) => (<FormItem><FormLabel>Min Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Min Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)}
                             />
                              <FormField
                                 control={form.control}
                                 name="ctcMaxAmount"
-                                render={({ field }) => (<FormItem><FormLabel>Max Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Max Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)}
                             />
                         </div>
                         <FormField
@@ -778,8 +773,6 @@ export function JobForm({ job }: { job?: Job }) {
                                                 .filter(s => s.skillCategory?.id === category.id)
                                                 .sort((a,b) => a.name.localeCompare(b.name));
                                                 
-                                            if (categorySkills.length === 0 && !newSkillInputs[category.id]) return null;
-
                                             return (
                                                 <AccordionItem value={category.id} key={category.id}>
                                                     <AccordionTrigger>{category.name}</AccordionTrigger>
@@ -837,6 +830,17 @@ export function JobForm({ job }: { job?: Job }) {
                                </div>
                                <FormMessage />
                             </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="languagesRequired"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Languages (comma-separated)</FormLabel>
+                                    <FormControl><Input {...field} onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
                     </CardContent>
@@ -1016,7 +1020,7 @@ export function JobForm({ job }: { job?: Job }) {
                         <FormField
                             control={form.control}
                             name="numberOfPosts"
-                            render={({ field }) => (<FormItem><FormLabel>Number of Openings</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                            render={({ field }) => (<FormItem><FormLabel>Number of Openings</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)}
                         />
                     </CardContent>
                  </Card>

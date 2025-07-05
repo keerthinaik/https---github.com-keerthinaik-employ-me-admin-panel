@@ -154,7 +154,7 @@ export function CouponForm({ coupon }: CouponFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Maximum Usage Count</FormLabel>
-                                            <FormControl><Input type="number" {...field} placeholder="Leave blank for unlimited"/></FormControl>
+                                            <FormControl><Input type="number" {...field} value={field.value ?? ''} placeholder="Leave blank for unlimited"/></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
