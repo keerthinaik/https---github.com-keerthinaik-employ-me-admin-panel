@@ -1,6 +1,10 @@
 
 import type {NextConfig} from 'next';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
+
+const apiURL = new URL(API_BASE_URL);
+
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
@@ -18,9 +22,9 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'http',
-        hostname: '148.72.244.169',
-        port: '3000',
+        protocol: apiURL.protocol.replace(':', ''),
+        hostname: apiURL.hostname,
+        port: apiURL.port,
         pathname: '/**',
       },
     ],
@@ -29,11 +33,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/v1/:path*',
-        destination: `http://148.72.244.169:3000/api/v1/:path*`,
+        destination: `${API_BASE_URL}/api/v1/:path*`,
       },
       {
         source: '/api/location/:path*',
-        destination: `http://148.72.244.169:3000/api/location/:path*`,
+        destination: `${API_BASE_URL}/api/location/:path*`,
       },
     ]
   },
