@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -8,7 +9,7 @@ import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { type Job, type Question, type SkillCategory, type Employer, type JobCategory } from '@/lib/types';
+import { type Job, type Question, type SkillCategory, type Employer, type JobCategory, type Country, type State, type City } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -24,7 +25,7 @@ import { suggestJobTitles } from '@/ai/flows/suggest-job-title-flow';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from './ui/badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJob, updateJob, createSkill } from '@/services/api';
+import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJob, updateJob, createSkill, getCountries, getStates, getCities } from '@/services/api';
 import type { Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { Switch } from './ui/switch';
@@ -139,15 +140,27 @@ export function JobForm({ job }: { job?: Job }) {
   const [jobCategories, setJobCategories] = React.useState<JobCategory[]>([]);
   const [allSkills, setAllSkills] = React.useState<Skill[]>([]);
   const [skillCategories, setSkillCategories] = React.useState<SkillCategory[]>([]);
+  
+  const [countries, setCountries] = React.useState<Country[]>([]);
+  const [states, setStates] = React.useState<State[]>([]);
+  const [cities, setCities] = React.useState<City[]>([]);
+
   const [isLoadingData, setIsLoadingData] = React.useState(true);
+  const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
+  const [isLoadingStates, setIsLoadingStates] = React.useState(false);
+  const [isLoadingCities, setIsLoadingCities] = React.useState(false);
 
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [suggestedTitles, setSuggestedTitles] = React.useState<string[]>([]);
+  
   const [openCurrency, setOpenCurrency] = React.useState(false);
   const [openEmployer, setOpenEmployer] = React.useState(false);
   const [openJobCategory, setOpenJobCategory] = React.useState(false);
   const [startDateOpen, setStartDateOpen] = React.useState(false);
-  
+  const [openCountry, setOpenCountry] = React.useState(false);
+  const [openState, setOpenState] = React.useState(false);
+  const [openCity, setOpenCity] = React.useState(false);
+
   const [openAccordionItems, setOpenAccordionItems] = React.useState<string[]>([]);
 
   const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
@@ -178,10 +191,21 @@ export function JobForm({ job }: { job?: Job }) {
       languagesRequired: [],
       supplementalPayments: [],
       questions: [],
+      address: '',
+      country: '',
+      state: '',
+      city: '',
+      zipCode: '',
     },
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, watch, reset } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, watch, reset, setValue } = form;
+
+  const watchedCountry = watch('country');
+  const watchedState = watch('state');
+
+  const countryRef = React.useRef(job?.country);
+  const stateRef = React.useRef(job?.state);
 
   React.useEffect(() => {
     if (job) {
@@ -203,25 +227,76 @@ export function JobForm({ job }: { job?: Job }) {
   React.useEffect(() => {
     const fetchData = async () => {
       setIsLoadingData(true);
+      setIsLoadingCountries(true);
       try {
-        const [employersRes, jobCategoriesRes, skillsRes, skillCategoriesRes] = await Promise.all([
+        const [employersRes, jobCategoriesRes, skillsRes, skillCategoriesRes, countriesRes] = await Promise.all([
           getEmployers({ limit: 1000 }),
           getJobCategories({ limit: 1000 }),
           getSkills({ limit: 1000 }),
           getSkillCategories({ limit: 1000 }),
+          getCountries(),
         ]);
         setEmployers(employersRes.data);
         setJobCategories(jobCategoriesRes.data);
         setAllSkills(skillsRes.data);
         setSkillCategories(skillCategoriesRes.data);
+        setCountries(countriesRes);
       } catch (error) {
         toast({ title: "Failed to load form data", variant: "destructive" });
       } finally {
         setIsLoadingData(false);
+        setIsLoadingCountries(false);
       }
     };
     fetchData();
   }, [toast]);
+  
+  React.useEffect(() => {
+    const fetchStates = async () => {
+      if (watchedCountry) {
+        setIsLoadingStates(true);
+        if (countryRef.current !== watchedCountry) {
+          setValue('state', '');
+          setValue('city', '');
+        }
+        setStates([]);
+        setCities([]);
+        try {
+          const stateData = await getStates(watchedCountry);
+          setStates(stateData);
+        } catch (error) {
+          toast({ title: "Failed to load states", variant: "destructive" });
+        } finally {
+          setIsLoadingStates(false);
+        }
+      }
+    };
+    if(watchedCountry) fetchStates();
+    countryRef.current = watchedCountry;
+  }, [watchedCountry, toast, setValue]);
+
+  React.useEffect(() => {
+    const fetchCities = async () => {
+      if (watchedCountry && watchedState) {
+        setIsLoadingCities(true);
+        if (stateRef.current !== watchedState) {
+           setValue('city', '');
+        }
+        setCities([]);
+        try {
+          const cityData = await getCities(watchedCountry, watchedState);
+          setCities(cityData);
+        } catch (error) {
+          toast({ title: "Failed to load cities", variant: "destructive" });
+        } finally {
+          setIsLoadingCities(false);
+        }
+      }
+    };
+    if(watchedState) fetchCities();
+    stateRef.current = watchedState;
+  }, [watchedCountry, watchedState, toast, setValue]);
+
 
   const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
     control: form.control,
@@ -897,14 +972,132 @@ export function JobForm({ job }: { job?: Job }) {
                                 </FormItem>
                             )}
                         />
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField
+                            control={control}
+                            name="address"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Address</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <FormField
+                                control={control}
+                                name="country"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Country</FormLabel>
+                                        <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                                                        {isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search country..." />
+                                                    <CommandEmpty>No country found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-60 overflow-auto">
+                                                        {countries.map(c => (
+                                                            <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {c.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name="state"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>State / Province</FormLabel>
+                                        <Popover open={openState} onOpenChange={setOpenState}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>
+                                                        {isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search state..." />
+                                                    <CommandEmpty>No state found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-60 overflow-auto">
+                                                        {states.map(s => (
+                                                            <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {s.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name="city"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>City</FormLabel>
+                                        <Popover open={openCity} onOpenChange={setOpenCity}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>
+                                                        {isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search city..." />
+                                                    <CommandEmpty>No city found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-60 overflow-auto">
+                                                        {cities.map(c => (
+                                                            <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}>
+                                                                <Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {c.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
+                         <FormField
+                            control={control}
+                            name="zipCode"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Zip Code</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                          <FormField
                             control={form.control}
                             name="expectedStartDate"
