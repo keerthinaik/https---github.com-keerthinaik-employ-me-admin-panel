@@ -130,25 +130,11 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, reset, watch } = form;
 
-  const watchedBusinessId = watch('businessAssociationId');
-  const watchedUniversityId = watch('universityAssociationId');
   const watchedCountry = watch('country');
   const watchedState = watch('state');
 
   const countryRef = React.useRef(jobseeker?.country);
   const stateRef = React.useRef(jobseeker?.state);
-
-  React.useEffect(() => {
-    if (watchedBusinessId) {
-        setValue('universityAssociationId', '');
-    }
-  }, [watchedBusinessId, setValue]);
-
-  React.useEffect(() => {
-    if (watchedUniversityId) {
-        setValue('businessAssociationId', '');
-    }
-  }, [watchedUniversityId, setValue]);
 
   React.useEffect(() => {
     if (jobseeker) {
@@ -441,10 +427,18 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Business Association</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <Select
+                                            onValueChange={(value) => {
+                                                const newValue = value === '__none__' ? '' : value;
+                                                field.onChange(newValue);
+                                                if (newValue) {
+                                                    setValue('universityAssociationId', '');
+                                                }
+                                            }}
+                                            value={field.value || ''}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value="">None</SelectItem>
+                                                <SelectItem value="__none__">None</SelectItem>
                                                 {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
@@ -458,10 +452,18 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>University Association</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <Select
+                                            onValueChange={(value) => {
+                                                const newValue = value === '__none__' ? '' : value;
+                                                field.onChange(newValue);
+                                                if (newValue) {
+                                                    setValue('businessAssociationId', '');
+                                                }
+                                            }}
+                                            value={field.value || ''}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value="">None</SelectItem>
+                                                <SelectItem value="__none__">None</SelectItem>
                                                 {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
