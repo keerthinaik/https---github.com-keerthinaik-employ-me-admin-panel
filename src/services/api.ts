@@ -131,7 +131,7 @@ export async function getMe(): Promise<GetMeResponse> {
 
 export async function updateAdminUser(id: string, userData: FormData): Promise<AuthUser> {
   const response = await authedFetch(`/api/v1/admin-users/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: userData,
   });
   return response.data.user;
@@ -410,7 +410,7 @@ export async function createBusiness(businessData: FormData): Promise<Business> 
 
 export async function updateBusiness(id: string, businessData: FormData): Promise<Business> {
   const response = await authedFetch(`/api/v1/businesses/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: businessData,
   });
   const item = response.data;
@@ -482,7 +482,7 @@ export async function createUniversity(universityData: FormData): Promise<Univer
 
 export async function updateUniversity(id: string, universityData: FormData): Promise<University> {
   const response = await authedFetch(`/api/v1/universities/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: universityData,
   });
   const item = response.data;
@@ -554,7 +554,7 @@ export async function createEmployer(employerData: FormData): Promise<Employer> 
 
 export async function updateEmployer(id: string, employerData: FormData): Promise<Employer> {
   const response = await authedFetch(`/api/v1/employers/${id}`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: employerData,
   });
   const item = response.data;
