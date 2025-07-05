@@ -266,10 +266,20 @@ export function JobForm({ job }: { job?: Job }) {
     setIsAddingSkill(prev => ({ ...prev, [categoryId]: true }));
 
     try {
-        const newSkill = await createSkill({ name: skillName, skillCategory: categoryId, isActive: true });
-        setAllSkills(prevSkills => [...prevSkills, newSkill]);
+        const createdSkillFromApi = await createSkill({ name: skillName, skillCategory: categoryId, isActive: true });
+        
+        // The API returns the new skill, but the category might not be populated.
+        // We'll use the category data we already have to build the full object for our local state.
+        const category = skillCategories.find(c => c.id === categoryId);
+
+        const newSkillForState: Skill = {
+            ...createdSkillFromApi,
+            skillCategory: category ? { id: category.id, _id: category.id, name: category.name } : createdSkillFromApi.skillCategory,
+        };
+        
+        setAllSkills(prevSkills => [...prevSkills, newSkillForState]);
         setNewSkillInputs(prev => ({ ...prev, [categoryId]: '' }));
-        toast({ title: 'Skill Added', description: `${newSkill.name} has been added.` });
+        toast({ title: 'Skill Added', description: `${newSkillForState.name} has been added.` });
     } catch (error: any) {
         toast({ title: 'Failed to add skill', description: error.message, variant: 'destructive' });
     } finally {
