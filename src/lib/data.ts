@@ -118,17 +118,22 @@ export const users: User[] = [
 ];
 
 export const permissionableModels = [
+  { id: 'dashboard', name: 'Dashboard' },
+  { id: 'applications', name: 'Applications' },
   { id: 'jobs', name: 'Jobs' },
   { id: 'jobCategories', name: 'Job Categories' },
-  { id: 'applications', name: 'Applications' },
   { id: 'jobseekers', name: 'Jobseekers' },
   { id: 'employers', name: 'Employers' },
   { id: 'universities', name: 'Universities' },
   { id: 'businesses', name: 'Businesses' },
+  { id: 'admins', name: 'Admins' },
+  { id: 'subAdmins', name: 'Sub Admins' },
   { id: 'recruiters', name: 'Recruiters' },
   { id: 'employees', name: 'Employees' },
   { id: 'skills', name: 'Skills' },
   { id: 'skillCategories', name: 'Skill Categories' },
+  { id: 'subscriptionPlans', name: 'Subscription Plans' },
+  { id: 'coupons', name: 'Coupons' },
   { id: 'faqs', name: 'FAQs' },
 ];
 

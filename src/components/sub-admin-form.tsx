@@ -24,6 +24,10 @@ import { Skeleton } from './ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { permissionableModels, crudOperations } from '@/lib/data';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { Checkbox } from './ui/checkbox';
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -38,6 +42,7 @@ const subAdminUserSchema = z.object({
   city: z.string().optional(),
   zipCode: z.string().optional().refine(v => !v || /^[A-Za-z0-9\s\-]{3,10}$/.test(v), { message: "Please provide a valid postal code" }),
   profilePhoto: z.any().optional(),
+  permissions: z.array(z.string()).optional(),
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
@@ -46,6 +51,7 @@ type SubAdminUserFormValues = z.infer<typeof subAdminUserSchema>;
 
 const fieldToTabMap: Record<keyof SubAdminUserFormValues, string> = {
   name: 'info', email: 'info', password: 'info', phoneNumber: 'info',
+  permissions: 'permissions',
   address: 'location', country: 'location', state: 'location', city: 'location', zipCode: 'location',
   profilePhoto: 'account', isVerified: 'account', isActive: 'account',
 };
@@ -65,7 +71,6 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('info');
-  const TABS = ['info', 'location', 'account'];
   
   const [countries, setCountries] = React.useState<Country[]>([]);
   const [states, setStates] = React.useState<State[]>([]);
@@ -96,16 +101,20 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
       state: '',
       city: '',
       zipCode: '',
+      permissions: [],
       isVerified: false,
       isActive: true,
       profilePhoto: undefined,
     }
   });
   
-  const { handleSubmit, formState: { errors, isSubmitting, dirtyFields }, control, setError, watch, setValue, reset } = form;
+  const { handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue, reset } = form;
 
   const watchedCountry = watch('country');
   const watchedState = watch('state');
+
+  const countryRef = React.useRef(user?.country);
+  const stateRef = React.useRef(user?.state);
   
   React.useEffect(() => {
     if (user) {
@@ -118,6 +127,7 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
         state: user.state || '',
         city: user.city || '',
         zipCode: user.zipCode || '',
+        permissions: user.permissions || [],
         isVerified: user.isVerified || false,
         isActive: user.isActive ?? true,
       });
@@ -133,28 +143,51 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
   }, [toast]);
   
   React.useEffect(() => {
-    if (watchedCountry) {
-      setIsLoadingStates(true);
-      if (dirtyFields.country) {
-        setValue('state', '');
-        setValue('city', '');
-      }
-      setStates([]);
-      setCities([]);
-      getStates(watchedCountry).then(setStates).catch(() => toast({ title: "Failed to load states", variant: "destructive" })).finally(() => setIsLoadingStates(false));
-    }
-  }, [watchedCountry, dirtyFields.country, setValue, toast]);
+    const fetchStates = async () => {
+        if (watchedCountry) {
+            setIsLoadingStates(true);
+            if (countryRef.current !== watchedCountry) {
+                setValue('state', '');
+                setValue('city', '');
+            }
+            setStates([]);
+            setCities([]);
+            try {
+                const stateData = await getStates(watchedCountry);
+                setStates(stateData);
+            } catch (error) {
+                toast({ title: "Failed to load states", variant: "destructive" });
+            } finally {
+                setIsLoadingStates(false);
+            }
+        }
+    };
+    if (watchedCountry) fetchStates();
+    countryRef.current = watchedCountry;
+  }, [watchedCountry, setValue, toast]);
 
   React.useEffect(() => {
-    if (watchedCountry && watchedState) {
-      setIsLoadingCities(true);
-      if (dirtyFields.state) {
-        setValue('city', '');
-      }
-      setCities([]);
-      getCities(watchedCountry, watchedState).then(setCities).catch(() => toast({ title: "Failed to load cities", variant: "destructive" })).finally(() => setIsLoadingCities(false));
-    }
-  }, [watchedCountry, watchedState, dirtyFields.state, setValue, toast]);
+    const fetchCities = async () => {
+        if (watchedCountry && watchedState) {
+            setIsLoadingCities(true);
+            if (stateRef.current !== watchedState) {
+                setValue('city', '');
+            }
+            setCities([]);
+            try {
+                const cityData = await getCities(watchedCountry, watchedState);
+                setCities(cityData);
+            } catch (error) {
+                toast({ title: "Failed to load cities", variant: "destructive" });
+            } finally {
+                setIsLoadingCities(false);
+            }
+        }
+    };
+    if (watchedState) fetchCities();
+    stateRef.current = watchedState;
+  }, [watchedCountry, watchedState, setValue, toast]);
+
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -200,8 +233,13 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
     Object.entries(data).forEach(([key, value]) => {
       if (user && key === 'password' && !value) return;
       if (value !== undefined && value !== null && value !== '') {
-        if (key === 'profilePhoto' && value instanceof File) formData.append('profilePhoto', value);
-        else formData.append(key, String(value));
+        if (key === 'profilePhoto' && value instanceof File) {
+            formData.append('profilePhoto', value);
+        } else if (key === 'permissions' && Array.isArray(value)) {
+            value.forEach(p => formData.append('permissions[]', p));
+        } else {
+            formData.append(key, String(value));
+        }
       }
     });
 
@@ -220,8 +258,9 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="info">User Info</TabsTrigger>
+              <TabsTrigger value="permissions">Permissions</TabsTrigger>
               <TabsTrigger value="location">Location</TabsTrigger>
               <TabsTrigger value="account">Account</TabsTrigger>
             </TabsList>
@@ -238,6 +277,58 @@ export function SubAdminForm({ user }: SubAdminUserFormProps) {
                     <FormField name="phoneNumber" control={control} render={({field}) => <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                     <FormField name="password" control={control} render={({field}) => <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} placeholder={user ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>}/>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="permissions">
+              <Card>
+                <CardHeader>
+                    <CardTitle>Assign Permissions</CardTitle>
+                    <CardDescription>
+                        Select the permissions this sub-admin will have for each module.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <FormField
+                        control={form.control}
+                        name="permissions"
+                        render={({ field }) => (
+                            <Accordion type="multiple" className="w-full">
+                                {permissionableModels.map((model) => (
+                                    <AccordionItem value={model.id} key={model.id}>
+                                        <AccordionTrigger>{model.name}</AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                                                {crudOperations.map((op) => {
+                                                    const permissionId = `${model.id}:${op}`;
+                                                    return (
+                                                        <FormItem key={permissionId} className="flex flex-row items-center space-x-3 space-y-0">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value?.includes(permissionId)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        return checked
+                                                                            ? field.onChange([...(field.value || []), permissionId])
+                                                                            : field.onChange(
+                                                                                field.value?.filter(
+                                                                                    (value) => value !== permissionId
+                                                                                )
+                                                                            );
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal capitalize">{op}</FormLabel>
+                                                        </FormItem>
+                                                    );
+                                                })}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        )}
+                    />
                 </CardContent>
               </Card>
             </TabsContent>
