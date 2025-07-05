@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getJobs, deleteJob } from '@/services/api';
+import { getJobs, deleteJob, getEmployers } from '@/services/api';
 import type { Job, Pagination, GetAllParams, Employer as EmployerType } from "@/lib/types";
 import { format, isValid } from "date-fns";
 import {
@@ -34,7 +33,9 @@ import {
     Columns,
     ChevronLeft,
     ChevronRight,
-    Briefcase
+    Briefcase,
+    Check,
+    ChevronsUpDown
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ import { useDebounce } from '@/lib/hooks';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 
 type SortConfig = {
     key: string;
@@ -66,8 +68,10 @@ const ROWS_PER_PAGE = 10;
 export default function JobsPage() {
     const { toast } = useToast();
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [employers, setEmployers] = useState<EmployerType[]>([]);
     const [pagination, setPagination] = useState<Pagination | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingEmployers, setIsLoadingEmployers] = useState(true);
 
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
     const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +79,7 @@ export default function JobsPage() {
 
     const [filters, setFilters] = useState({
         isActive: 'all',
+        employerId: 'all',
     });
 
     const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
@@ -93,6 +98,25 @@ export default function JobsPage() {
             ? <Badge className="bg-green-500 hover:bg-green-600 capitalize">Active</Badge>
             : <Badge variant="secondary" className="capitalize">Inactive</Badge>;
     }
+    
+    useEffect(() => {
+        setIsLoadingEmployers(true);
+        getEmployers({ limit: 1000 })
+            .then(data => {
+                setEmployers(data.data);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching employers',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => {
+                setIsLoadingEmployers(false);
+            });
+    }, [toast]);
+
 
     const fetchJobs = useCallback(() => {
         setIsLoading(true);
@@ -102,6 +126,9 @@ export default function JobsPage() {
         }
         if (filters.isActive !== 'all') {
             apiFilters.isActive = filters.isActive === 'active';
+        }
+        if (filters.employerId !== 'all') {
+            apiFilters.employer = filters.employerId;
         }
 
         const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
@@ -164,8 +191,12 @@ export default function JobsPage() {
 
     const clearFilters = () => {
         setSearchTerm('');
-        setFilters({ isActive: 'all' });
+        setFilters({ isActive: 'all', employerId: 'all' });
         setSortConfig({ key: 'updatedAt', direction: 'desc' });
+    }
+
+    const handleFilterChange = (key: keyof typeof filters, value: string) => {
+        setFilters(prev => ({...prev, [key]: value}));
     }
 
     const SkeletonRow = () => (
@@ -214,18 +245,59 @@ export default function JobsPage() {
                                 <SlidersHorizontal className="mr-1 h-4 w-4" /> Filter
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-60" align="end">
+                        <PopoverContent className="w-80" align="end">
                             <div className="grid gap-4">
                                 <div className="space-y-2">
                                     <h4 className="font-medium leading-none">Filters</h4>
+                                     <p className="text-sm text-muted-foreground">
+                                        Refine job results.
+                                    </p>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Status</Label>
-                                    <RadioGroup value={filters.isActive} onValueChange={(value) => setFilters(prev => ({...prev, isActive: value}))}>
+                                    <RadioGroup value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
                                         <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r-stat-all" /><Label htmlFor="r-stat-all">All</Label></div>
                                         <div className="flex items-center space-x-2"><RadioGroupItem value="active" id="r-stat-active" /><Label htmlFor="r-stat-active">Active</Label></div>
                                         <div className="flex items-center space-x-2"><RadioGroupItem value="inactive" id="r-stat-inactive" /><Label htmlFor="r-stat-inactive">Inactive</Label></div>
                                     </RadioGroup>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Employer</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className="w-full justify-between"
+                                                disabled={isLoadingEmployers}
+                                            >
+                                                {isLoadingEmployers ? "Loading..." :
+                                                    filters.employerId !== 'all'
+                                                        ? employers.find(e => e.id === filters.employerId)?.name
+                                                        : "Select employer..."}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[300px] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Search employer..." />
+                                                <CommandEmpty>No employer found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    <CommandItem onSelect={() => handleFilterChange('employerId', 'all')}>All Employers</CommandItem>
+                                                    {employers.map(employer => (
+                                                        <CommandItem
+                                                            key={employer.id}
+                                                            value={employer.name}
+                                                            onSelect={() => handleFilterChange('employerId', employer.id)}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", filters.employerId === employer.id ? "opacity-100" : "opacity-0")} />
+                                                            {employer.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                             </div>
                         </PopoverContent>
