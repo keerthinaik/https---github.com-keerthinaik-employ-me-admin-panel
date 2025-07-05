@@ -32,6 +32,7 @@ import {
     Columns,
     ChevronLeft,
     ChevronRight,
+    Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from '@/components/ui/input';
@@ -82,6 +83,7 @@ export default function FaqsPage() {
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
+    const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
 
     const fetchFaqs = useCallback(() => {
         setIsLoading(true);
@@ -291,6 +293,12 @@ export default function FaqsPage() {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem asChild>
+                                                        <Link href={`/faqs/${faq.id}`}>
+                                                            <Eye className="mr-1 h-4 w-4"/>
+                                                            View Details
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
                                                         <Link href={`/faqs/${faq.id}/edit`}>
                                                             <Edit className="mr-1 h-4 w-4"/>
                                                             Edit
@@ -331,39 +339,72 @@ export default function FaqsPage() {
             </div>
 
             <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
+                 <div className="text-sm text-muted-foreground">
                     {isLoading || !pagination ? (
                         <Skeleton className="h-5 w-48" />
                     ) : (
                         `Showing ${pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to ${Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of ${pagination.totalRecords} FAQs.`
                     )}
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1 || isLoading}
-                    >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                        Page {isLoading || !pagination ? '...' : currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
-                        disabled={currentPage === pagination?.totalPages || isLoading}
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                <div className="flex items-center gap-6 lg:gap-8">
+                    <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium">Rows per page</p>
+                        <Input
+                            type="number"
+                            className="h-8 w-[70px]"
+                            value={rowsPerPageInput}
+                            onChange={(e) => setRowsPerPageInput(e.target.value)}
+                            onBlur={() => {
+                                const newRows = Number(rowsPerPageInput);
+                                if (newRows > 0) {
+                                    setRowsPerPage(newRows);
+                                } else {
+                                    setRowsPerPageInput(rowsPerPage);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const newRows = Number(rowsPerPageInput);
+                                    if (newRows > 0) {
+                                        setRowsPerPage(newRows);
+                                    } else {
+                                        setRowsPerPageInput(rowsPerPage);
+                                    }
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            min={1}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {isLoading || !pagination ? '...' : currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || isLoading}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                            disabled={currentPage === pagination?.totalPages || isLoading}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+
 
 
