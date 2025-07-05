@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -136,6 +137,7 @@ export function JobForm({ job }: { job?: Job }) {
   const [allSkills, setAllSkills] = React.useState(skills);
   const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
   const [openCurrency, setOpenCurrency] = React.useState(false);
+  const [startDateOpen, setStartDateOpen] = React.useState(false);
   
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
@@ -747,9 +749,27 @@ export function JobForm({ job }: { job?: Job }) {
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                     <Label>Expected Start Date</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-1 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date()} initialFocus /></PopoverContent>
+                                    <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                                        <PopoverTrigger asChild>
+                                          <FormControl>
+                                            <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                              <CalendarIcon className="mr-1 h-4 w-4" />
+                                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                          </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar 
+                                              mode="single" 
+                                              selected={field.value} 
+                                              onSelect={(date) => {
+                                                field.onChange(date)
+                                                setStartDateOpen(false)
+                                              }} 
+                                              disabled={(date) => date < new Date()} 
+                                              initialFocus 
+                                            />
+                                        </PopoverContent>
                                     </Popover>
                                     <FormMessage />
                                 </FormItem>

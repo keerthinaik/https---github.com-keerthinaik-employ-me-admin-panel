@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -46,8 +47,8 @@ const jobseekerSchema = z.object({
   city: z.string().optional(),
   zipCode: z.string().optional(),
   
-  businessAssociationId: z.string().optional(),
-  universityAssociationId: z.string().optional(),
+  businessAssociationId: z.string().nullable().optional(),
+  universityAssociationId: z.string().nullable().optional(),
 
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
@@ -95,6 +96,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [openCity, setOpenCity] = React.useState(false);
   const [openBusiness, setOpenBusiness] = React.useState(false);
   const [openUniversity, setOpenUniversity] = React.useState(false);
+  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
 
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -106,26 +108,26 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const form = useForm<JobseekerFormValues>({
     resolver: zodResolver(jobseekerSchema),
     defaultValues: {
-        name: '',
-        email: '',
+        name: jobseeker?.name || '',
+        email: jobseeker?.email || '',
         password: '',
-        phoneNumber: '',
-        address: '',
-        country: '',
-        state: '',
-        city: '',
-        zipCode: '',
-        gender: undefined,
-        dateOfBirth: undefined,
-        isVerified: false,
-        isActive: true,
+        phoneNumber: jobseeker?.phoneNumber || '',
+        address: jobseeker?.address || '',
+        country: jobseeker?.country || '',
+        state: jobseeker?.state || '',
+        city: jobseeker?.city || '',
+        zipCode: jobseeker?.zipCode || '',
+        gender: jobseeker?.gender || undefined,
+        dateOfBirth: jobseeker?.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
+        isVerified: jobseeker?.isVerified || false,
+        isActive: jobseeker?.isActive ?? true,
         profilePhoto: undefined,
-        businessAssociationId: '',
-        universityAssociationId: '',
+        businessAssociationId: jobseeker?.businessAssociationId || null,
+        universityAssociationId: jobseeker?.universityAssociationId || null,
     }
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, reset, watch } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, watch, reset } = form;
 
   const watchedCountry = watch('country');
   const watchedState = watch('state');
@@ -133,25 +135,15 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const countryRef = React.useRef(jobseeker?.country);
   const stateRef = React.useRef(jobseeker?.state);
 
-  React.useEffect(() => {
+   React.useEffect(() => {
     if (jobseeker) {
       reset({
-        name: jobseeker.name || '',
-        email: jobseeker.email || '',
-        password: '',
-        phoneNumber: jobseeker.phoneNumber || '',
+        ...jobseeker,
         dateOfBirth: jobseeker.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
-        gender: jobseeker.gender,
-        address: jobseeker.address || '',
-        country: jobseeker.country || '',
-        state: jobseeker.state || '',
-        city: jobseeker.city || '',
-        zipCode: jobseeker.zipCode || '',
-        isVerified: jobseeker.isVerified || false,
-        isActive: jobseeker.isActive ?? true,
+        password: '',
         profilePhoto: undefined,
-        businessAssociationId: jobseeker.businessAssociationId || '',
-        universityAssociationId: jobseeker.universityAssociationId || '',
+        businessAssociationId: jobseeker.businessAssociationId || null,
+        universityAssociationId: jobseeker.universityAssociationId || null,
       });
 
       if (jobseeker.profilePhoto) {
@@ -313,25 +305,30 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (jobseeker && key === 'password' && !value) {
-        return;
-      }
-      
-      if (value === undefined || value === null) {
-        return;
-      }
-      
-      if (key === 'profilePhoto' && value instanceof File) {
-        formData.append(key, value);
-      } else if (value instanceof Date) {
-        formData.append(key, value.toISOString());
-      } else if (typeof value === 'boolean') {
-        formData.append(key, String(value));
-      } else if (key !== 'profilePhoto') {
-        formData.append(key, String(value));
-      }
+        if (jobseeker && key === 'password' && !value) {
+            return;
+        }
+        
+        if (value === undefined || value === null) {
+            return;
+        }
+
+        if (key === 'businessAssociationId' || key === 'universityAssociationId') {
+            if (value) formData.append(key, value as string);
+            return;
+        }
+        
+        if (key === 'profilePhoto' && value instanceof File) {
+            formData.append(key, value);
+        } else if (value instanceof Date) {
+            formData.append(key, value.toISOString());
+        } else if (typeof value === 'boolean') {
+            formData.append(key, String(value));
+        } else if (key !== 'profilePhoto') {
+            formData.append(key, String(value));
+        }
     });
-    
+
     try {
         if (jobseeker) {
             await updateJobseeker(jobseeker.id, formData);
@@ -389,7 +386,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 <FormField control={control} name="password" render={({ field }) => ( <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} placeholder={jobseeker ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>)}/>
                             </div>
                              <div className="grid md:grid-cols-2 gap-4">
-                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); setDatePickerOpen(false); }} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                                 <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                         </CardContent>
@@ -417,9 +414,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                     <CommandInput placeholder="Search business..." />
                                                     <CommandEmpty>No business found.</CommandEmpty>
                                                     <CommandGroup className="max-h-60 overflow-auto">
-                                                        <CommandItem onSelect={() => { setValue('businessAssociationId', ''); setValue('universityAssociationId', ''); setOpenBusiness(false); }}>None</CommandItem>
+                                                        <CommandItem value="__none__" onSelect={() => { setValue('businessAssociationId', null); setOpenBusiness(false); }}>None</CommandItem>
                                                         {businesses.map(b => (
-                                                            <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', ''); setOpenBusiness(false); }}>
+                                                            <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); toast({title: "Business Selected", description: `ID: ${b.id}`}) }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
                                                                 {b.name}
                                                             </CommandItem>
@@ -452,9 +449,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                     <CommandInput placeholder="Search university..." />
                                                     <CommandEmpty>No university found.</CommandEmpty>
                                                     <CommandGroup className="max-h-60 overflow-auto">
-                                                        <CommandItem onSelect={() => { setValue('universityAssociationId', ''); setValue('businessAssociationId', ''); setOpenUniversity(false);}}>None</CommandItem>
+                                                        <CommandItem value="__none__" onSelect={() => { setValue('universityAssociationId', null); setOpenUniversity(false); }}>None</CommandItem>
                                                         {universities.map(u => (
-                                                            <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', ''); setOpenUniversity(false); }}>
+                                                            <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); toast({title: "University Selected", description: `ID: ${u.id}`}) }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
                                                                 {u.name}
                                                             </CommandItem>

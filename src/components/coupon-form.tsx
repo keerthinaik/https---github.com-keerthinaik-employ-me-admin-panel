@@ -3,7 +3,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +50,7 @@ const userTypes = ['Admin', 'JobSeeker', 'Employer', 'University', 'Business'];
 export function CouponForm({ coupon }: CouponFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [expiresAtOpen, setExpiresAtOpen] = React.useState(false);
   const form = useForm<CouponFormValues>({
     resolver: zodResolver(couponSchema),
     defaultValues: {
@@ -164,7 +165,7 @@ export function CouponForm({ coupon }: CouponFormProps) {
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel>Expires At</FormLabel>
-                                            <Popover>
+                                            <Popover open={expiresAtOpen} onOpenChange={setExpiresAtOpen}>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
                                                         <Button
@@ -180,7 +181,10 @@ export function CouponForm({ coupon }: CouponFormProps) {
                                                     <Calendar
                                                         mode="single"
                                                         selected={field.value}
-                                                        onSelect={field.onChange}
+                                                        onSelect={(date) => {
+                                                          field.onChange(date)
+                                                          setExpiresAtOpen(false)
+                                                        }}
                                                         disabled={(date) => date < new Date()}
                                                         initialFocus
                                                     />
