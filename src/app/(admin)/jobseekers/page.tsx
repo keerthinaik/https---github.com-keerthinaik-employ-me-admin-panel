@@ -46,6 +46,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/lib/hooks';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { getJobseekers, deleteJobseeker } from '@/services/api';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -65,6 +66,12 @@ const columnsConfig = [
 
 type ColumnKeys = typeof columnsConfig[number]['key'];
 
+const searchFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'phoneNumber', label: 'Phone' },
+];
+
 const ROWS_PER_PAGE = 10;
 
 export default function JobseekersPage() {
@@ -81,6 +88,8 @@ export default function JobseekersPage() {
         isVerified: 'all',
         isActive: 'all',
     });
+    
+    const [selectedSearchFields, setSelectedSearchFields] = useState<string[]>(['name', 'email', 'phoneNumber']);
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
         name: true,
@@ -98,10 +107,13 @@ export default function JobseekersPage() {
     const fetchJobseekers = useCallback(() => {
         setIsLoading(true);
         const apiFilters: Record<string, any> = {};
-        if (debouncedSearchTerm) {
-            apiFilters.name = debouncedSearchTerm;
-            apiFilters.email = debouncedSearchTerm;
+        
+        if (debouncedSearchTerm && selectedSearchFields.length > 0) {
+            selectedSearchFields.forEach(field => {
+                apiFilters[field] = debouncedSearchTerm;
+            });
         }
+
         if (filters.isVerified !== 'all') {
             apiFilters.isVerified = filters.isVerified === 'verified';
         }
@@ -126,7 +138,7 @@ export default function JobseekersPage() {
                 });
             })
             .finally(() => setIsLoading(false));
-    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast, selectedSearchFields]);
 
     useEffect(() => {
         fetchJobseekers();
@@ -171,6 +183,7 @@ export default function JobseekersPage() {
     const clearFilters = () => {
         setSearchTerm('');
         setFilters({ isVerified: 'all', isActive: 'all' });
+        setSelectedSearchFields(['name', 'email', 'phoneNumber']);
         setSortConfig({ key: 'updatedAt', direction: 'desc' });
     }
 
@@ -234,6 +247,25 @@ export default function JobseekersPage() {
                                     <p className="text-sm text-muted-foreground">
                                         Refine jobseeker results.
                                     </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Search In</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {searchFields.map((field) => (
+                                            <div key={field.key} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`search-${field.key}`}
+                                                    checked={selectedSearchFields.includes(field.key)}
+                                                    onCheckedChange={(checked) => {
+                                                        setSelectedSearchFields(prev => 
+                                                            checked ? [...prev, field.key] : prev.filter(f => f !== field.key)
+                                                        );
+                                                    }}
+                                                />
+                                                <Label htmlFor={`search-${field.key}`} className="font-normal">{field.label}</Label>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Status</Label>
