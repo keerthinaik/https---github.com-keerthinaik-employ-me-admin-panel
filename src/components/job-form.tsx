@@ -156,42 +156,43 @@ export function JobForm({ job }: { job?: Job }) {
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
-      title: job?.title || '',
-      description: job?.description || '',
-      minExperience: job?.minExperience || 0,
-      maxExperience: job?.maxExperience || 0,
-      numberOfPosts: job?.numberOfPosts ?? undefined,
-      type: job?.type || 'full-time',
-      payrollType: job?.payrollType || 'direct',
-      contractDuration: job?.contractDuration ?? undefined,
-      contractDurationUnit: job?.contractDurationUnit,
-      expectedMinHoursPerWeek: job?.expectedMinHoursPerWeek ?? undefined,
-      expectedMaxHoursPerWeek: job?.expectedMaxHoursPerWeek ?? undefined,
-      shiftType: job?.shiftType || 'regular',
-      otherShiftType: job?.otherShiftType,
-      ctcCurrency: job?.ctcCurrency || 'USD',
-      ctcMinAmount: job?.ctcMinAmount ?? undefined,
-      ctcMaxAmount: job?.ctcMaxAmount ?? undefined,
-      ctcFrequency: job?.ctcFrequency || 'yearly',
-      supplementalPayments: job?.supplementalPayments || [],
-      otherSupplementalPaymentType: job?.otherSupplementalPaymentType,
-      jobCategory: typeof job?.jobCategory === 'object' ? job.jobCategory.id : job?.jobCategory || '',
-      employer: typeof job?.employer === 'object' ? job.employer.id : job?.employer || '',
-      workMode: job?.workMode || [],
-      otherWorkModeType: job?.otherWorkModeType,
-      expectedStartDate: job?.expectedStartDate ? new Date(job.expectedStartDate) : undefined,
-      skills: job?.skills || [],
-      address: job?.address || '',
-      country: job?.country || '',
-      state: job?.state || '',
-      city: job?.city || '',
-      zipCode: job?.zipCode || '',
-      isActive: job?.isActive || false,
-      languagesRequired: job?.languagesRequired || [],
-      benefits: job?.benefits || [],
-      questions: job?.questions || [],
+      title: '',
+      description: '',
+      minExperience: 0,
+      maxExperience: 0,
+      type: 'full-time',
+      payrollType: 'direct',
+      shiftType: 'regular',
+      ctcCurrency: 'USD',
+      ctcFrequency: 'yearly',
+      workMode: [],
+      isActive: false,
+      skills: [],
+      benefits: [],
+      languagesRequired: [],
+      supplementalPayments: [],
+      questions: [],
     },
   });
+
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, watch, reset } = form;
+
+  React.useEffect(() => {
+    if (job) {
+      reset({
+        ...job,
+        jobCategory: typeof job.jobCategory === 'object' ? job.jobCategory.id : job.jobCategory || '',
+        employer: typeof job.employer === 'object' ? job.employer.id : job.employer || '',
+        expectedStartDate: job.expectedStartDate ? new Date(job.expectedStartDate) : undefined,
+        skills: job.skills || [],
+        benefits: Array.isArray(job.benefits) ? job.benefits : [],
+        languagesRequired: Array.isArray(job.languagesRequired) ? job.languagesRequired : [],
+        supplementalPayments: Array.isArray(job.supplementalPayments) ? job.supplementalPayments : [],
+        workMode: Array.isArray(job.workMode) ? job.workMode : [],
+        questions: Array.isArray(job.questions) ? job.questions : [],
+      });
+    }
+  }, [job, reset]);
 
   React.useEffect(() => {
     const fetchData = async () => {

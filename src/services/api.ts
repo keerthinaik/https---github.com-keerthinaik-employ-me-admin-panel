@@ -171,6 +171,7 @@ export async function getJob(id: string): Promise<Job> {
         jobCategory: item.jobCategory ? mapItem(item.jobCategory) : undefined,
         createdAt: new Date(item.createdAt),
         updatedAt: new Date(item.updatedAt),
+        skills: Array.isArray(item.skills) ? item.skills.map((skill: any) => typeof skill === 'object' && skill !== null ? skill._id || skill.id : skill) : [],
     };
 }
 
