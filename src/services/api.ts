@@ -1,6 +1,7 @@
 
 
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job, ProfileUser } from '@/lib/types';
+
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job, ProfileUser, Application } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -295,6 +296,64 @@ export async function updateJob(id: string, jobData: Partial<Omit<Job, 'id'>>): 
 
 export async function deleteJob(id: string): Promise<null> {
   return authedFetch(`/api/v1/jobs/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// Applications
+export async function getApplications(params: GetAllParams = {}): Promise<{ data: Application[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/applications?${queryString}`);
+  
+  const data = response.data.map((item:any) => ({
+    ...mapItem(item),
+    jobSeeker: item.jobSeeker ? mapItem(item.jobSeeker) : undefined,
+    job: item.job ? mapItem(item.job) : undefined,
+    appliedAt: new Date(item.appliedAt),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getApplication(id: string): Promise<Application> {
+    const response = await authedFetch(`/api/v1/applications/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("Application not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        jobSeeker: item.jobSeeker ? mapItem(item.jobSeeker) : undefined,
+        job: item.job ? mapItem(item.job) : undefined,
+        appliedAt: new Date(item.appliedAt),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+    };
+}
+
+export async function updateApplication(id: string, applicationData: Partial<Pick<Application, 'status' | 'feedback'>>): Promise<Application> {
+  const response = await authedFetch(`/api/v1/applications/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(applicationData),
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated application data not found in API response.");
+  }
+  return { ...mapItem(item) };
+}
+
+export async function deleteApplication(id: string): Promise<null> {
+  return authedFetch(`/api/v1/applications/${id}`, {
     method: 'DELETE',
   });
 }

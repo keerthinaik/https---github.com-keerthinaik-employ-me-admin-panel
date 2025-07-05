@@ -1,44 +1,13 @@
 
 
-import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType, Job as JobType } from "./types";
+import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType, Job as JobType, UserSubscription, Coupon, SubscriptionPlan, Jobseeker } from "./types";
+
 
 export type Question = {
     question: string;
     type: "boolean" | "single-choice" | "multi-choice" | "text";
     options?: string[];
 }
-
-export type Application = {
-    id: string;
-    jobId: string;
-    jobTitle: string;
-    jobseekerId: string;
-    applicantName: string;
-    applicantAvatar: string;
-    status: 'Applied' | 'Under Review' | 'Shortlisted' | 'Hired' | 'Rejected' | 'Withdrawn';
-    appliedAt: Date;
-    updatedAt: Date;
-    resumeUsed: string;
-    coverLetter?: string;
-    answers?: {
-        question: string;
-        answer: string | string[] | boolean;
-    }[];
-    feedback?: string; // from employer
-    whyShouldWeHireYou?: string; // from applicant
-
-    // For compatibility with old data structure, will be removed later
-    videoResume?: string;
-    interviewScheduled: boolean;
-    interviewDateTime?: Date;
-    recruiterNotes?: string;
-    score: number;
-    testResults?: {
-        testName: string;
-        score: number;
-        feedback: string;
-    };
-};
 
 export type User = {
   id: string;
@@ -81,71 +50,20 @@ export const users: User[] = [
 ];
 
 export const permissionableModels = [
-  { id: 'applications', name: 'Applications' },
-  { id: 'jobs', name: 'Jobs' },
-  { id: 'jobCategories', name: 'Job Categories' },
-  { id: 'jobseekers', name: 'Jobseekers' },
-  { id: 'employers', name: 'Employers' },
-  { id: 'universities', name: 'Universities' },
+  { id: 'jobSeekers', name: 'Jobseekers' },
   { id: 'businesses', name: 'Businesses' },
-  { id: 'skills', name: 'Skills' },
+  { id: 'universities', name: 'Universities' },
+  { id: 'jobs', name: 'Jobs' },
   { id: 'skillCategories', name: 'Skill Categories' },
-  { id: 'subscriptionPlans', name: 'Subscription Plans' },
+  { id: 'skills', name: 'Skills' },
+  { id: 'jobCategories', name: 'Job Categories' },
   { id: 'coupons', name: 'Coupons' },
+  { id: 'subscriptionPlans', name: 'Subscription Plans' },
+  { id: 'applications', name: 'Applications' },
   { id: 'faqs', name: 'FAQs' },
 ];
 
 export const crudOperations = ['create', 'read', 'update', 'delete'] as const;
-
-export type Jobseeker = {
-    id: string;
-    // Basic User Info
-    name: string;
-    email: string;
-    password?: string; // Not usually stored/retrieved on client
-    phoneNumber?: string;
-    isVerified: boolean;
-    isActive: boolean;
-    
-    // Location Info
-    address?: string;
-    country?: string;
-    state?: string;
-    city?: string;
-    zipCode?: string;
-    
-    // Profile Images & Media
-    profilePhoto?: string;
-    bannerImage?: string;
-    resume?: string;
-    certifications?: string[];
-    
-    // Personal & Social Details
-    headline?: string;
-    summary?: string;
-    about?: string;
-    dateOfBirth?: Date;
-    gender?: 'male' | 'female' | 'other';
-    passportNumber?: string;
-    linkedInProfile?: string;
-    githubProfile?: string;
-    portfolio?: string;
-    fieldOfStudy?: string;
-
-    // Associations
-    businessAssociationId?: string;
-    universityAssociationId?: string;
-    
-    skills?: string[];
-
-    // Nested Schemas
-    experience?: Experience[];
-    education?: Education[];
-    projects?: Project[];
-    
-    createdAt: Date;
-    updatedAt: Date;
-};
 
 export type Skill = {
     id: string;
@@ -181,69 +99,6 @@ export type Employer = {
 
 export type University = UniversityType;
 export type Business = BusinessType;
-
-export type SubscriptionPlan = {
-  id: string;
-  name: string;
-  description?: string;
-  features: string[];
-  durationInDays: number;
-  prices: {
-    country: string;
-    currency: string;
-    amount: number;
-  }[];
-  userTypes: ('JobSeeker' | 'Employer' | 'University' | 'Business')[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type Coupon = {
-  id: string;
-  code: string;
-  description?: string;
-  discountType: 'flat' | 'percentage';
-  value: number;
-  expiresAt?: Date;
-  maxUsage?: number;
-  usedCount: number;
-  userTypes?: ('Admin' | 'JobSeeker' | 'Employer' | 'University' | 'Business')[];
-  applicableCountries?: string[];
-  applicablePlans?: string[]; // Array of SubscriptionPlan IDs
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type UserSubscription = {
-  id: string;
-  userId: string;
-  userName: string; // denormalized for easy display
-  planId: string;
-  planName: string; // denormalized
-  couponUsed?: string; // Coupon ID
-  transactionId?: string;
-  amountPaid: number;
-  currency: string;
-  country: string;
-  userType: 'Admin' | 'JobSeeker' | 'Employer' | 'University' | 'Business';
-  startDate: Date;
-  endDate: Date;
-  status: 'active' | 'expired' | 'cancelled';
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type TestSkill = {
-  id: string;
-  name: string;
-  subSkills: {
-    id: string;
-    name: string;
-  }[];
-};
-
 export type SkillCategory = SkillCategoryType;
 export type JobCategory = JobCategoryType;
 export type Job = JobType;
@@ -569,119 +424,6 @@ export const employers: Employer[] = [
     createdAt: new Date("2021-11-20"),
     updatedAt: new Date("2023-10-20"),
   },
-];
-
-export const applications: Application[] = [
-  {
-    id: 'APP001',
-    jobId: 'JOB001',
-    jobTitle: 'Senior Frontend Developer',
-    jobseekerId: 'JS001',
-    applicantName: 'John Doe',
-    applicantAvatar: 'https://placehold.co/40x40.png',
-    status: 'Shortlisted',
-    appliedAt: new Date('2023-10-02'),
-    updatedAt: new Date('2023-10-15'),
-    resumeUsed: 'https://example.com/resume/johndoe_v2.pdf',
-    interviewScheduled: true,
-    interviewDateTime: new Date('2023-10-20T14:00:00Z'),
-    recruiterNotes: 'Strong candidate with excellent React skills. Good communication.',
-    score: 92,
-    coverLetter: "I am very interested in the Senior Frontend Developer position. My experience with React and modern web technologies aligns perfectly with your requirements. I am confident I can contribute significantly to your team.",
-    answers: [
-        { question: 'Are you authorized to work in the USA?', answer: true },
-        { question: 'What is your expected salary range?', answer: '140k-150k USD per year' }
-    ],
-    feedback: "A strong technical candidate. Communication skills are excellent. Proceeding to the next round.",
-    whyShouldWeHireYou: "My proven track record in building scalable and performant user interfaces, combined with my passion for user-centric design, makes me an ideal candidate to help drive your product forward."
-  },
-  {
-    id: 'APP002',
-    jobId: 'JOB002',
-    jobTitle: 'Product Manager',
-    jobseekerId: 'JS003',
-    applicantName: 'Peter Jones',
-    applicantAvatar: 'https://placehold.co/40x40.png',
-    status: 'Shortlisted',
-    appliedAt: new Date('2023-09-18'),
-    updatedAt: new Date('2023-09-25'),
-    resumeUsed: 'https://example.com/resume/peterjones_pm.pdf',
-    interviewScheduled: false,
-    recruiterNotes: 'Experienced PM, but looking for more direct B2C experience.',
-    score: 85,
-  },
-  {
-    id: 'APP003',
-    jobId: 'JOB004',
-    jobTitle: 'Data Scientist',
-    jobseekerId: 'JS001',
-    applicantName: 'Carlos Hernandez',
-    applicantAvatar: 'https://placehold.co/40x40.png',
-    status: 'Hired',
-    appliedAt: new Date('2023-08-22'),
-    updatedAt: new Date('2023-09-10'),
-    resumeUsed: 'https://example.com/resume/carloshernandez_ds.pdf',
-    videoResume: 'https://example.com/video/carlos_intro.mp4',
-    interviewScheduled: true,
-    interviewDateTime: new Date('2023-09-05T10:00:00Z'),
-    recruiterNotes: 'Perfect fit for the team. Accepted offer.',
-    score: 98,
-  },
-  {
-    id: 'APP004',
-    jobId: 'JOB001',
-    jobTitle: 'Senior Frontend Developer',
-    jobseekerId: 'JS002',
-    applicantName: 'Jane Smith',
-    applicantAvatar: 'https://placehold.co/40x40.png',
-    status: 'Applied',
-    appliedAt: new Date('2023-10-04'),
-    updatedAt: new Date('2023-10-04'),
-    resumeUsed: 'https://example.com/resume/janesmith_fe.pdf',
-    interviewScheduled: false,
-    score: 78,
-  },
-  {
-    id: 'APP005',
-    jobId: 'JOB004',
-    jobTitle: 'Data Scientist',
-    jobseekerId: 'JS002',
-    applicantName: 'Sofia Petrov',
-    applicantAvatar: 'https://placehold.co/40x40.png',
-    status: 'Withdrawn',
-    appliedAt: new Date('2023-09-01'),
-    updatedAt: new Date('2023-09-05'),
-    resumeUsed: 'https://example.com/resume/sofiapetrov_cv.pdf',
-    interviewScheduled: false,
-    recruiterNotes: 'Candidate accepted another offer before the interview stage.',
-    score: 88,
-  },
-   {
-    id: 'APP006',
-    jobId: 'JOB002',
-    jobTitle: 'Product Manager',
-    jobseekerId: 'JS003',
-    applicantName: 'Chloe Dubois',
-    applicantAvatar: 'https://placehold.co/40x40.png',
-    status: 'Rejected',
-    appliedAt: new Date('2023-09-20'),
-    updatedAt: new Date('2023-09-28'),
-    resumeUsed: 'https://example.com/resume/chloedubois_cv.pdf',
-    interviewScheduled: true,
-    interviewDateTime: new Date('2023-09-26T11:00:00Z'),
-    recruiterNotes: 'Good experience, but not a strong culture fit during the interview.',
-    score: 75,
-  }
-];
-
-export const applicationsByDay = [
-    { date: 'Oct 22', applications: 12 },
-    { date: 'Oct 23', applications: 18 },
-    { date: 'Oct 24', applications: 25 },
-    { date: 'Oct 25', applications: 22 },
-    { date: 'Oct 26', applications: 30 },
-    { date: 'Oct 27', applications: 28 },
-    { date: 'Oct 28', applications: 35 },
 ];
 
 

@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +12,11 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
-    DropdownMenuCheckboxItem
+    DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { applications, type Application } from "@/lib/data";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import {
     MoreHorizontal,
     Edit,
@@ -40,116 +37,136 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/lib/hooks';
+import type { Application, Pagination, GetAllParams, ApplicationStatus, Jobseeker, Job } from "@/lib/types";
+import { getApplications, deleteApplication } from '@/services/api';
+import { applicationStatuses } from '@/lib/types';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 type SortConfig = {
-    key: keyof Application;
+    key: string;
     direction: 'asc' | 'desc';
 } | null;
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
+
 const columnsConfig = [
-    { key: 'applicantName' as const, label: 'Applicant', sortable: true, sortKey: 'applicantName' as keyof Application },
-    { key: 'jobTitle' as const, label: 'Job Title', sortable: true, sortKey: 'jobTitle' as keyof Application },
-    { key: 'appliedAt' as const, label: 'Applied On', sortable: true, sortKey: 'appliedAt' as keyof Application },
-    { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'status' as keyof Application },
-    { key: 'updatedAt' as const, label: 'Last Updated', sortable: true, sortKey: 'updatedAt' as keyof Application },
+    { key: 'applicant' as const, label: 'Applicant', sortable: true, sortKey: 'jobSeeker.name' },
+    { key: 'job' as const, label: 'Job Title', sortable: true, sortKey: 'job.title' },
+    { key: 'appliedAt' as const, label: 'Applied On', sortable: true, sortKey: 'appliedAt' },
+    { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'status' },
     { key: 'actions' as const, label: 'Actions', sortable: false },
 ];
 
 type ColumnKeys = typeof columnsConfig[number]['key'];
 
-const ROWS_PER_PAGE = 5;
-const allStatuses: Application['status'][] = ['Applied', 'Under Review', 'Shortlisted', 'Hired', 'Rejected', 'Withdrawn'];
-
+const ROWS_PER_PAGE = 10;
 
 export default function ApplicationsPage() {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
-    const [filters, setFilters] = useState({
-        status: 'all',
-    });
+    const { toast } = useToast();
+    const [applications, setApplications] = useState<Application[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'appliedAt', direction: 'desc' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+    const [filters, setFilters] = useState<{ status: ApplicationStatus | 'all' }>({
+        status: 'all',
+    });
+
     const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
-        applicantName: true,
-        jobTitle: true,
+        applicant: true,
+        job: true,
         appliedAt: true,
         status: true,
-        updatedAt: false,
         actions: true,
     });
     
     const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
+    const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
     
-    const getStatusBadge = (status: Application['status']) => {
+    const getStatusBadge = (status: ApplicationStatus) => {
         switch (status) {
             case 'Hired':
+            case 'Offer Accepted':
                 return <Badge className="bg-green-500 hover:bg-green-600">{status}</Badge>;
             case 'Shortlisted':
+            case 'Offered':
                 return <Badge className="bg-yellow-500 hover:bg-yellow-600">{status}</Badge>;
             case 'Under Review':
+            case 'Interview Scheduled':
                 return <Badge className="bg-blue-500 hover:bg-blue-600">{status}</Badge>;
              case 'Applied':
                 return <Badge className="bg-primary/80 hover:bg-primary/90">{status}</Badge>;
             case 'Withdrawn':
             case 'Rejected':
+            case 'Withdrawn by Candidate':
+            case 'Offer Declined':
                 return <Badge variant="destructive">{status}</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
     }
 
-    const filteredAndSortedApplications = useMemo(() => {
-        let sortedItems = [...applications];
-
-        // Filtering
-        sortedItems = sortedItems.filter(app => {
-            if (filters.status !== 'all' && app.status !== filters.status) return false;
-
-            if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                    app.applicantName.toLowerCase().includes(searchLower) ||
-                    app.jobTitle.toLowerCase().includes(searchLower)
-                );
-            }
-            return true;
-        });
-
-        // Sorting
-        if (sortConfig !== null) {
-            sortedItems.sort((a, b) => {
-                const key = sortConfig.key;
-                const valA = a[key as keyof Application] as any;
-                const valB = b[key as keyof Application] as any;
-                
-                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+    const fetchApplications = useCallback(() => {
+        setIsLoading(true);
+        const apiFilters: Record<string, any> = {};
+        if (debouncedSearchTerm) {
+            apiFilters.search = debouncedSearchTerm; // A general search param for the backend
+        }
+        if (filters.status !== 'all') {
+            apiFilters.status = filters.status;
         }
 
-        return sortedItems;
-    }, [searchTerm, sortConfig, filters]);
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
 
-    const totalPages = Math.ceil(filteredAndSortedApplications.length / ROWS_PER_PAGE);
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
 
-    const paginatedApplications = useMemo(() => {
-        const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-        return filteredAndSortedApplications.slice(startIndex, startIndex + ROWS_PER_PAGE);
-    }, [currentPage, filteredAndSortedApplications]);
-
+        getApplications(params)
+            .then(data => {
+                setApplications(data.data);
+                setPagination(data.pagination);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching applications',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
+    
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, [currentPage, searchTerm, filters]);
-
+        fetchApplications();
+    }, [fetchApplications]);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
 
-    const requestSort = (key: keyof Application) => {
+    const handleDelete = async (applicationId: string) => {
+        try {
+            await deleteApplication(applicationId);
+            toast({
+                title: 'Application Deleted',
+                description: 'The application has been successfully deleted.',
+            });
+            fetchApplications();
+        } catch (error: any) {
+            toast({
+                title: 'Error deleting application',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
+    const requestSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
@@ -157,7 +174,7 @@ export default function ApplicationsPage() {
         setSortConfig({ key, direction });
     };
 
-    const getSortIcon = (key: keyof Application) => {
+    const getSortIcon = (key: string) => {
         if (!sortConfig || sortConfig.key !== key) {
             return <ArrowDownUp className="h-4 w-4 text-muted-foreground/50" />;
         }
@@ -167,20 +184,16 @@ export default function ApplicationsPage() {
     const clearFilters = () => {
         setSearchTerm('');
         setFilters({ status: 'all' });
-        setSortConfig({ key: 'updatedAt', direction: 'desc' });
-    }
-
-    const handleFilterChange = (key: keyof typeof filters, value: string) => {
-        setFilters(prev => ({...prev, [key]: value}));
+        setSortConfig({ key: 'appliedAt', direction: 'desc' });
     }
 
     const SkeletonRow = () => (
         <TableRow>
-            {columnVisibility.applicantName && <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-32" /></div></TableCell>}
-            {columnVisibility.jobTitle && <TableCell><Skeleton className="h-4 w-40" /></TableCell>}
-            {columnVisibility.appliedAt && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
-            {columnVisibility.status && <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>}
-            {columnVisibility.actions && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
+            {columnsConfig.map(col => columnVisibility[col.key] && (
+                <TableCell key={col.key}>
+                    <Skeleton className="h-5 w-full" />
+                </TableCell>
+            ))}
         </TableRow>
     );
 
@@ -192,7 +205,7 @@ export default function ApplicationsPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by applicant name, job title..."
+                        placeholder="Search by applicant, job title..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -216,42 +229,17 @@ export default function ApplicationsPage() {
                                 </div>
                                  <div className="grid gap-2">
                                     <Label>Status</Label>
-                                    <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                                    <Select value={filters.status} onValueChange={(value) => setFilters({ status: value as any })}>
                                         <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Statuses</SelectItem>
-                                            {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                                            {applicationStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
                             </div>
                         </PopoverContent>
                     </Popover>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full md:w-auto">
-                                <Columns className="mr-1 h-4 w-4" />
-                                Columns
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {columnsConfig.filter(c => c.key !== 'actions').map(column => (
-                                <DropdownMenuCheckboxItem
-                                    key={column.key}
-                                    className="capitalize"
-                                    checked={columnVisibility[column.key as keyof typeof columnVisibility]}
-                                    onCheckedChange={(value) =>
-                                        setColumnVisibility(prev => ({...prev, [column.key as keyof typeof columnVisibility]: !!value}))
-                                    }
-                                >
-                                    {column.label}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
 
                     <Button variant="outline" onClick={clearFilters}>
                         <FilterX className="mr-1 h-4 w-4" />
@@ -265,43 +253,41 @@ export default function ApplicationsPage() {
                     <TableHeader>
                         <TableRow>
                             {columnsConfig.map(col => (
-                                columnVisibility[col.key as keyof typeof columnVisibility] && (
-                                    <TableHead key={col.key}>
-                                        {col.sortable ? (
-                                            <Button variant="ghost" onClick={() => requestSort(col.sortKey as keyof Application)} className="px-0 h-auto hover:bg-transparent capitalize">
-                                                {col.label} {getSortIcon(col.sortKey as keyof Application)}
-                                            </Button>
-                                        ) : (
-                                            col.label === 'Actions' ? <span className="sr-only">{col.label}</span> : col.label
-                                        )}
-                                    </TableHead>
-                                )
+                                <TableHead key={col.key}>
+                                    {col.sortable ? (
+                                        <Button variant="ghost" onClick={() => requestSort(col.sortKey as string)} className="px-0 h-auto hover:bg-transparent capitalize">
+                                            {col.label} {getSortIcon(col.sortKey as string)}
+                                        </Button>
+                                    ) : (
+                                        col.label === 'Actions' ? <span className="sr-only">{col.label}</span> : col.label
+                                    )}
+                                </TableHead>
                             ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <SkeletonRow key={i} />)
-                        ) : paginatedApplications.length > 0 ? (
-                            paginatedApplications.map(app => (
+                            Array.from({ length: rowsPerPage }).map((_, i) => <SkeletonRow key={i} />)
+                        ) : applications.length > 0 ? (
+                            applications.map(app => (
                                 <TableRow key={app.id}>
-                                    {columnVisibility.applicantName && (
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
-                                                    <AvatarImage src={app.applicantAvatar} alt={app.applicantName} />
-                                                    <AvatarFallback>{app.applicantName.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <p className="font-medium">{app.applicantName}</p>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarImage src={(app.jobSeeker as Jobseeker)?.profilePhoto ? `${API_BASE_URL}${(app.jobSeeker as Jobseeker).profilePhoto}` : undefined} alt={(app.jobSeeker as Jobseeker)?.name} />
+                                                <AvatarFallback>{(app.jobSeeker as Jobseeker)?.name?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{(app.jobSeeker as Jobseeker)?.name}</p>
+                                                <p className="text-sm text-muted-foreground">{(app.jobSeeker as Jobseeker)?.email}</p>
                                             </div>
-                                        </TableCell>
-                                    )}
-                                    {columnVisibility.jobTitle && <TableCell className="text-muted-foreground">{app.jobTitle}</TableCell>}
-                                    {columnVisibility.appliedAt && <TableCell>{format(app.appliedAt, 'MMM d, yyyy')}</TableCell>}
-                                    {columnVisibility.status && <TableCell>{getStatusBadge(app.status)}</TableCell>}
-                                    {columnVisibility.updatedAt && <TableCell>{format(app.updatedAt, 'MMM d, yyyy')}</TableCell>}
-                                    {columnVisibility.actions && (
-                                        <TableCell>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{(app.job as Job)?.title}</TableCell>
+                                    <TableCell>{isValid(app.appliedAt) ? format(app.appliedAt, 'MMM d, yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{getStatusBadge(app.status)}</TableCell>
+                                    <TableCell>
+                                        <AlertDialog>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                 <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -316,18 +302,32 @@ export default function ApplicationsPage() {
                                                     <DropdownMenuItem asChild>
                                                         <Link href={`/applications/${app.id}/edit`}><Edit className="mr-1 h-4 w-4"/> Update Status</Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                        <Trash2 className="mr-1 h-4 w-4"/> Delete
-                                                    </DropdownMenuItem>
+                                                     <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                            <Trash2 className="mr-1 h-4 w-4"/> Delete
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-                                        </TableCell>
-                                    )}
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the application.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(app.id)}>Continue</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                              <TableRow>
-                                <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-24 text-center">
+                                <TableCell colSpan={columnsConfig.length} className="h-24 text-center">
                                     No results found.
                                 </TableCell>
                             </TableRow>
@@ -336,13 +336,13 @@ export default function ApplicationsPage() {
                 </Table>
             </div>
              <div className="flex items-center justify-between mt-4">
-                {isLoading ? (
-                    <Skeleton className="h-5 w-72" />
-                ) : (
-                    <div className="text-sm text-muted-foreground">
-                        Showing {Math.min((currentPage - 1) * ROWS_PER_PAGE + 1, filteredAndSortedApplications.length)} to {Math.min(currentPage * ROWS_PER_PAGE, filteredAndSortedApplications.length)} of {filteredAndSortedApplications.length} applications.
-                    </div>
-                )}
+                <div className="text-sm text-muted-foreground">
+                   {isLoading || !pagination ? (
+                       <Skeleton className="h-5 w-48" />
+                   ) : (
+                       `Showing ${pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to ${Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of ${pagination.totalRecords} applications.`
+                   )}
+               </div>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
@@ -354,13 +354,13 @@ export default function ApplicationsPage() {
                         Previous
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                        Page {isLoading ? '...' : currentPage} of {isLoading ? '...' : totalPages}
+                        Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
                     </span>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages || isLoading}
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                        disabled={currentPage === pagination?.totalPages || isLoading}
                     >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />

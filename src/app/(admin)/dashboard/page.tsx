@@ -1,16 +1,21 @@
+
 'use client'
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Briefcase, DollarSign, Users, FileText, ArrowUp } from "lucide-react";
 import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { applicationsByDay, applications } from "@/lib/data";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Application, Job, Jobseeker } from "@/lib/types";
+import { getApplications } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 const chartConfig = {
   applications: {
@@ -99,12 +104,24 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [recentApps, setRecentApps] = useState<Application[]>([]);
+  const [isLoadingApps, setIsLoadingApps] = useState(true);
+  const applicationsByDay: any[] = []; // This would come from an analytics API
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
+    const timer = setTimeout(() => setIsLoading(false), 1000); // General dashboard loading
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    setIsLoadingApps(true);
+    getApplications({ limit: 5, sort: '-appliedAt' })
+        .then(res => setRecentApps(res.data))
+        .catch(err => toast({ title: "Failed to load recent applications", variant: "destructive" }))
+        .finally(() => setIsLoadingApps(false));
+  }, [toast]);
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -190,32 +207,51 @@ export default function DashboardPage() {
             <CardTitle>Recent Applications</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Applicant</TableHead>
-                        <TableHead>Job</TableHead>
-                        <TableHead><span className="sr-only">Date</span></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {applications.slice(0, 5).map(app => (
-                        <TableRow key={app.id}>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={app.applicantAvatar} alt={app.applicantName} />
-                                        <AvatarFallback>{app.applicantName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="font-medium">{app.applicantName}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">{app.jobTitle}</TableCell>
-                            <TableCell className="text-muted-foreground">{format(app.appliedAt, 'MMM d, yyyy')}</TableCell>
-                        </TableRow>
+            {isLoadingApps ? (
+                <div className="space-y-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <div className="flex items-center gap-4" key={i}>
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-4 w-20" />
+                        </div>
                     ))}
-                </TableBody>
-            </Table>
+                </div>
+            ) : (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Applicant</TableHead>
+                            <TableHead>Job</TableHead>
+                            <TableHead><span className="sr-only">Date</span></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {recentApps.map(app => {
+                            const jobseeker = app.jobSeeker as Jobseeker;
+                            const job = app.job as Job;
+                            return (
+                                <TableRow key={app.id}>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={jobseeker.profilePhoto ? `${API_BASE_URL}${jobseeker.profilePhoto}` : undefined} alt={jobseeker.name} />
+                                                <AvatarFallback>{jobseeker.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="font-medium">{jobseeker.name}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{job.title}</TableCell>
+                                    <TableCell className="text-muted-foreground">{format(app.appliedAt, 'MMM d, yyyy')}</TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </TableBody>
+                </Table>
+            )}
           </CardContent>
         </Card>
       </div>

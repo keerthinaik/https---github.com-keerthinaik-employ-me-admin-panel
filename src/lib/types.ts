@@ -62,6 +62,40 @@ export interface PaginatedApiResponse<T> {
   data: T[];
 }
 
+export const applicationStatuses = [
+  "Applied", "Withdrawn", "Viewed", "Under Review", "Shortlisted", "Rejected",
+  "Interview Scheduled", "Interview Completed", "Second Round Interview",
+  "Technical Round", "HR Round", "Assessment Sent", "Assessment Completed",
+  "Waiting for Feedback", "Offered", "Offer Accepted", "Offer Declined",
+  "Offer Withdrawn", "Hired", "On Hold", "Withdrawn by Candidate",
+  "Auto Rejected", "Disqualified"
+] as const;
+
+export type ApplicationStatus = typeof applicationStatuses[number];
+
+export interface ApplicationAnswer {
+  _id?: string;
+  question: string;
+  answer: string | string[] | boolean;
+}
+
+export interface Application {
+  id: string;
+  _id?: string;
+  jobSeeker: Jobseeker;
+  job: Job;
+  resume: string;
+  coverLetter?: string;
+  answers?: ApplicationAnswer[];
+  status: ApplicationStatus;
+  appliedAt: Date;
+  feedback?: string;
+  whyShouldWeHireYou?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+
 export interface Question {
   question: string;
   type: "boolean" | "single-choice" | "multi-choice" | "text";
