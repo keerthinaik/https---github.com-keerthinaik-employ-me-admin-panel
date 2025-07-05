@@ -1,10 +1,13 @@
 
+
 'use client';
 
 import * as React from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,52 +15,21 @@ import { businesses, universities } from '@/lib/data';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from './ui/textarea';
-import { CalendarIcon, ChevronLeft, ChevronRight, Trash2, X, ChevronsUpDown, Check, PlusCircle } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { getSkills, getSkillCategories, createJobseeker, updateJobseeker } from '@/services/api';
-import type { Skill, SkillCategory, Jobseeker, Experience, Education, Project } from '@/lib/types';
+import { getCountries, getStates, getCities, createJobseeker, updateJobseeker } from '@/services/api';
+import type { Jobseeker, Country, State, City } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
-import 'react-image-crop/dist/ReactCrop.css'
-import { Checkbox } from './ui/checkbox';
-import { Label } from './ui/label';
+import { Skeleton } from './ui/skeleton';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
-
-const experienceSchema = z.object({
-  jobTitle: z.string().min(1, "Job title is required"),
-  companyName: z.string().min(1, "Company name is required"),
-  startDate: z.date(),
-  endDate: z.date().optional(),
-  isCurrent: z.boolean(),
-  responsibilities: z.array(z.string()).optional(),
-  achievements: z.array(z.string()).optional(),
-});
-
-const educationSchema = z.object({
-    institution: z.string().min(1, "Institution is required"),
-    degree: z.string().min(1, "Degree is required"),
-    fieldOfStudy: z.string().min(1, "Field of study is required"),
-    cgpa: z.string().optional(),
-    startDate: z.date(),
-    endDate: z.date(),
-});
-
-const projectSchema = z.object({
-  title: z.string().min(1, "Project title is required"),
-  description: z.string().optional(),
-  url: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
-});
 
 const jobseekerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be at most 50 characters'),
@@ -66,32 +38,21 @@ const jobseekerSchema = z.object({
   phoneNumber: z.string().optional(),
   
   profilePhoto: z.any().optional(),
-  bannerImage: z.any().optional(),
-  headline: z.string().optional(),
-  summary: z.string().optional(),
-  about: z.string().optional(),
   
   dateOfBirth: z.date().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
-  passportNumber: z.string().optional(),
   
+  address: z.string().optional(),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string().optional(),
+
   businessAssociationId: z.string().optional(),
   universityAssociationId: z.string().optional(),
   
-  skills: z.array(z.string()).optional(),
-  resume: z.any().optional(),
-  certifications: z.any().optional(),
-  
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  
-  experience: z.array(experienceSchema).optional(),
-  education: z.array(educationSchema).optional(),
-  projects: z.array(projectSchema).optional(),
-
-  linkedInProfile: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
-  githubProfile: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
-  portfolio: z.string().url("Please enter a valid URL.").optional().or(z.literal('')),
   
 }).refine(data => {
     return !(data.businessAssociationId && data.universityAssociationId);
@@ -100,40 +61,11 @@ const jobseekerSchema = z.object({
     path: ["businessAssociationId"], 
 });
 
-
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
-
-const fieldToTabMap: Record<string, string> = {
-  name: 'profile', email: 'profile', phoneNumber: 'profile', headline: 'profile', summary: 'profile', about: 'profile',
-  dateOfBirth: 'profile', gender: 'profile', passportNumber: 'profile', businessAssociationId: 'profile', universityAssociationId: 'profile',
-  profilePhoto: 'profile', bannerImage: 'profile',
-  experience: 'career', education: 'career', 
-  skills: 'skills', resume: 'skills', certifications: 'skills',
-  linkedInProfile: 'social', githubProfile: 'social', portfolio: 'social',
-  projects: 'portfolio',
-  password: 'account', isVerified: 'account', isActive: 'account',
-};
-
 
 type JobseekerFormProps = {
     jobseeker?: Jobseeker;
 }
-
-const ArrayTextarea = ({ value, onChange, ...props }: { value?: string[], onChange: (value: string[]) => void } & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange'>) => {
-    const [text, setText] = React.useState(Array.isArray(value) ? value.join('\n') : '');
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newText = e.target.value;
-        setText(newText);
-        onChange(newText.split('\n').filter(line => line.trim() !== ''));
-    };
-    
-    React.useEffect(() => {
-        setText(Array.isArray(value) ? value.join('\n') : '');
-    }, [value]);
-
-    return <Textarea {...props} value={text} onChange={handleChange} />;
-};
 
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
   return centerCrop(
@@ -154,9 +86,19 @@ function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: numbe
 export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = React.useState('profile');
-  const TABS = ['profile', 'career', 'skills', 'social', 'portfolio', 'account'];
   
+  const [countries, setCountries] = React.useState<Country[]>([]);
+  const [states, setStates] = React.useState<State[]>([]);
+  const [cities, setCities] = React.useState<City[]>([]);
+
+  const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
+  const [isLoadingStates, setIsLoadingStates] = React.useState(false);
+  const [isLoadingCities, setIsLoadingCities] = React.useState(false);
+  
+  const [openCountry, setOpenCountry] = React.useState(false);
+  const [openState, setOpenState] = React.useState(false);
+  const [openCity, setOpenCity] = React.useState(false);
+
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
   const [crop, setCrop] = React.useState<Crop>()
@@ -164,22 +106,31 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [croppedImageUrl, setCroppedImageUrl] = React.useState<string>('')
   const [dialogOpen, setDialogOpen] = React.useState(false)
 
-  const [bannerImgSrc, setBannerImgSrc] = React.useState('')
-  const bannerImgRef = React.useRef<HTMLImageElement>(null)
-  const [bannerCrop, setBannerCrop] = React.useState<Crop>()
-  const [completedBannerCrop, setCompletedBannerCrop] = React.useState<Crop>()
-  const [croppedBannerImageUrl, setCroppedBannerImageUrl] = React.useState<string>('')
-  const [bannerDialogOpen, setBannerDialogOpen] = React.useState(false)
-
   const form = useForm<JobseekerFormValues>({
     resolver: zodResolver(jobseekerSchema),
   });
 
-  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, reset } = form;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, setError, setValue, reset, watch } = form;
 
-  const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({ control, name: "experience" });
-  const { fields: eduFields, append: appendEdu, remove: removeEdu } = useFieldArray({ control, name: "education" });
-  const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({ control, name: "projects" });
+  const watchedBusinessId = watch('businessAssociationId');
+  const watchedUniversityId = watch('universityAssociationId');
+  const watchedCountry = watch('country');
+  const watchedState = watch('state');
+
+  const countryRef = React.useRef(jobseeker?.country);
+  const stateRef = React.useRef(jobseeker?.state);
+
+  React.useEffect(() => {
+    if (watchedBusinessId) {
+        setValue('universityAssociationId', '');
+    }
+  }, [watchedBusinessId, setValue]);
+
+  React.useEffect(() => {
+    if (watchedUniversityId) {
+        setValue('businessAssociationId', '');
+    }
+  }, [watchedUniversityId, setValue]);
 
   React.useEffect(() => {
     if (jobseeker) {
@@ -188,27 +139,18 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         email: jobseeker.email || '',
         password: '',
         phoneNumber: jobseeker.phoneNumber || '',
-        headline: jobseeker.headline || '',
-        summary: jobseeker.summary || '',
-        about: jobseeker.about || '',
         dateOfBirth: jobseeker.dateOfBirth ? new Date(jobseeker.dateOfBirth) : undefined,
         gender: jobseeker.gender,
-        passportNumber: jobseeker.passportNumber || '',
+        address: jobseeker.address || '',
+        country: jobseeker.country || '',
+        state: jobseeker.state || '',
+        city: jobseeker.city || '',
+        zipCode: jobseeker.zipCode || '',
         businessAssociationId: jobseeker.businessAssociationId || '',
         universityAssociationId: jobseeker.universityAssociationId || '',
-        linkedInProfile: jobseeker.linkedInProfile || '',
-        githubProfile: jobseeker.githubProfile || '',
-        portfolio: jobseeker.portfolio || '',
         isVerified: jobseeker.isVerified || false,
         isActive: jobseeker.isActive ?? true,
-        experience: jobseeker.experience?.map(exp => ({ ...exp, startDate: new Date(exp.startDate), endDate: exp.endDate ? new Date(exp.endDate) : undefined, responsibilities: exp.responsibilities || [], achievements: exp.achievements || [] })) || [],
-        education: jobseeker.education?.map(edu => ({ ...edu, cgpa: edu.cgpa || '', startDate: new Date(edu.startDate), endDate: new Date(edu.endDate) })) || [],
-        projects: jobseeker.projects?.map(p => ({ ...p, url: p.url || '' })) || [],
-        skills: jobseeker.skills || [],
-        resume: undefined,
-        certifications: undefined,
         profilePhoto: undefined,
-        bannerImage: undefined,
       });
 
       if (jobseeker.profilePhoto) {
@@ -217,24 +159,78 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       } else {
         setCroppedImageUrl('');
       }
-      if (jobseeker.bannerImage) {
-          const fullUrl = `${API_BASE_URL}${jobseeker.bannerImage.startsWith('/') ? '' : '/'}${jobseeker.bannerImage}`;
-          setCroppedBannerImageUrl(fullUrl);
-      } else {
-        setCroppedBannerImageUrl('');
-      }
     } else {
         reset({
-            name: '', email: '', password: '', phoneNumber: '', headline: '', summary: '', about: '',
-            dateOfBirth: undefined, gender: undefined, passportNumber: '', businessAssociationId: '', universityAssociationId: '',
-            linkedInProfile: '', githubProfile: '', portfolio: '',
+            name: '', email: '', password: '', phoneNumber: '',
+            dateOfBirth: undefined, gender: undefined, address: '', country: '', state: '', city: '', zipCode: '',
+            businessAssociationId: '', universityAssociationId: '',
             isVerified: false, isActive: true,
-            experience: [], education: [], projects: [], skills: [],
-            resume: undefined, certifications: undefined, profilePhoto: undefined, bannerImage: undefined,
+            profilePhoto: undefined,
         });
     }
   }, [jobseeker, reset]);
+  
+  React.useEffect(() => {
+    const fetchCountries = async () => {
+      setIsLoadingCountries(true);
+      try {
+        const countryData = await getCountries();
+        setCountries(countryData);
+      } catch (error) {
+        toast({ title: "Failed to load countries", variant: "destructive" });
+      } finally {
+        setIsLoadingCountries(false);
+      }
+    };
+    fetchCountries();
+  }, [toast]);
+  
+  React.useEffect(() => {
+    const fetchStates = async () => {
+      if (watchedCountry) {
+        setIsLoadingStates(true);
+        setStates([]);
+        setCities([]);
+        if (countryRef.current !== watchedCountry) {
+          setValue('state', '');
+          setValue('city', '');
+        }
+        try {
+          const stateData = await getStates(watchedCountry);
+          setStates(stateData);
+        } catch (error) {
+          toast({ title: "Failed to load states", variant: "destructive" });
+        } finally {
+          setIsLoadingStates(false);
+        }
+      }
+    };
+    fetchStates();
+    countryRef.current = watchedCountry;
+  }, [watchedCountry, toast, setValue]);
 
+  React.useEffect(() => {
+    const fetchCities = async () => {
+      if (watchedCountry && watchedState) {
+        setIsLoadingCities(true);
+        setCities([]);
+        if (stateRef.current !== watchedState) {
+          setValue('city', '');
+        }
+        try {
+          const cityData = await getCities(watchedCountry, watchedState);
+          setCities(cityData);
+        } catch (error) {
+          toast({ title: "Failed to load cities", variant: "destructive" });
+        } finally {
+          setIsLoadingCities(false);
+        }
+      }
+    };
+    fetchCities();
+    stateRef.current = watchedState;
+  }, [watchedCountry, watchedState, toast, setValue]);
+  
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -242,16 +238,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''))
       reader.readAsDataURL(file)
       setDialogOpen(true)
-    }
-  }
-  
-  const onBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader()
-      reader.addEventListener('load', () => setBannerImgSrc(reader.result?.toString() || ''))
-      reader.readAsDataURL(file)
-      setBannerDialogOpen(true)
     }
   }
 
@@ -268,18 +254,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       return;
     }
     setCrop(centerAspectCrop(width, height, 1));
-  }
-  
-  function onBannerImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { width } = e.currentTarget;
-    if (width < 1000) {
-      toast({
-        title: 'Image May Be Too Small',
-        description: 'Banner image should be at least 1000px wide for best quality.',
-        variant: 'default',
-      });
-    }
-    setBannerCrop(centerAspectCrop(width, e.currentTarget.height, 1128 / 191));
   }
 
   const handleCropImage = async () => {
@@ -321,108 +295,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         }
         const croppedUrl = URL.createObjectURL(blob);
         setCroppedImageUrl(croppedUrl);
-        form.setValue('profilePhoto', new File([blob], 'profilePhoto.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
+        setValue('profilePhoto', new File([blob], 'profilePhoto.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
         setDialogOpen(false);
     }, 'image/jpeg');
   }
-  
-  const handleCropBannerImage = async () => {
-    const image = bannerImgRef.current
-    if (!image || !completedBannerCrop || !completedBannerCrop.width || !completedBannerCrop.height) {
-      toast({ title: "Crop Error", description: "Could not crop banner image. Please try again.", variant: "destructive" });
-      return;
-    }
-    
-    const canvas = document.createElement('canvas')
-    const scaleX = image.naturalWidth / image.width
-    const scaleY = image.naturalHeight / image.height
-    
-    canvas.width = completedBannerCrop.width
-    canvas.height = completedBannerCrop.height
-    
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      toast({ title: "Crop Error", description: "Could not process banner image.", variant: "destructive" });
-      return;
-    }
-
-    ctx.drawImage(
-      image,
-      completedBannerCrop.x * scaleX,
-      completedBannerCrop.y * scaleY,
-      completedBannerCrop.width * scaleX,
-      completedBannerCrop.height * scaleY,
-      0,
-      0,
-      completedBannerCrop.width,
-      completedBannerCrop.height
-    );
-
-    canvas.toBlob((blob) => {
-        if (!blob) {
-            toast({ title: "Crop Error", description: "Failed to create banner image blob.", variant: "destructive" });
-            return;
-        }
-        const croppedUrl = URL.createObjectURL(blob);
-        setCroppedBannerImageUrl(croppedUrl);
-        form.setValue('bannerImage', new File([blob], 'bannerImage.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
-        setBannerDialogOpen(false);
-    }, 'image/jpeg');
-  }
-
-  const [allSkills, setAllSkills] = React.useState<Skill[]>([]);
-  const [skillCategories, setSkillCategories] = React.useState<SkillCategory[]>([]);
-  const [isLoadingSkills, setIsLoadingSkills] = React.useState(true);
-  
-  React.useEffect(() => {
-    async function fetchData() {
-        try {
-            const [skillsRes, categoriesRes] = await Promise.all([
-                getSkills({ limit: 1000, sort: 'name' }),
-                getSkillCategories({ limit: 1000, sort: 'name' })
-            ]);
-            setAllSkills(skillsRes.data);
-            setSkillCategories(categoriesRes.data);
-        } catch (error) {
-            toast({ title: "Failed to load skills data", variant: "destructive" });
-        } finally {
-            setIsLoadingSkills(false);
-        }
-    }
-    fetchData();
-  }, [toast]);
-  
-  const groupedSkills = React.useMemo(() => {
-    return skillCategories.map(category => ({
-        ...category,
-        skills: allSkills.filter(skill => skill.skillCategory?.id === category.id)
-    })).filter(category => category.skills.length > 0);
-  }, [skillCategories, allSkills]);
-
-
-  const goToNextTab = () => {
-    const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex < TABS.length - 1) {
-        setActiveTab(TABS[currentIndex + 1]);
-    }
-  };
-
-  const goToPrevTab = () => {
-     const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex > 0) {
-        setActiveTab(TABS[currentIndex - 1]);
-    }
-  };
 
   const onError = (errors: any) => {
-    const errorKeys = Object.keys(errors);
-    if (errorKeys.length > 0) {
-      const firstErrorField = errorKeys[0].split('.')[0] as keyof JobseekerFormValues;
-      const tab = fieldToTabMap[firstErrorField];
-      if (tab && tab !== activeTab) {
-        setActiveTab(tab);
-      }
-    }
     toast({
         title: "Validation Error",
         description: "Please check the form for errors and try again.",
@@ -441,14 +319,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
         if (keyString === 'profilePhoto' && value instanceof File) {
             formData.append('profilePhoto', value);
-        } else if (keyString === 'bannerImage' && value instanceof File) {
-            formData.append('bannerImage', value);
-        } else if (keyString === 'resume' && value instanceof FileList && value.length > 0) {
-            formData.append('resume', value[0]);
-        } else if (keyString === 'certifications' && value instanceof FileList) {
-            for (let i = 0; i < value.length; i++) {
-                formData.append('certifications', value[i]);
-            }
         } else {
            jsonData[keyString] = value;
         }
@@ -471,28 +341,14 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     } catch (error: any) {
         if (error.data && error.data.errors) {
             const serverErrors = error.data.errors;
-            let firstErrorField: string | null = null;
-
             Object.keys(serverErrors).forEach((key) => {
-                const fieldKey = key.split('.')[0] as keyof JobseekerFormValues;
-                if (!firstErrorField) {
-                    firstErrorField = fieldKey;
-                }
-                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, fieldKey)) {
-                    setError(fieldKey as any, {
+                if (Object.prototype.hasOwnProperty.call(jobseekerSchema.shape, key)) {
+                    setError(key as keyof JobseekerFormValues, {
                         type: 'server',
                         message: serverErrors[key],
                     });
                 }
             });
-
-            if (firstErrorField) {
-                const tabKey = firstErrorField.split('.')[0]
-                const tab = fieldToTabMap[tabKey];
-                if (tab && tab !== activeTab) {
-                    setActiveTab(tab);
-                }
-            }
 
             toast({
                 title: 'Could not save jobseeker',
@@ -513,309 +369,84 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     <>
       <Form {...form}>
         <form onSubmit={handleSubmit(onSubmit, onError)}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-6 mb-6">
-                    <TabsTrigger value="profile">Profile</TabsTrigger>
-                    <TabsTrigger value="career">Career</TabsTrigger>
-                    <TabsTrigger value="skills">Skills &amp; Docs</TabsTrigger>
-                    <TabsTrigger value="social">Social</TabsTrigger>
-                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-                    <TabsTrigger value="account">Account</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="profile" className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2 space-y-6">
                     <Card>
                         <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <FormField name="profilePhoto" control={control} render={() => (
-                                <FormItem>
-                                    <div className="flex items-center gap-6">
-                                        <Avatar className="h-20 w-20">
-                                            <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
-                                            <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-grow space-y-2">
-                                            <FormLabel>Profile Photo</FormLabel>
-                                            <FormControl>
-                                                <Input type="file" accept="image/*" onChange={onFileChange} />
-                                            </FormControl>
-                                            <FormDescription>Image must be at least 200x200px.</FormDescription>
-                                            <FormMessage />
-                                        </div>
-                                    </div>
-                                </FormItem>
-                            )}/>
-                            <FormField name="bannerImage" control={control} render={() => (
-                                <FormItem className="pt-6 border-t">
-                                    <FormLabel>Banner Image</FormLabel>
-                                     <div className="w-full aspect-[4/1] bg-muted rounded-md flex items-center justify-center overflow-hidden border">
-                                        {croppedBannerImageUrl ? (
-                                            <img src={croppedBannerImageUrl} alt="Banner preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-sm text-muted-foreground">Banner Preview (recommended: 1128x191px)</span>
-                                        )}
-                                    </div>
-                                    <FormControl>
-                                        <Input type="file" accept="image/*" onChange={onBannerFileChange} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}/>
-                             <FormField name="headline" control={control} render={({field}) => <FormItem><FormLabel>Headline</FormLabel><FormControl><Input {...field} placeholder="e.g. Senior Software Engineer" /></FormControl><FormMessage /></FormItem>}/>
-                             <FormField name="summary" control={control} render={({field}) => <FormItem><FormLabel>Summary</FormLabel><FormControl><Textarea {...field} placeholder="A brief career summary..." /></FormControl><FormMessage /></FormItem>}/>
-                             <FormField name="about" control={control} render={({field}) => <FormItem><FormLabel>About</FormLabel><FormControl><Textarea {...field} className="min-h-32" placeholder="More detailed information about yourself..."/></FormControl><FormMessage /></FormItem>}/>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Personal & Contact Details</CardTitle></CardHeader>
-                         <CardContent className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
+                             <div className="grid md:grid-cols-2 gap-4">
                                 <FormField name="name" control={control} render={({field}) => <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                 <FormField name="email" control={control} render={({field}) => <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>}/>
                             </div>
                              <div className="grid md:grid-cols-2 gap-4">
                                 <FormField name="phoneNumber" control={control} render={({field}) => <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                                <FormField control={control} name="password" render={({ field }) => ( <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} placeholder={jobseeker ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>)}/>
                             </div>
-                            <div className="grid md:grid-cols-2 gap-4">
-                               <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                               <FormField name="passportNumber" control={control} render={({field}) => <FormItem><FormLabel>Passport Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                            </div>
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <FormField
-                                    control={control}
-                                    name="businessAssociationId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Business Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || '---none---'}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="---none---">None</SelectItem>
-                                                    {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={control}
-                                    name="universityAssociationId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>University Association</FormLabel>
-                                            <Select onValueChange={(value) => field.onChange(value === '---none---' ? '' : value)} value={field.value || '---none---'}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                     <SelectItem value="---none---">None</SelectItem>
-                                                    {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            {errors.businessAssociationId && <p className="text-sm text-destructive">{errors.businessAssociationId.message}</p>}
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-end">
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="career" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Work Experience</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Location</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            {expFields.map((field, index) => {
-                                return (
-                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeExp(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField name={`experience.${index}.jobTitle`} control={control} render={({field}) => <FormItem><FormLabel>Job Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <FormField name={`experience.${index}.companyName`} control={control} render={({field}) => <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField control={control} name={`experience.${index}.startDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={control} name={`experience.${index}.endDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")} disabled={form.watch(`experience.${index}.isCurrent`)}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                    </div>
-                                    <FormField control={control} name={`experience.${index}.isCurrent`} render={({field}) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">I currently work here</FormLabel><FormMessage /></FormItem>} />
-                                    <FormField name={`experience.${index}.responsibilities`} control={control} render={({ field }) => <FormItem><FormLabel>Responsibilities (one per line)</FormLabel><FormControl><ArrayTextarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                                    <FormField name={`experience.${index}.achievements`} control={control} render={({ field }) => <FormItem><FormLabel>Achievements (one per line)</FormLabel><FormControl><ArrayTextarea {...field} /></FormControl><FormMessage /></FormItem>} />
-                                </div>
-                            )})}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendExp({ jobTitle: '', companyName: '', startDate: new Date(), isCurrent: false, responsibilities: [], achievements: [] })}><PlusCircle className="mr-2 h-4 w-4" /> Add Experience</Button>
+                            <FormField control={control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                 <FormField control={control} name="country" render={({ field }) => ( <FormItem><FormLabel>Country</FormLabel><Popover open={openCountry} onOpenChange={setOpenCountry}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className="w-full justify-between">{isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search country..." /><CommandEmpty>No country found.</CommandEmpty><CommandGroup className="max-h-60 overflow-auto">{countries.map(c => ( <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}> <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} /> {c.name}</CommandItem>))}</CommandGroup></Command></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                <FormField control={control} name="state" render={({ field }) => ( <FormItem><FormLabel>State / Province</FormLabel><Popover open={openState} onOpenChange={setOpenState}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>{isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search state..." /><CommandEmpty>No state found.</CommandEmpty><CommandGroup className="max-h-60 overflow-auto">{states.map(s => ( <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}> <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} /> {s.name}</CommandItem>))}</CommandGroup></Command></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                                <FormField control={control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><Popover open={openCity} onOpenChange={setOpenCity}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>{isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search city..." /><CommandEmpty>No city found.</CommandEmpty><CommandGroup className="max-h-60 overflow-auto">{cities.map(c => ( <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}><Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />{c.name}</CommandItem>))}</CommandGroup></Command></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                            </div>
+                            <FormField control={control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                         </CardContent>
                     </Card>
+                </div>
+                <div className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Education</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            {eduFields.map((field, index) => {
-                                return (
-                                <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeEdu(index)}><Trash2 className="h-4 w-4"/></Button>
-                                    <FormField name={`education.${index}.institution`} control={control} render={({field}) => <FormItem><FormLabel>Institution</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <FormField name={`education.${index}.degree`} control={control} render={({field}) => <FormItem><FormLabel>Degree</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                        <FormField name={`education.${index}.fieldOfStudy`} control={control} render={({field}) => <FormItem><FormLabel>Field of Study</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    </div>
-                                    <div className="grid md:grid-cols-3 gap-4">
-                                        <FormField control={control} name={`education.${index}.startDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>Start Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField control={control} name={`education.${index}.endDate`} render={({ field: dateField }) => (<FormItem className="flex flex-col"><FormLabel>End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn("w-full justify-start text-left font-normal",!dateField.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{dateField.value ? format(dateField.value, 'PPP') : 'Pick a date'}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={dateField.value} onSelect={dateField.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                                        <FormField name={`education.${index}.cgpa`} control={control} render={({field}) => <FormItem><FormLabel>CGPA/Grade</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                    </div>
-                                </div>
-                            )})}
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendEdu({ institution: '', degree: '', fieldOfStudy: '', startDate: new Date(), endDate: new Date(), cgpa: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Education</Button>
-                        </CardContent>
-                    </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="skills" className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle>Skills</CardTitle><CardDescription>Select all relevant skills.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle>Profile Photo</CardTitle></CardHeader>
                         <CardContent>
-                            <FormField
-                                control={control}
-                                name="skills"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
-                                                        <div className="flex gap-1 flex-wrap">
-                                                            {field.value && field.value.length > 0 ? (
-                                                                field.value.map(skillId => {
-                                                                    const skill = allSkills.find(s => s.id === skillId);
-                                                                    return <Badge key={skillId} variant="secondary">{skill?.name || skillId}</Badge>
-                                                                })
-                                                            ) : ( "Select skills..." )}
-                                                        </div>
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search skills..." />
-                                                    <CommandEmpty>No skills found.</CommandEmpty>
-                                                    <CommandGroup className="max-h-60 overflow-auto">
-                                                        {isLoadingSkills ? (
-                                                            <CommandItem disabled>Loading skills...</CommandItem>
-                                                        ) : (
-                                                            groupedSkills.map(category => (
-                                                                <CommandGroup key={category.id} heading={category.name}>
-                                                                    {category.skills.map(skill => (
-                                                                        <CommandItem
-                                                                            key={skill.id}
-                                                                            value={skill.name}
-                                                                            onSelect={() => {
-                                                                                const currentSkills = field.value || [];
-                                                                                const isSelected = currentSkills.includes(skill.id);
-                                                                                if (isSelected) {
-                                                                                    field.onChange(currentSkills.filter(s => s !== skill.id));
-                                                                                } else {
-                                                                                    field.onChange([...currentSkills, skill.id]);
-                                                                                }
-                                                                            }}
-                                                                        >
-                                                                            <Check className={cn("mr-2 h-4 w-4", field.value?.includes(skill.id) ? "opacity-100" : "opacity-0")}/>
-                                                                            {skill.name}
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            ))
-                                                        )}
-                                                    </CommandGroup>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                            <FormField name="profilePhoto" control={control} render={() => (
+                                <FormItem>
+                                    <div className="flex flex-col items-center gap-4">
+                                        <Avatar className="h-32 w-32">
+                                            <AvatarImage src={croppedImageUrl} alt="Jobseeker profile photo" />
+                                            <AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <FormControl>
+                                            <Input type="file" className="w-full" accept="image/*" onChange={onFileChange} />
+                                        </FormControl>
                                         <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                           <FormField control={control} name="resume" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Resume/CV</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
-                           <FormField control={control} name="certifications" render={({field: { value, onChange, ...fieldProps }}) => <FormItem><FormLabel>Certifications</FormLabel><FormControl><Input type="file" accept=".pdf,image/*" multiple {...fieldProps} onChange={(e) => onChange(e.target.files)} /></FormControl><FormMessage /></FormItem>}/>
-                        </CardContent>
-                    </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="social" className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle>Social & Portfolio Links</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <FormField name="linkedInProfile" control={control} render={({field}) => <FormItem><FormLabel>LinkedIn Profile</FormLabel><FormControl><Input {...field} placeholder="https://linkedin.com/in/..." /></FormControl><FormMessage /></FormItem>}/>
-                            <FormField name="githubProfile" control={control} render={({field}) => <FormItem><FormLabel>GitHub Profile</FormLabel><FormControl><Input {...field} placeholder="https://github.com/..." /></FormControl><FormMessage /></FormItem>}/>
-                             <FormField name="portfolio" control={control} render={({field}) => <FormItem><FormLabel>Portfolio Website</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>}/>
-                        </CardContent>
-                    </Card>
-                     <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-                
-                 <TabsContent value="portfolio" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Projects</CardTitle>
-                            <CardDescription>Showcase your work by adding projects.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                {projectFields.map((field, index) => {
-                                    return (
-                                    <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive hover:bg-destructive/10" onClick={() => removeProject(index)}><Trash2 className="h-4 w-4"/></Button>
-                                        <FormField name={`projects.${index}.title`} control={control} render={({field}) => <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                        <FormField name={`projects.${index}.description`} control={control} render={({field}) => <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>}/>
-                                        <FormField name={`projects.${index}.url`} control={control} render={({field}) => <FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
                                     </div>
-                                )})}
-                                <Button type="button" variant="outline" size="sm" onClick={() => appendProject({ title: '', description: '', url: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Project</Button>
-                            </div>
+                                </FormItem>
+                            )}/>
                         </CardContent>
                     </Card>
-                     <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
-                </TabsContent>
-                
-                <TabsContent value="account" className="space-y-6">
                     <Card>
-                        <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Personal Details</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                                <FormField control={control} name="password" render={({ field }) => ( <FormItem><FormLabel>Set New Password</FormLabel><FormControl><Input type="password" {...field} placeholder={jobseeker ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>)}/>
-                                <FormField control={control} name="isVerified" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Verification Status</FormLabel><CardDescription>Indicates if the jobseeker has been verified.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
-                                <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel><CardDescription>Inactive jobseekers cannot log in or apply for jobs.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
+                            <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                            <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    </div>
-                </TabsContent>
-            </Tabs>
-        <CardFooter className="flex justify-end gap-2 mt-6 px-0">
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : jobseeker ? 'Save Changes' : 'Create Jobseeker'}
-            </Button>
-        </CardFooter>
+                    <Card>
+                        <CardHeader><CardTitle>Associations</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                             <FormField control={control} name="businessAssociationId" render={({ field }) => ( <FormItem><FormLabel>Business Association</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl><SelectContent><SelectItem value="">None</SelectItem>{businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                             <FormField control={control} name="universityAssociationId" render={({ field }) => ( <FormItem><FormLabel>University Association</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl><SelectContent><SelectItem value="">None</SelectItem>{universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                             {errors.businessAssociationId && <p className="text-sm text-destructive">{errors.businessAssociationId.message}</p>}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Account Status</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField control={control} name="isVerified" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Verification</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
+                            <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)}/>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+            <CardFooter className="flex justify-end gap-2 mt-6 px-0">
+                <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : jobseeker ? 'Save Changes' : 'Create Jobseeker'}
+                </Button>
+            </CardFooter>
         </form>
     </Form>
 
@@ -845,33 +476,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
             <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                 <Button onClick={handleCropImage}>Crop & Save</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-    <Dialog open={bannerDialogOpen} onOpenChange={setBannerDialogOpen}>
-        <DialogContent className="max-w-2xl">
-            <DialogHeader>
-                <DialogTitle>Crop your banner image</DialogTitle>
-            </DialogHeader>
-            {bannerImgSrc && (
-                <ReactCrop
-                    crop={bannerCrop}
-                    onChange={(_, percentCrop) => setBannerCrop(percentCrop)}
-                    onComplete={(c) => setCompletedBannerCrop(c)}
-                    aspect={1128 / 191}
-                    minWidth={400}
-                >
-                    <img
-                        ref={bannerImgRef}
-                        alt="Crop me"
-                        src={bannerImgSrc}
-                        onLoad={onBannerImageLoad}
-                    />
-                </ReactCrop>
-            )}
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setBannerDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCropBannerImage}>Crop & Save Banner</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
