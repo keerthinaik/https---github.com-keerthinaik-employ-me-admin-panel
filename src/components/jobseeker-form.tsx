@@ -19,8 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { getCountries, getStates, getCities, createJobseeker, updateJobseeker, getBusinesses, getUniversities } from '@/services/api';
-import type { Jobseeker, Country, State, City, Business, University } from '@/lib/types';
+import { getCountries, getStates, getCities, createJobseeker, updateJobseeker } from '@/services/api';
+import type { Jobseeker, Country, State, City } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -45,18 +45,9 @@ const jobseekerSchema = z.object({
   state: z.string().optional(),
   city: z.string().optional(),
   zipCode: z.string().optional(),
-
-  businessAssociationId: z.string().nullable().optional(),
-  universityAssociationId: z.string().nullable().optional(),
   
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  
-}).refine(data => {
-    return !(data.businessAssociationId && data.universityAssociationId);
-}, {
-    message: "A jobseeker can be associated with either a business or a university, but not both.",
-    path: ["businessAssociationId"], 
 });
 
 type JobseekerFormValues = z.infer<typeof jobseekerSchema>;
@@ -88,13 +79,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [countries, setCountries] = React.useState<Country[]>([]);
   const [states, setStates] = React.useState<State[]>([]);
   const [cities, setCities] = React.useState<City[]>([]);
-  const [businesses, setBusinesses] = React.useState<Business[]>([]);
-  const [universities, setUniversities] = React.useState<University[]>([]);
 
   const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
   const [isLoadingStates, setIsLoadingStates] = React.useState(false);
   const [isLoadingCities, setIsLoadingCities] = React.useState(false);
-  const [isLoadingAssociations, setIsLoadingAssociations] = React.useState(true);
   
   const [openCountry, setOpenCountry] = React.useState(false);
   const [openState, setOpenState] = React.useState(false);
@@ -119,8 +107,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         state: '',
         city: '',
         zipCode: '',
-        businessAssociationId: null,
-        universityAssociationId: null,
         gender: undefined,
         dateOfBirth: undefined,
         isVerified: false,
@@ -151,8 +137,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         state: jobseeker.state || '',
         city: jobseeker.city || '',
         zipCode: jobseeker.zipCode || '',
-        businessAssociationId: jobseeker.businessAssociationId || null,
-        universityAssociationId: jobseeker.universityAssociationId || null,
         isVerified: jobseeker.isVerified || false,
         isActive: jobseeker.isActive ?? true,
         profilePhoto: undefined,
@@ -170,21 +154,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   React.useEffect(() => {
     const fetchInitialData = async () => {
         setIsLoadingCountries(true);
-        setIsLoadingAssociations(true);
         try {
-            const [countryData, businessRes, universityRes] = await Promise.all([
-                getCountries(),
-                getBusinesses({ limit: 1000, fields: 'id,name' }),
-                getUniversities({ limit: 1000, fields: 'id,name' })
-            ]);
+            const countryData = await getCountries();
             setCountries(countryData);
-            setBusinesses(businessRes.data);
-            setUniversities(universityRes.data);
         } catch (error) {
             toast({ title: "Failed to load initial form data", variant: "destructive" });
         } finally {
             setIsLoadingCountries(false);
-            setIsLoadingAssociations(false);
         }
     };
     fetchInitialData();
@@ -321,10 +297,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         return;
       }
       
-      if ((key === 'businessAssociationId' || key === 'universityAssociationId') && !value) {
-        return; 
-      }
-      
       if (value === undefined || value === null) {
         return;
       }
@@ -433,78 +405,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     </div>
                                 </FormItem>
                             )}/>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Associations</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                             <FormField
-                                control={control}
-                                name="businessAssociationId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Business Association</FormLabel>
-                                        <Select
-                                            onValueChange={(value) => {
-                                                const newValue = value === '__none__' ? null : value;
-                                                field.onChange(newValue);
-                                                if (newValue) {
-                                                    setValue('universityAssociationId', null, { shouldValidate: true });
-                                                    const business = businesses.find(b => b.id === newValue);
-                                                    if (business) {
-                                                        toast({
-                                                            title: 'Business Selected',
-                                                            description: `ID: ${business.id}, Name: ${business.name}`
-                                                        });
-                                                    }
-                                                }
-                                            }}
-                                            value={field.value ?? '__none__'}
-                                            disabled={isLoadingAssociations}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="__none__">None</SelectItem>
-                                                {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={control}
-                                name="universityAssociationId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>University Association</FormLabel>
-                                        <Select
-                                            onValueChange={(value) => {
-                                                const newValue = value === '__none__' ? null : value;
-                                                field.onChange(newValue);
-                                                if (newValue) {
-                                                    setValue('businessAssociationId', null, { shouldValidate: true });
-                                                    const university = universities.find(u => u.id === newValue);
-                                                    if (university) {
-                                                        toast({
-                                                            title: 'University Selected',
-                                                            description: `ID: ${university.id}, Name: ${university.name}`
-                                                        });
-                                                    }
-                                                }
-                                            }}
-                                            value={field.value ?? '__none__'}
-                                            disabled={isLoadingAssociations}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="__none__">None</SelectItem>
-                                                {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             {errors.businessAssociationId && <p className="text-sm text-destructive">{errors.businessAssociationId.message}</p>}
                         </CardContent>
                     </Card>
                     <Card>
