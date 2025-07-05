@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
-import 'react-quill/dist/quill.snow.css';
 
 export const metadata: Metadata = {
   title: 'Employ Me Admin',

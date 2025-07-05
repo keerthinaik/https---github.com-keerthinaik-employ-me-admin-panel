@@ -28,7 +28,7 @@ import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJo
 import type { Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { Switch } from './ui/switch';
-import RichTextEditor from './rich-text-editor';
+import { Textarea } from './ui/textarea';
 
 
 const questionSchema = z.object({
@@ -440,13 +440,13 @@ export function JobForm({ job }: { job?: Job }) {
                                         </Button>
                                     </FormLabel>
                                     <CardDescription>
-                                        Provide a detailed job description. Use the editor tools for formatting.
+                                        Provide a detailed job description.
                                     </CardDescription>
                                     <FormControl>
-                                        <RichTextEditor
-                                            value={field.value}
-                                            onChange={field.onChange}
+                                        <Textarea
+                                            {...field}
                                             placeholder="Provide a detailed job description..."
+                                            className="min-h-40"
                                         />
                                     </FormControl>
                                     <FormMessage />
