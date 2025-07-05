@@ -1,7 +1,7 @@
 
 
 import { businesses, universities } from "@/lib/data";
-import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project } from "./types";
+import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType } from "./types";
 
 export type Question = {
     question: string;
@@ -230,16 +230,6 @@ export type Employer = {
 export type University = UniversityType;
 export type Business = BusinessType;
 
-export type Faq = {
-  id: string;
-  question: string;
-  answer: string;
-  isActive: boolean;
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export type SubscriptionPlan = {
   id: string;
   name: string;
@@ -304,6 +294,7 @@ export type TestSkill = {
 
 export type SkillCategory = SkillCategoryType;
 export type JobCategory = JobCategoryType;
+export type Faq = FaqType;
 
 export const skillCategories: SkillCategory[] = [];
 export const jobCategories: JobCategory[] = [];
@@ -898,12 +889,6 @@ export const applicationsByDay = [
     { date: 'Oct 28', applications: 35 },
 ];
 
-export const faqs: Faq[] = [
-  { id: 'FAQ001', question: 'How do I post a job?', answer: 'Navigate to the Job Management section and click "Create New Job". Fill out the required details and click "Save and Publish".', isActive: true, order: 1, createdAt: new Date('2023-01-10'), updatedAt: new Date('2023-10-20') },
-  { id: 'FAQ002', question: 'Can I edit a published job?', answer: 'Yes, you can edit a job at any time by going to the Job Management page and clicking the "Edit" button on the desired job posting.', isActive: true, order: 2, createdAt: new Date('2023-01-11'), updatedAt: new Date('2023-10-21') },
-  { id: 'FAQ003', question: 'How are AI scores for applications calculated?', answer: 'The AI score is calculated based on how well the applicant\'s resume and provided information match the job description and required skills. It is a tool to help you prioritize candidates.', isActive: false, order: 3, createdAt: new Date('2023-01-12'), updatedAt: new Date('2023-10-22') },
-  { id: 'FAQ004', question: 'What is the difference between an Employer and a Business?', answer: 'Employers are entities that post jobs and hire candidates directly through the platform. Businesses are typically partner agencies or organizations that may have different roles and associations within the ecosystem.', isActive: true, order: 4, createdAt: new Date('2023-01-13'), updatedAt: new Date('2023-10-23') },
-];
 
 export const subscriptionPlans: SubscriptionPlan[] = [
   {

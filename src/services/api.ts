@@ -1,6 +1,6 @@
 
 
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -641,6 +641,79 @@ export async function deleteJobseeker(id: string): Promise<null> {
     method: 'DELETE',
   });
 }
+
+// FAQs
+export async function getFaqs(params: GetAllParams = {}): Promise<{ data: Faq[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/faqas?${queryString}`);
+  
+  const data = response.data.map(mapItem).map((item: any) => ({
+    ...item,
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getFaq(id: string): Promise<Faq> {
+    const response = await authedFetch(`/api/v1/faqas/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("FAQ not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+    };
+}
+
+export async function createFaq(faqData: Partial<Omit<Faq, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Faq> {
+  const response = await authedFetch(`/api/v1/faqas`, {
+    method: 'POST',
+    body: JSON.stringify(faqData),
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Created FAQ data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function updateFaq(id: string, faqData: Partial<Omit<Faq, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Faq> {
+  const response = await authedFetch(`/api/v1/faqas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(faqData),
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated FAQ data not found in API response.");
+  }
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function deleteFaq(id: string): Promise<null> {
+  return authedFetch(`/api/v1/faqas/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 
 // Location APIs
 export async function getCountries(): Promise<Country[]> {

@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { type Faq } from '@/lib/data';
+import { type Faq } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
+import { createFaq, updateFaq } from '@/services/api';
 
 const faqSchema = z.object({
   question: z.string().min(1, 'Question is required'),
@@ -34,6 +35,7 @@ export function FaqForm({ faq }: FaqFormProps) {
     handleSubmit,
     formState: { errors, isSubmitting },
     control,
+    setError,
   } = useForm<FaqFormValues>({
     resolver: zodResolver(faqSchema),
     defaultValues: {
@@ -44,13 +46,43 @@ export function FaqForm({ faq }: FaqFormProps) {
     }
   });
 
-  const onSubmit = (data: FaqFormValues) => {
-    console.log(data);
-    toast({
-        title: faq ? 'FAQ Updated' : 'FAQ Created',
-        description: `The FAQ has been successfully ${faq ? 'updated' : 'created'}.`,
-    });
-    router.push('/faqs');
+  const onSubmit = async (data: FaqFormValues) => {
+    try {
+      if (faq) {
+        await updateFaq(faq.id, data);
+      } else {
+        await createFaq(data);
+      }
+      toast({
+          title: faq ? 'FAQ Updated' : 'FAQ Created',
+          description: `The FAQ has been successfully ${faq ? 'updated' : 'created'}.`,
+      });
+      router.push('/faqs');
+      router.refresh();
+    } catch (error: any) {
+        if (error.data && error.data.errors) {
+            const serverErrors = error.data.errors;
+            Object.keys(serverErrors).forEach((key) => {
+                if (Object.prototype.hasOwnProperty.call(faqSchema.shape, key)) {
+                    setError(key as keyof FaqFormValues, {
+                        type: 'server',
+                        message: serverErrors[key],
+                    });
+                }
+            });
+            toast({
+                title: 'Could not save FAQ',
+                description: error.data.message || 'Please correct the errors and try again.',
+                variant: 'destructive',
+            });
+        } else {
+           toast({
+              title: 'An error occurred',
+              description: error.message,
+              variant: 'destructive',
+          });
+        }
+    }
   };
 
   return (

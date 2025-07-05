@@ -241,6 +241,17 @@ export interface Jobseeker {
     updatedAt: Date;
 }
 
+export interface Faq {
+  id: string;
+  _id?: string;
+  question: string;
+  answer: string;
+  isActive: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 
 export interface GetAllParams {
     page?: number;

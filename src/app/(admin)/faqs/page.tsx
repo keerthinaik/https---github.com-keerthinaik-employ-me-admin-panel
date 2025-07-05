@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import { useState, useMemo, useEffect, type Key } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +14,8 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { faqs, type Faq } from "@/lib/data";
-import { format } from "date-fns";
+import { type Faq, type Pagination, type GetAllParams } from "@/lib/types";
+import { format, isValid } from "date-fns";
 import {
     Edit,
     MoreHorizontal,
@@ -39,6 +37,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/lib/hooks';
+import { getFaqs, deleteFaq } from '@/services/api';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 type SortConfig = {
     key: keyof Faq;
@@ -49,7 +52,7 @@ const columnsConfig = [
     { key: 'order' as const, label: 'Order', sortable: true, sortKey: 'order' as keyof Faq },
     { key: 'question' as const, label: 'Question', sortable: true, sortKey: 'question' as keyof Faq },
     { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'isActive' as keyof Faq },
-    { key: 'lastUpdated' as const, label: 'Last Updated', sortable: true, sortKey: 'updatedAt' as keyof Faq },
+    { key: 'updatedAt' as const, label: 'Last Updated', sortable: true, sortKey: 'updatedAt' as keyof Faq },
     { key: 'actions' as const, label: 'Actions', sortable: false },
 ];
 
@@ -58,73 +61,80 @@ type ColumnKeys = typeof columnsConfig[number]['key'];
 const ROWS_PER_PAGE = 10;
 
 export default function FaqsPage() {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
-    const [filters, setFilters] = useState({ isActive: 'all' });
+    const { toast } = useToast();
+    const [faqs, setFaqs] = useState<Faq[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const [filters, setFilters] = useState({ isActive: 'all' });
+    
     const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
         order: true,
         question: true,
         status: true,
-        lastUpdated: true,
+        updatedAt: true,
         actions: true,
     });
     const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
 
-    const filteredAndSortedFaqs = useMemo(() => {
-        let sortedItems = [...faqs];
-
-        // Filtering
-        sortedItems = sortedItems.filter(faq => {
-            if (filters.isActive !== 'all') {
-                const isActive = filters.isActive === 'active';
-                if (faq.isActive !== isActive) return false;
-            }
-
-            if (searchTerm) {
-                const searchLower = searchTerm.toLowerCase();
-                return (
-                    faq.question.toLowerCase().includes(searchLower) ||
-                    faq.answer.toLowerCase().includes(searchLower)
-                );
-            }
-            return true;
-        });
-
-        // Sorting
-        if (sortConfig !== null) {
-            sortedItems.sort((a, b) => {
-                const key = sortConfig.key;
-                const valA = a[key];
-                const valB = b[key];
-                
-                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
+    const fetchFaqs = useCallback(() => {
+        setIsLoading(true);
+        const apiFilters: Record<string, any> = {};
+        if (debouncedSearchTerm) {
+            apiFilters.question = debouncedSearchTerm; // Assuming search by question
+        }
+        if (filters.isActive !== 'all') {
+            apiFilters.isActive = filters.isActive === 'active';
         }
 
-        return sortedItems;
-    }, [searchTerm, sortConfig, filters]);
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
 
-    const totalPages = Math.ceil(filteredAndSortedFaqs.length / ROWS_PER_PAGE);
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
 
-    const paginatedFaqs = useMemo(() => {
-        const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-        return filteredAndSortedFaqs.slice(startIndex, startIndex + ROWS_PER_PAGE);
-    }, [currentPage, filteredAndSortedFaqs]);
+        getFaqs(params)
+            .then(data => {
+                setFaqs(data.data);
+                setPagination(data.pagination);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching FAQs',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
 
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, [currentPage, searchTerm, filters]);
-
-
-     useEffect(() => {
+        fetchFaqs();
+    }, [fetchFaqs]);
+    
+    useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filters]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
 
+    const handleDelete = async (faqId: string) => {
+        try {
+            await deleteFaq(faqId);
+            toast({
+                title: 'FAQ Deleted',
+                description: 'The FAQ has been successfully deleted.',
+            });
+            fetchFaqs();
+        } catch (error: any) {
+            toast({
+                title: 'Error deleting FAQ',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
     const requestSort = (key: keyof Faq) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -151,7 +161,7 @@ export default function FaqsPage() {
             {columnVisibility.order && <TableCell><Skeleton className="h-5 w-8 mx-auto" /></TableCell>}
             {columnVisibility.question && <TableCell><Skeleton className="h-5 w-full" /></TableCell>}
             {columnVisibility.status && <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>}
-            {columnVisibility.lastUpdated && <TableCell><Skeleton className="h-5 w-24" /></TableCell>}
+            {columnVisibility.updatedAt && <TableCell><Skeleton className="h-5 w-24" /></TableCell>}
             {columnVisibility.actions && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
         </TableRow>
     );
@@ -171,7 +181,7 @@ export default function FaqsPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by question or answer..."
+                        placeholder="Search by question..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -252,9 +262,9 @@ export default function FaqsPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            Array.from({ length: ROWS_PER_PAGE }).map((_, i) => <SkeletonRow key={i} />)
-                        ) : paginatedFaqs.length > 0 ? (
-                            paginatedFaqs.map(faq => (
+                            Array.from({ length: rowsPerPage }).map((_, i) => <SkeletonRow key={i} />)
+                        ) : faqs.length > 0 ? (
+                            faqs.map(faq => (
                                 <TableRow key={faq.id}>
                                     {columnVisibility.order && <TableCell className="font-medium text-center">{faq.order}</TableCell>}
                                     {columnVisibility.question && <TableCell className="font-medium max-w-xl truncate">{faq.question}</TableCell>}
@@ -265,10 +275,11 @@ export default function FaqsPage() {
                                             </Badge>
                                         </TableCell>
                                     )}
-                                    {columnVisibility.lastUpdated && <TableCell>{format(faq.updatedAt, 'MMM d, yyyy')}</TableCell>}
+                                    {columnVisibility.updatedAt && <TableCell>{isValid(new Date(faq.updatedAt)) ? format(new Date(faq.updatedAt), 'MMM d, yyyy') : 'N/A'}</TableCell>}
                                     {columnVisibility.actions && (
                                         <TableCell>
-                                            <DropdownMenu>
+                                            <AlertDialog>
+                                                <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                 <Button aria-haspopup="true" size="icon" variant="ghost">
                                                     <MoreHorizontal className="h-4 w-4" />
@@ -283,12 +294,25 @@ export default function FaqsPage() {
                                                             Edit
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                        <Trash2 className="mr-1 h-4 w-4"/>
-                                                        Delete
-                                                    </DropdownMenuItem>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                            <Trash2 className="mr-1 h-4 w-4"/>
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
                                                 </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                </DropdownMenu>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This action cannot be undone. This will permanently delete the FAQ.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(faq.id)}>Continue</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     )}
                                 </TableRow>
@@ -305,13 +329,13 @@ export default function FaqsPage() {
             </div>
 
             <div className="flex items-center justify-between mt-4">
-                {isLoading ? (
-                    <Skeleton className="h-5 w-72" />
-                ) : (
-                    <div className="text-sm text-muted-foreground">
-                        Showing {Math.min((currentPage - 1) * ROWS_PER_PAGE + 1, filteredAndSortedFaqs.length)} to {Math.min(currentPage * ROWS_PER_PAGE, filteredAndSortedFaqs.length)} of {filteredAndSortedFaqs.length} FAQs.
-                    </div>
-                )}
+                <div className="text-sm text-muted-foreground">
+                    {isLoading || !pagination ? (
+                        <Skeleton className="h-5 w-48" />
+                    ) : (
+                        `Showing ${pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to ${Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of ${pagination.totalRecords} FAQs.`
+                    )}
+                </div>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
@@ -323,13 +347,13 @@ export default function FaqsPage() {
                         Previous
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                        Page {isLoading ? '...' : currentPage} of {isLoading ? '...' : totalPages}
+                        Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
                     </span>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages || isLoading}
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                        disabled={currentPage === pagination?.totalPages || isLoading}
                     >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
