@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -308,11 +307,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (value === undefined) {
-        return;
+      // Exclude association IDs if they are null, undefined, or an empty string
+      if ((key === 'businessAssociationId' || key === 'universityAssociationId') && !value) {
+        return; // Skip appending
       }
-      if (value === null) {
-        formData.append(key, ''); // Send empty string for null
+
+      if (value === undefined || value === null) {
         return;
       }
       
@@ -439,7 +439,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                     setValue('universityAssociationId', null, { shouldValidate: true });
                                                 }
                                             }}
-                                            value={field.value ?? ''}>
+                                            value={field.value ?? '__none__'}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="__none__">None</SelectItem>
@@ -464,7 +464,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                     setValue('businessAssociationId', null, { shouldValidate: true });
                                                 }
                                             }}
-                                            value={field.value ?? ''}>
+                                            value={field.value ?? '__none__'}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="__none__">None</SelectItem>
@@ -528,3 +528,4 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
+
