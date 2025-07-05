@@ -86,33 +86,45 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
   const form = useForm<AdminUserFormValues>({
     resolver: zodResolver(adminUserSchema),
     defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      phoneNumber: user?.phoneNumber || '',
-      address: user?.address || '',
-      country: user?.country || '',
-      state: user?.state || '',
-      city: user?.city || '',
-      zipCode: user?.zipCode || '',
-      isVerified: user?.isVerified || false,
-      isActive: user?.isActive ?? true,
+      name: '',
+      email: '',
+      password: '',
+      phoneNumber: '',
+      address: '',
+      country: '',
+      state: '',
+      city: '',
+      zipCode: '',
+      isVerified: false,
+      isActive: true,
       profilePhoto: undefined,
     }
   });
   
-  const { handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue, reset } = form;
+  const { handleSubmit, formState: { errors, isSubmitting, dirtyFields }, control, setError, watch, setValue, reset } = form;
 
   const watchedCountry = watch('country');
   const watchedState = watch('state');
-
-  const countryRef = React.useRef(user?.country);
-  const stateRef = React.useRef(user?.state);
-
+  
   React.useEffect(() => {
-    if (user?.profilePhoto) {
-      setCroppedImageUrl(`${API_BASE_URL}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`);
+    if (user) {
+      reset({
+        name: user.name || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || '',
+        country: user.country || '',
+        state: user.state || '',
+        city: user.city || '',
+        zipCode: user.zipCode || '',
+        isVerified: user.isVerified || false,
+        isActive: user.isActive ?? true,
+      });
+      if (user.profilePhoto) {
+        setCroppedImageUrl(`${API_BASE_URL}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`);
+      }
     }
-  }, [user]);
+  }, [user, reset]);
   
   React.useEffect(() => {
     setIsLoadingCountries(true);
@@ -122,22 +134,26 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
   React.useEffect(() => {
     if (watchedCountry) {
       setIsLoadingStates(true);
-      if (countryRef.current !== watchedCountry) setValue('state', '');
+      if (dirtyFields.country) {
+        setValue('state', '');
+        setValue('city', '');
+      }
       setStates([]);
+      setCities([]);
       getStates(watchedCountry).then(setStates).catch(() => toast({ title: "Failed to load states", variant: "destructive" })).finally(() => setIsLoadingStates(false));
     }
-    countryRef.current = watchedCountry;
-  }, [watchedCountry, toast, setValue]);
+  }, [watchedCountry, dirtyFields.country, setValue, toast]);
 
   React.useEffect(() => {
     if (watchedCountry && watchedState) {
       setIsLoadingCities(true);
-      if (stateRef.current !== watchedState) setValue('city', '');
+      if (dirtyFields.state) {
+        setValue('city', '');
+      }
       setCities([]);
       getCities(watchedCountry, watchedState).then(setCities).catch(() => toast({ title: "Failed to load cities", variant: "destructive" })).finally(() => setIsLoadingCities(false));
     }
-    stateRef.current = watchedState;
-  }, [watchedCountry, watchedState, toast, setValue]);
+  }, [watchedCountry, watchedState, dirtyFields.state, setValue, toast]);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
