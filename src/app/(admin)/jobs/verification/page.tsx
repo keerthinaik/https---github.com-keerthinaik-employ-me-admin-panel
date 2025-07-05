@@ -8,17 +8,21 @@ import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuCheckboxItem,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-    DropdownMenuSeparator
+    DropdownMenuSeparator,
+    DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getJobs } from '@/services/api';
+import { getJobs, updateJob, getEmployers } from '@/services/api';
 import type { Job, Pagination, GetAllParams, Employer as EmployerType } from "@/lib/types";
 import { format, isValid } from "date-fns";
 import {
+    Eye,
     Search,
+    SlidersHorizontal,
     ArrowDownUp,
     ArrowUp,
     ArrowDown,
@@ -26,12 +30,19 @@ import {
     Columns,
     ChevronLeft,
     ChevronRight,
+    Check,
+    X,
+    ChevronsUpDown
 } from "lucide-react";
+import Link from "next/link";
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/lib/hooks';
 import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 
 type SortConfig = {
     key: string;
@@ -43,6 +54,7 @@ const columnsConfig = [
     { key: 'employer' as const, label: 'Company', sortable: true, sortKey: 'employer.name' },
     { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'isActive' },
     { key: 'postingDate' as const, label: 'Posted On', sortable: true, sortKey: 'postingDate' },
+    { key: 'actions' as const, label: 'Actions', sortable: false },
 ];
 
 type ColumnKeys = typeof columnsConfig[number]['key'];
@@ -52,37 +64,61 @@ const ROWS_PER_PAGE = 10;
 export default function JobVerificationPage() {
     const { toast } = useToast();
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [employers, setEmployers] = useState<EmployerType[]>([]);
     const [pagination, setPagination] = useState<Pagination | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingEmployers, setIsLoadingEmployers] = useState(true);
 
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    // Filters are removed from UI for this specific view
-    const [filters, setFilters] = useState({});
+    const [filters, setFilters] = useState({
+        isActive: 'inactive', // Default to show pending jobs
+        employerId: 'all',
+    });
 
-    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
         title: true,
         employer: true,
         status: true,
         postingDate: true,
+        actions: true,
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
     const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
 
-    const getStatusBadge = (isActive: boolean) => {
-        // This page only shows inactive jobs pending approval
-        return <Badge variant="secondary" className="capitalize">Pending Approval</Badge>;
-    }
+    useEffect(() => {
+        setIsLoadingEmployers(true);
+        getEmployers({ limit: 1000 })
+            .then(data => {
+                setEmployers(data.data);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching employers',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => {
+                setIsLoadingEmployers(false);
+            });
+    }, [toast]);
+
 
     const fetchJobs = useCallback(() => {
         setIsLoading(true);
-        // Always fetch inactive jobs for the verification page
-        const apiFilters: Record<string, any> = { ...filters, isActive: false }; 
+        const apiFilters: Record<string, any> = {};
         if (debouncedSearchTerm) {
             apiFilters.title = debouncedSearchTerm;
+        }
+        if (filters.isActive !== 'all') {
+            apiFilters.isActive = filters.isActive === 'active';
+        }
+        if (filters.employerId !== 'all') {
+            apiFilters.employer = filters.employerId;
         }
 
         const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
@@ -111,6 +147,29 @@ export default function JobVerificationPage() {
         setCurrentPage(1);
     }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
 
+    const handleVerification = async (job: Job, isActive: boolean) => {
+        try {
+            await updateJob(job.id, { isActive });
+            toast({
+                title: 'Job Status Updated',
+                description: `"${job.title}" has been ${isActive ? 'approved' : 'disapproved'}.`,
+            });
+            fetchJobs(); // refetch jobs
+        } catch (error: any) {
+            toast({
+                title: 'Error updating job status',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const getStatusBadge = (isActive: boolean) => {
+        return isActive 
+            ? <Badge className="bg-green-500 hover:bg-green-600 capitalize">Active</Badge>
+            : <Badge variant="secondary" className="capitalize">Pending Approval</Badge>;
+    }
+
     const requestSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -128,8 +187,12 @@ export default function JobVerificationPage() {
 
     const clearFilters = () => {
         setSearchTerm('');
-        setFilters({});
+        setFilters({ isActive: 'all', employerId: 'all' });
         setSortConfig({ key: 'updatedAt', direction: 'desc' });
+    }
+
+    const handleFilterChange = (key: keyof typeof filters, value: string) => {
+        setFilters(prev => ({...prev, [key]: value}));
     }
 
     const SkeletonRow = () => (
@@ -142,6 +205,7 @@ export default function JobVerificationPage() {
                             "w-32": col.key === "employer",
                             "w-20 rounded-full h-6": col.key === "status",
                             "w-24": col.key === "postingDate",
+                            "w-48": col.key === "actions",
                         })} />
                     </TableCell>
                 )
@@ -164,6 +228,69 @@ export default function JobVerificationPage() {
                     />
                 </div>
                 <div className='flex gap-2 w-full md:w-auto'>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full md:w-auto">
+                                <SlidersHorizontal className="mr-1 h-4 w-4" /> Filter
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="end">
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Filters</h4>
+                                     <p className="text-sm text-muted-foreground">
+                                        Refine job results.
+                                    </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Status</Label>
+                                    <RadioGroup value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r-stat-all" /><Label htmlFor="r-stat-all">All</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="active" id="r-stat-active" /><Label htmlFor="r-stat-active">Active</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="inactive" id="r-stat-inactive" /><Label htmlFor="r-stat-inactive">Pending Approval</Label></div>
+                                    </RadioGroup>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Employer</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className="w-full justify-between"
+                                                disabled={isLoadingEmployers}
+                                            >
+                                                {isLoadingEmployers ? "Loading..." :
+                                                    filters.employerId !== 'all'
+                                                        ? employers.find(e => e.id === filters.employerId)?.name
+                                                        : "Select employer..."}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[300px] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Search employer..." />
+                                                <CommandEmpty>No employer found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    <CommandItem onSelect={() => handleFilterChange('employerId', 'all')}>All Employers</CommandItem>
+                                                    {employers.map(employer => (
+                                                        <CommandItem
+                                                            key={employer.id}
+                                                            value={employer.name}
+                                                            onSelect={() => handleFilterChange('employerId', employer.id)}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", filters.employerId === employer.id ? "opacity-100" : "opacity-0")} />
+                                                            {employer.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="w-full md:w-auto">
@@ -173,7 +300,7 @@ export default function JobVerificationPage() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {columnsConfig.map(column => (
+                            {columnsConfig.filter(c => c.key !== 'actions').map(column => (
                                 <DropdownMenuCheckboxItem key={column.key} className="capitalize" checked={columnVisibility[column.key]} onCheckedChange={(value) => setColumnVisibility(prev => ({...prev, [column.key]: !!value}))}>
                                     {column.label}
                                 </DropdownMenuCheckboxItem>
@@ -213,12 +340,30 @@ export default function JobVerificationPage() {
                                     {columnVisibility.employer && <TableCell className="text-muted-foreground">{(job.employer as EmployerType)?.name || 'N/A'}</TableCell>}
                                     {columnVisibility.status && <TableCell>{getStatusBadge(job.isActive)}</TableCell>}
                                     {columnVisibility.postingDate && <TableCell className="hidden lg:table-cell">{isValid(new Date(job.postingDate)) ? format(new Date(job.postingDate), 'MMM d, yyyy') : 'N/A'}</TableCell>}
+                                    {columnVisibility.actions && (
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/jobs/verification/${job.id}`}><Eye className="mr-1 h-4 w-4"/> View</Link>
+                                                </Button>
+                                                {!job.isActive ? (
+                                                    <Button size="sm" className="w-28 justify-center bg-green-500 hover:bg-green-600" onClick={() => handleVerification(job, true)}>
+                                                        <Check className="mr-1 h-4 w-4"/> Approve
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="destructive" size="sm" className="w-28 justify-center" onClick={() => handleVerification(job, false)}>
+                                                        <X className="mr-1 h-4 w-4"/> Disapprove
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))
                         ) : (
                              <TableRow>
                                 <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-24 text-center">
-                                    No jobs pending verification.
+                                    No jobs found.
                                 </TableCell>
                             </TableRow>
                         )}
