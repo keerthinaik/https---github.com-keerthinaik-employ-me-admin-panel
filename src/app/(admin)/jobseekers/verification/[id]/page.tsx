@@ -6,15 +6,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { jobseekers, skills, skillCategories } from "@/lib/data";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isValid } from "date-fns";
 import {
     ArrowLeft, GraduationCap, UserCheck, Linkedin, Github, Phone, Mail, FileText, MapPin, Globe, Building, Briefcase, Calendar, Star, GanttChartSquare, Award, Tags, Check, X
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getJobseeker, updateJobseeker, getSkillCategories, getSkills } from '@/services/api';
+import type { Jobseeker, Skill, SkillCategory } from '@/lib/types';
+import { useToast } from "@/hooks/use-toast";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
 function JobseekerDetailsSkeleton() {
     return (
@@ -83,22 +87,68 @@ export default function JobseekerVerificationDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const jobseeker = jobseekers.find(j => j.id === id);
-    
+    const { toast } = useToast();
+    const [jobseeker, setJobseeker] = useState<Jobseeker | null>(null);
+    const [allSkills, setAllSkills] = useState<Skill[]>([]);
+    const [skillCategories, setSkillCategories] = useState<SkillCategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
+    const fetchJobseekerData = useCallback(() => {
+        if (id) {
+            setIsLoading(true);
+            Promise.all([
+                getJobseeker(id),
+                getSkills({ limit: 1000 }),
+                getSkillCategories({ limit: 1000 })
+            ]).then(([jobseekerData, skillsRes, categoriesRes]) => {
+                setJobseeker(jobseekerData);
+                setAllSkills(skillsRes.data);
+                setSkillCategories(categoriesRes.data);
+            }).catch(err => {
+                console.error(err);
+                notFound();
+            }).finally(() => {
+                setIsLoading(false);
+            });
+        }
+    }, [id]);
 
-    if (!jobseeker) {
-        notFound();
-    }
+    useEffect(() => {
+        fetchJobseekerData();
+    }, [fetchJobseekerData]);
+
+    const handleVerification = async (isVerified: boolean) => {
+        if (!jobseeker) return;
+        try {
+            const formData = new FormData();
+            formData.append('isVerified', String(isVerified));
+            await updateJobseeker(jobseeker.id, formData);
+            toast({
+                title: 'Verification Status Updated',
+                description: `${jobseeker.name} has been ${isVerified ? 'approved' : 'disapproved'}.`,
+            });
+            fetchJobseekerData(); // Refetch data to show updated status
+        } catch (error: any) {
+            toast({
+                title: 'Error updating status',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
 
     if (isLoading) {
         return <JobseekerDetailsSkeleton />;
     }
+
+    if (!jobseeker) {
+        return notFound();
+    }
+    
+    const getFullUrl = (path?: string) => {
+        if (!path) return '';
+        return path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+    };
 
     return (
         <div>
@@ -108,13 +158,12 @@ export default function JobseekerVerificationDetailsPage() {
                         <ArrowLeft className="mr-1 h-4 w-4" />
                         Back to Verification List
                     </Button>
-                    {!jobseeker.isVerified && (
-                        <Button className="bg-green-500 hover:bg-green-600">
+                    {!jobseeker.isVerified ? (
+                        <Button className="bg-green-500 hover:bg-green-600" onClick={() => handleVerification(true)}>
                             <Check className="mr-1 h-4 w-4" /> Approve
                         </Button>
-                    )}
-                    {jobseeker.isVerified && (
-                        <Button variant="destructive">
+                    ) : (
+                         <Button variant="destructive" onClick={() => handleVerification(false)}>
                             <X className="mr-1 h-4 w-4" /> Disapprove
                         </Button>
                     )}
@@ -126,7 +175,7 @@ export default function JobseekerVerificationDetailsPage() {
                     <Card>
                         <CardHeader className="items-center text-center p-6">
                             <Avatar className="h-24 w-24 mb-4 ring-2 ring-primary ring-offset-2 ring-offset-background">
-                                <AvatarImage src={jobseeker.profilePhoto} alt={jobseeker.name} />
+                                <AvatarImage src={getFullUrl(jobseeker.profilePhoto)} alt={jobseeker.name} />
                                 <AvatarFallback>{jobseeker.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <CardTitle className="text-2xl">{jobseeker.name}</CardTitle>
@@ -137,14 +186,14 @@ export default function JobseekerVerificationDetailsPage() {
                                 <Mail className="h-4 w-4 mt-1 shrink-0" />
                                 <a href={`mailto:${jobseeker.email}`} className="text-primary hover:underline break-all">{jobseeker.email}</a>
                            </div>
-                            <div className="flex items-start gap-3">
+                            {jobseeker.phoneNumber && (<div className="flex items-start gap-3">
                                 <Phone className="h-4 w-4 mt-1 shrink-0" />
                                 <span>{jobseeker.phoneNumber}</span>
-                           </div>
-                           <div className="flex items-start gap-3">
+                           </div>)}
+                           {(jobseeker.city || jobseeker.country) && (<div className="flex items-start gap-3">
                                 <MapPin className="h-4 w-4 mt-1 shrink-0" />
                                 <span>{jobseeker.city}, {jobseeker.country}</span>
-                           </div>
+                           </div>)}
                             <div className="flex items-start gap-3">
                                 <UserCheck className="h-4 w-4 mt-1 shrink-0" />
                                 <Badge variant={jobseeker.isVerified ? 'default' : 'secondary'} className={jobseeker.isVerified ? 'bg-green-500 hover:bg-green-600' : ''}>
@@ -183,7 +232,7 @@ export default function JobseekerVerificationDetailsPage() {
                              {jobseeker.resume && (
                                  <div className="flex items-center gap-2">
                                     <FileText className="h-5 w-5 text-gray-600" />
-                                    <a href={jobseeker.resume} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Resume</a>
+                                    <a href={getFullUrl(jobseeker.resume)} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Resume</a>
                                 </div>
                              )}
                              {jobseeker.certifications && jobseeker.certifications.length > 0 && (
@@ -192,7 +241,7 @@ export default function JobseekerVerificationDetailsPage() {
                                     <ul className="pl-5 space-y-1">
                                     {jobseeker.certifications.map((cert, index) => (
                                         <li key={index}>
-                                            <a href={cert} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">Certification Document {index + 1}</a>
+                                            <a href={getFullUrl(cert)} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">Certification Document {index + 1}</a>
                                         </li>
                                     ))}
                                     </ul>
@@ -221,7 +270,7 @@ export default function JobseekerVerificationDetailsPage() {
                                            <div>
                                                <h4 className="font-semibold">{exp.jobTitle}</h4>
                                                <p className="text-muted-foreground">{exp.companyName}</p>
-                                               <p className="text-xs text-muted-foreground">{`${format(new Date(exp.startDate), 'MMM yyyy')} - ${exp.isCurrent ? 'Present' : format(new Date(exp.endDate as Date), 'MMM yyyy')}`}</p>
+                                               <p className="text-xs text-muted-foreground">{`${isValid(new Date(exp.startDate)) ? format(new Date(exp.startDate), 'MMM yyyy') : ''} - ${exp.isCurrent ? 'Present' : exp.endDate && isValid(new Date(exp.endDate)) ? format(new Date(exp.endDate), 'MMM yyyy') : ''}`}</p>
                                                 {exp.responsibilities && exp.responsibilities.length > 0 && (
                                                     <ul className="mt-2 list-disc list-inside text-sm text-muted-foreground">
                                                         {exp.responsibilities.map((resp, i) => <li key={i}>{resp}</li>)}
@@ -255,8 +304,8 @@ export default function JobseekerVerificationDetailsPage() {
                                            <div>
                                                <h4 className="font-semibold">{edu.degree} in {edu.fieldOfStudy}</h4>
                                                <p className="text-muted-foreground">{edu.institution}</p>
-                                                <p className="text-sm text-muted-foreground">CGPA: {edu.cgpa}</p>
-                                               <p className="text-xs text-muted-foreground">{`${format(new Date(edu.startDate), 'MMM yyyy')} - ${format(new Date(edu.endDate), 'MMM yyyy')}`}</p>
+                                                {edu.cgpa && <p className="text-sm text-muted-foreground">CGPA: {edu.cgpa}</p>}
+                                               <p className="text-xs text-muted-foreground">{`${isValid(new Date(edu.startDate)) ? format(new Date(edu.startDate), 'MMM yyyy') : ''} - ${isValid(new Date(edu.endDate)) ? format(new Date(edu.endDate), 'MMM yyyy') : ''}`}</p>
                                            </div>
                                        </div>
                                    ))}
@@ -272,8 +321,8 @@ export default function JobseekerVerificationDetailsPage() {
                             {jobseeker.skills && jobseeker.skills.length > 0 ? (
                                 <div className="space-y-4">
                                     {skillCategories.map(category => {
-                                        const relevantSkills = skills.filter(s => 
-                                            s.categoryId === category.id && jobseeker.skills?.includes(s.name)
+                                        const relevantSkills = allSkills.filter(s =>
+                                            s.skillCategory?.id === category.id && jobseeker.skills?.includes(s.id)
                                         );
 
                                         if (relevantSkills.length === 0) return null;

@@ -72,7 +72,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
         icon: UsersRound,
         subItems: [
           { href: '/jobseekers', label: 'Manage Jobseekers' },
-          { href: '/jobseekers/verification', label: 'Jobseeker Verification' },
+          { href: '/jobseekers/verification', label: 'Verification' },
         ],
       },
       {
