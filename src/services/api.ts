@@ -179,6 +179,56 @@ export async function deleteAdminUser(id: string): Promise<null> {
   });
 }
 
+// Sub Admin Users
+export async function getSubAdminUsers(params: GetAllParams = {}): Promise<{ data: ProfileUser[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response = await authedFetch(`/api/v1/sub-admin-users?${queryString}`);
+  const data = response.data.map((item: any) => ({
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+  return { data, pagination };
+}
+
+export async function getSubAdminUser(id: string): Promise<ProfileUser> {
+  const response = await authedFetch(`/api/v1/sub-admin-users/${id}`);
+  const item = response.data;
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function createSubAdminUser(userData: FormData): Promise<ProfileUser> {
+  const response = await authedFetch(`/api/v1/sub-admin-users`, {
+    method: 'POST',
+    body: userData,
+  });
+  return response.data;
+}
+
+export async function updateSubAdminUser(id: string, userData: FormData): Promise<ProfileUser> {
+  const response = await authedFetch(`/api/v1/sub-admin-users/${id}`, {
+    method: 'PUT',
+    body: userData,
+  });
+  return response.data;
+}
+
+export async function deleteSubAdminUser(id: string): Promise<null> {
+  return authedFetch(`/api/v1/sub-admin-users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 
 // Jobs
 export async function getJobs(params: GetAllParams = {}): Promise<{ data: Job[], pagination: Pagination }> {

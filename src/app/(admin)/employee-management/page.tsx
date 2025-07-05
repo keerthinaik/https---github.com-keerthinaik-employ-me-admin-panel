@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, type Key } from 'react';
@@ -386,5 +387,3 @@ export default function EmployeeManagementPage() {
         </div>
     )
 }
-
-    
