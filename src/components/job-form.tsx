@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -29,9 +28,7 @@ import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJo
 import type { Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { Switch } from './ui/switch';
-import dynamic from 'next/dynamic';
-
-const RichTextEditor = dynamic(() => import('./rich-text-editor'), { ssr: false });
+import RichTextEditor from './rich-text-editor';
 
 
 const questionSchema = z.object({
@@ -193,7 +190,7 @@ export function JobForm({ job }: { job?: Job }) {
         jobCategory: typeof job.jobCategory === 'object' ? job.jobCategory.id : job.jobCategory || '',
         employer: typeof job.employer === 'object' ? job.employer.id : job.employer || '',
         expectedStartDate: job.expectedStartDate ? new Date(job.expectedStartDate) : undefined,
-        skills: job.skills || [],
+        skills: Array.isArray(job.skills) ? job.skills.map((skill: any) => typeof skill === 'object' && skill !== null ? skill._id || skill.id : skill) : [],
         benefits: Array.isArray(job.benefits) ? job.benefits : [],
         languagesRequired: Array.isArray(job.languagesRequired) ? job.languagesRequired : [],
         supplementalPayments: Array.isArray(job.supplementalPayments) ? job.supplementalPayments : [],

@@ -1,8 +1,11 @@
 'use client';
 
 import React from 'react';
-import ReactQuill from 'react-quill';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
+
+// Dynamically import ReactQuill to disable SSR
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 interface RichTextEditorProps {
   value: string;
