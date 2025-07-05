@@ -152,18 +152,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       } else {
         setCroppedImageUrl('');
       }
-
-      toast({
-        title: "Loaded Association IDs",
-        description: (
-          <div className="text-xs">
-            <p>Business ID: {jobseeker.businessAssociationId || 'null'}</p>
-            <p>University ID: {jobseeker.universityAssociationId || 'null'}</p>
-          </div>
-        )
-      });
     }
-  }, [jobseeker, reset, toast]);
+  }, [jobseeker, reset]);
   
   React.useEffect(() => {
     const fetchInitialData = async () => {
@@ -456,7 +446,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                             <CommandGroup className="max-h-60 overflow-auto">
                                                                 <CommandItem value="__none__" onSelect={() => { setValue('businessAssociationId', null); setOpenBusiness(false); }}>None</CommandItem>
                                                                 {businesses.map(b => (
-                                                                    <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); toast({title: "Business Selected", description: `${b.name} (ID: ${b.id})`}) }}>
+                                                                    <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', null); setOpenBusiness(false); }}>
                                                                         <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
                                                                         {b.name}
                                                                     </CommandItem>
@@ -507,7 +497,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                             <CommandGroup className="max-h-60 overflow-auto">
                                                                 <CommandItem value="__none__" onSelect={() => { setValue('universityAssociationId', null); setOpenUniversity(false); }}>None</CommandItem>
                                                                 {universities.map(u => (
-                                                                    <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); toast({title: "University Selected", description: `${u.name} (ID: ${u.id})`}) }}>
+                                                                    <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', null); setOpenUniversity(false); }}>
                                                                         <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
                                                                         {u.name}
                                                                     </CommandItem>
