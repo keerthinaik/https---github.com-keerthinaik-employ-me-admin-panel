@@ -311,7 +311,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       if (jobseeker && key === 'password' && !value) {
         return;
       }
-      // Exclude association IDs if they are null
+      
+      // Exclude association IDs if they are null/empty
       if ((key === 'businessAssociationId' || key === 'universityAssociationId') && !value) {
         return; 
       }
@@ -441,6 +442,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                 field.onChange(newValue);
                                                 if (newValue) {
                                                     setValue('universityAssociationId', null, { shouldValidate: true });
+                                                    const business = businesses.find(b => b.id === newValue);
+                                                    if (business) {
+                                                        toast({
+                                                            title: 'Business Selected',
+                                                            description: `ID: ${business.id}, Name: ${business.name}`
+                                                        });
+                                                    }
                                                 }
                                             }}
                                             value={field.value ?? '__none__'}>
@@ -466,6 +474,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                 field.onChange(newValue);
                                                 if (newValue) {
                                                     setValue('businessAssociationId', null, { shouldValidate: true });
+                                                    const university = universities.find(u => u.id === newValue);
+                                                    if (university) {
+                                                        toast({
+                                                            title: 'University Selected',
+                                                            description: `ID: ${university.id}, Name: ${university.name}`
+                                                        });
+                                                    }
                                                 }
                                             }}
                                             value={field.value ?? '__none__'}>
