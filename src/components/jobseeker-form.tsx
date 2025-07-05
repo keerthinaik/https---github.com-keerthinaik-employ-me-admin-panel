@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -313,24 +314,34 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const onSubmit = async (data: JobseekerFormValues) => {
     const formData = new FormData();
 
-    Object.entries(data).forEach(([key, value]) => {
+    // Create a mutable copy to process
+    const dataToSend: { [key: string]: any } = { ...data };
+    
+    // Convert null to empty string for association IDs to ensure they are sent to backend
+    if (dataToSend.businessAssociationId === null) {
+      dataToSend.businessAssociationId = '';
+    }
+    if (dataToSend.universityAssociationId === null) {
+      dataToSend.universityAssociationId = '';
+    }
+
+    Object.entries(dataToSend).forEach(([key, value]) => {
+      if (jobseeker && key === 'password' && !value) {
+          return; // Skip empty password on edit
+      }
       
-      if (value !== undefined && value !== null) {
-        if (key === 'profilePhoto' && value instanceof File) {
-          formData.append(key, value);
-        } else if (value instanceof Date) {
-          formData.append(key, value.toISOString());
-        } else if (typeof value === 'boolean') {
-          formData.append(key, String(value));
-        } else if (key !== 'profilePhoto') {
-          formData.append(key, String(value));
-        }
+      if (value === undefined || value === null) {
+          return; // Skip other undefined or null values
+      }
+
+      if (key === 'profilePhoto' && value instanceof File) {
+        formData.append(key, value);
+      } else if (value instanceof Date) {
+        formData.append(key, value.toISOString());
+      } else {
+        formData.append(key, String(value));
       }
     });
-
-    if (jobseeker && !data.password) {
-      formData.delete('password');
-    }
 
     try {
         if (jobseeker) {
