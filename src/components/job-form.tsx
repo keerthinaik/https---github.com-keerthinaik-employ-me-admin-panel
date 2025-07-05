@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -26,7 +27,7 @@ import { suggestJobTitles } from '@/ai/flows/suggest-job-title-flow';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from './ui/badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJob, updateJob } from '@/services/api';
+import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJob, updateJob, createSkill } from '@/services/api';
 import type { Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 
@@ -146,6 +147,9 @@ export function JobForm({ job }: { job?: Job }) {
   const [openEmployer, setOpenEmployer] = React.useState(false);
   const [openJobCategory, setOpenJobCategory] = React.useState(false);
   const [startDateOpen, setStartDateOpen] = React.useState(false);
+
+  const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
+  const [isAddingSkill, setIsAddingSkill] = React.useState<Record<string, boolean>>({});
   
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
@@ -247,6 +251,27 @@ export function JobForm({ job }: { job?: Job }) {
       });
     } finally {
       setIsSuggesting(false);
+    }
+  };
+
+  const handleAddNewSkill = async (categoryId: string) => {
+    const skillName = newSkillInputs[categoryId]?.trim();
+    if (!skillName) {
+        toast({ title: 'Skill name cannot be empty', variant: 'destructive' });
+        return;
+    }
+
+    setIsAddingSkill(prev => ({ ...prev, [categoryId]: true }));
+
+    try {
+        const newSkill = await createSkill({ name: skillName, skillCategory: categoryId, isActive: true });
+        setAllSkills(prevSkills => [...prevSkills, newSkill]);
+        setNewSkillInputs(prev => ({ ...prev, [categoryId]: '' }));
+        toast({ title: 'Skill Added', description: `${newSkill.name} has been added.` });
+    } catch (error: any) {
+        toast({ title: 'Failed to add skill', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsAddingSkill(prev => ({ ...prev, [categoryId]: false }));
     }
   };
 
@@ -761,6 +786,30 @@ export function JobForm({ job }: { job?: Job }) {
                                                                     </Label>
                                                                 </div>
                                                             ))}
+                                                        </div>
+                                                        <div className="mt-4 pt-4 border-t border-dashed">
+                                                            <div className="flex items-center gap-2">
+                                                                <Input 
+                                                                    placeholder="Add new skill..." 
+                                                                    value={newSkillInputs[category.id] || ''}
+                                                                    onChange={(e) => setNewSkillInputs(prev => ({...prev, [category.id]: e.target.value}))}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault();
+                                                                            handleAddNewSkill(category.id);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Button 
+                                                                    type="button" 
+                                                                    variant="outline" 
+                                                                    size="sm" 
+                                                                    onClick={() => handleAddNewSkill(category.id)}
+                                                                    disabled={isAddingSkill[category.id] || !newSkillInputs[category.id]}
+                                                                >
+                                                                    {isAddingSkill[category.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
+                                                                </Button>
+                                                            </div>
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
