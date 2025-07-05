@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -105,14 +106,6 @@ const navSections: { title: string; items: NavItem[] }[] = [
     title: 'ADMINISTRATION',
     items: [
       { href: '/admins', label: 'Admins', icon: Shield },
-       {
-        label: 'Sub Admins',
-        icon: ShieldCheck,
-        subItems: [
-          { href: '/sub-admins', label: 'Manage Sub Admins' },
-          { href: '/sub-admins/verification', label: 'Verification' },
-        ],
-      },
       { href: '/recruiters', label: 'Recruiters', icon: Contact },
       { href: '/employees', label: 'Employees', icon: Users },
     ],

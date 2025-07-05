@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -26,7 +27,7 @@ const employeeSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   phoneNumber: z.string().regex(/^\+?[0-9\s-()]{7,20}$/, "Please enter a valid phone number").optional().or(z.literal('')),
   status: z.enum(['Active', 'Inactive']),
-  role: z.enum(['SubAdmin', 'Recruiter', 'Member']).optional(),
+  role: z.enum(['Recruiter', 'Member']).optional(),
   employerId: z.string().optional(),
   permissions: z.array(z.string()).optional(),
 });
@@ -54,7 +55,7 @@ export function EmployeeForm({ user }: EmployeeFormProps) {
         email: user?.email || '',
         phoneNumber: user?.phoneNumber || '',
         status: user?.status || 'Active',
-        role: (user?.role as 'SubAdmin' | 'Recruiter' | 'Member') || 'Member',
+        role: (user?.role as 'Recruiter' | 'Member') || 'Member',
         employerId: user?.employerId || '',
         permissions: user?.permissions || [],
     }
@@ -123,7 +124,6 @@ export function EmployeeForm({ user }: EmployeeFormProps) {
                                                 <SelectValue placeholder="Select a role" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="SubAdmin">Sub-Admin</SelectItem>
                                                 <SelectItem value="Recruiter">Recruiter</SelectItem>
                                                 <SelectItem value="Member">Member</SelectItem>
                                             </SelectContent>
@@ -185,46 +185,6 @@ export function EmployeeForm({ user }: EmployeeFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-                 {selectedRole === 'SubAdmin' && (
-                    <Card className="mt-6">
-                        <CardHeader>
-                            <CardTitle>Sub-Admin Permissions</CardTitle>
-                            <CardDescription>Control what this sub-admin can do.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                             <Controller
-                                name="permissions"
-                                control={control}
-                                render={({ field }) => (
-                                    <div className="grid grid-cols-2 gap-4">
-                                    {availableSubAdminPermissions.map((permission) => (
-                                        <div key={permission} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={permission}
-                                            checked={field.value?.includes(permission)}
-                                            onCheckedChange={(checked) => {
-                                                const currentPermissions = field.value || [];
-                                                if (checked) {
-                                                    field.onChange([...currentPermissions, permission]);
-                                                } else {
-                                                    field.onChange(currentPermissions.filter(p => p !== permission));
-                                                }
-                                            }}
-                                        />
-                                        <label
-                                            htmlFor={permission}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            {permission}
-                                        </label>
-                                        </div>
-                                    ))}
-                                    </div>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-                 )}
             </div>
             <div className="space-y-6">
                 <Card>

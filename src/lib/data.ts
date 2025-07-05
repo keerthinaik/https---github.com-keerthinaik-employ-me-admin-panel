@@ -1,5 +1,6 @@
 
 
+
 import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType, Job as JobType } from "./types";
 
 export type Question = {
@@ -45,7 +46,7 @@ export type User = {
   name: string;
   email: string;
   avatar: string;
-  role?: 'Admin' | 'SubAdmin' | 'Recruiter' | 'Member';
+  role?: 'Admin' | 'Recruiter' | 'Member';
   status: 'Active' | 'Inactive';
   joinedAt: Date;
   updatedAt: Date;
@@ -66,19 +67,6 @@ export const users: User[] = [
     joinedAt: new Date('2022-01-15'),
     updatedAt: new Date('2023-10-20'),
     permissions: ['manageUsers', 'manageJobs', 'approveCompanies', 'viewReports', 'manageSettings', 'assignRoles'],
-  },
-  {
-    id: 'USR002',
-    name: 'Bob Williams',
-    email: 'bob@example.com',
-    avatar: 'https://placehold.co/40x40.png',
-    role: 'SubAdmin',
-    status: 'Active',
-    joinedAt: new Date('2022-02-20'),
-    updatedAt: new Date('2023-11-01'),
-    permissions: ['manageJobs', 'viewReports'],
-    employerId: 'EMP001',
-    employerName: 'Innovate Inc.',
   },
   {
     id: 'USR003',
@@ -117,19 +105,6 @@ export const users: User[] = [
     employerName: 'Creative Minds Agency',
   },
   {
-    id: 'USR006',
-    name: 'Frank Miller',
-    email: 'frank@example.com',
-    avatar: 'https://placehold.co/40x40.png',
-    role: 'SubAdmin',
-    status: 'Inactive',
-    joinedAt: new Date('2021-12-01'),
-    updatedAt: new Date('2023-08-30'),
-    permissions: ['manageJobs'],
-    employerId: 'EMP003',
-    employerName: 'HealthWell Solutions',
-  },
-  {
     id: 'USR007',
     name: 'Grace Lee',
     email: 'grace@example.com',
@@ -140,15 +115,6 @@ export const users: User[] = [
     updatedAt: new Date('2023-10-31'),
     permissions: ['manageUsers', 'manageJobs', 'approveCompanies', 'viewReports', 'manageSettings', 'assignRoles'],
   }
-];
-
-export const availablePermissions = [
-    'manageUsers',
-    'manageJobs',
-    'approveCompanies',
-    'viewReports',
-    'manageSettings',
-    'assignRoles'
 ];
 
 export const permissionableModels = [

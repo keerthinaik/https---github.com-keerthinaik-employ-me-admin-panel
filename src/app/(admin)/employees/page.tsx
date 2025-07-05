@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, type Key } from 'react';
@@ -48,7 +49,7 @@ type SortConfig = {
     direction: 'asc' | 'desc';
 } | null;
 
-const employeeRoles: ('SubAdmin' | 'Recruiter' | 'Member')[] = ['SubAdmin', 'Recruiter', 'Member'];
+const employeeRoles: ('Recruiter' | 'Member')[] = ['Recruiter', 'Member'];
 
 const columnsConfig = [
     { key: 'user' as const, label: 'User', sortable: true, sortKey: 'name' as keyof User },
@@ -164,13 +165,11 @@ export default function EmployeesPage() {
         setFilters(prev => ({...prev, [key]: value}));
     }
     
-    const getRoleBadge = (role?: 'SubAdmin' | 'Recruiter' | 'Member') => {
+    const getRoleBadge = (role?: 'Recruiter' | 'Member') => {
         if (!role) {
             return <Badge variant="outline">Not Assigned</Badge>;
         }
         switch (role) {
-            case 'SubAdmin':
-                return <Badge className="bg-purple-500 hover:bg-purple-600">Sub-Admin</Badge>;
             case 'Recruiter':
                 return <Badge className="bg-orange-500 hover:bg-orange-600">Recruiter</Badge>;
             case 'Member':
@@ -232,7 +231,7 @@ export default function EmployeesPage() {
                                         <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Roles</SelectItem>
-                                            {employeeRoles.map(role => <SelectItem key={role} value={role}>{role === 'SubAdmin' ? 'Sub-Admin' : role}</SelectItem>)}
+                                            {employeeRoles.map(role => <SelectItem key={role} value={role}>{role}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -332,7 +331,7 @@ export default function EmployeesPage() {
                                         </div>
                                     </TableCell>
                                 )}
-                                {columnVisibility.role && <TableCell>{getRoleBadge(user.role as 'SubAdmin' | 'Recruiter' | 'Member')}</TableCell>}
+                                {columnVisibility.role && <TableCell>{getRoleBadge(user.role as 'Recruiter' | 'Member')}</TableCell>}
                                 {columnVisibility.employer && <TableCell>{user.employerName || 'N/A'}</TableCell>}
                                 {columnVisibility.status && (
                                     <TableCell>

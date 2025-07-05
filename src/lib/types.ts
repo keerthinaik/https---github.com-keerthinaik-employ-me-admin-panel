@@ -1,10 +1,11 @@
 
 
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter" | "SubAdmin";
+  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter";
 }
 
 export interface LoginSuccessResponse {
@@ -22,7 +23,7 @@ export interface ProfileUser {
   email: string;
   isVerified: boolean;
   isActive: boolean;
-  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter" | "SubAdmin";
+  userType: "Admin" | "Jobseeker" | "Employer" | "University" | "Business" | "Recruiter";
   permissions: string[];
   createdAt: string;
   updatedAt: string;

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,13 +16,11 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 
-const getRoleBadge = (role?: 'Admin' | 'SubAdmin' | 'Recruiter' | 'Member') => {
+const getRoleBadge = (role?: 'Admin' | 'Recruiter' | 'Member') => {
     if (!role) return null;
     switch (role) {
         case 'Admin':
             return <Badge className="bg-primary hover:bg-primary/90 text-xs"><Shield className="mr-1 h-3 w-3" />Admin</Badge>;
-        case 'SubAdmin':
-            return <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-xs"><ShieldCheck className="mr-1 h-3 w-3" />Sub-Admin</Badge>;
         case 'Recruiter':
             return <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs"><Contact className="mr-1 h-3 w-3" />Recruiter</Badge>;
         case 'Member':
