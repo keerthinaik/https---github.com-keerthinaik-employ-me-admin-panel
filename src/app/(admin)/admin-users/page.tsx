@@ -1,269 +1,495 @@
+
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
-import 'react-image-crop/dist/ReactCrop.css'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import type { ProfileUser, Country, State, City } from '@/lib/types';
-import { Switch } from '@/components/ui/switch';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { createAdminUser, updateAdminUser, getCountries, getStates, getCities } from '@/services/api';
-import { ChevronLeft, ChevronRight, ChevronsUpDown, Check } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { PageHeader } from "@/components/page-header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+    DropdownMenuCheckboxItem
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { type ProfileUser, type Pagination, type GetAllParams } from "@/lib/types";
+import {
+    MoreHorizontal,
+    Edit,
+    Trash2,
+    Eye,
+    Search,
+    SlidersHorizontal,
+    ArrowDownUp,
+    ArrowUp,
+    ArrowDown,
+    FilterX,
+    Columns,
+    ChevronLeft,
+    ChevronRight,
+    UserPlus,
+    CheckCircle,
+    XCircle
+} from "lucide-react";
+import Link from "next/link";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/lib/hooks';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { getAdminUsers, deleteAdminUser } from '@/services/api';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
-const adminUserSchema = z.object({
-  name: z.string().min(2, "Name cannot contain only numbers").refine(v => !/^\d+$/.test(v), { message: "Name cannot contain only numbers" }),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
-  phoneNumber: z.string().regex(/^\+?[0-9\s-()]{7,20}$/, "Please provide a valid phone number").optional().or(z.literal('')),
-  address: z.string().optional(),
-  country: z.string().optional(),
-  state: z.string().optional(),
-  city: z.string().optional(),
-  zipCode: z.string().optional().refine(v => !v || /^[A-Za-z0-9\s\-]{3,10}$/.test(v), { message: "Please provide a valid postal code" }),
-  profilePhoto: z.any().optional(),
-  isVerified: z.boolean().default(false),
-  isActive: z.boolean().default(true),
-});
+type SortConfig = {
+    key: keyof ProfileUser;
+    direction: 'asc' | 'desc';
+} | null;
 
-type AdminUserFormValues = z.infer<typeof adminUserSchema>;
+const columnsConfig = [
+    { key: 'name' as const, label: 'User', sortable: true, sortKey: 'name' as keyof ProfileUser },
+    { key: 'phoneNumber' as const, label: 'Phone', sortable: true, sortKey: 'phoneNumber' as keyof ProfileUser },
+    { key: 'location' as const, label: 'Location', sortable: false },
+    { key: 'isActive' as const, label: 'Status', sortable: true, sortKey: 'isActive' as keyof ProfileUser },
+    { key: 'isVerified' as const, label: 'Verified', sortable: true, sortKey: 'isVerified' as keyof ProfileUser },
+    { key: 'actions' as const, label: 'Actions', sortable: false },
+];
 
-const fieldToTabMap: Record<keyof AdminUserFormValues, string> = {
-  name: 'info', email: 'info', password: 'info', phoneNumber: 'info',
-  address: 'location', country: 'location', state: 'location', city: 'location', zipCode: 'location',
-  profilePhoto: 'account', isVerified: 'account', isActive: 'account',
-};
+const searchFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'phoneNumber', label: 'Phone' },
+];
 
-type AdminUserFormProps = {
-    user?: ProfileUser;
-}
+type ColumnKeys = typeof columnsConfig[number]['key'];
 
-function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
-  return centerCrop(
-    makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
-    mediaWidth, mediaHeight
-  );
-}
+const ROWS_PER_PAGE = 10;
 
-export function AdminUserForm({ user }: AdminUserFormProps) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = React.useState('info');
-  const TABS = ['info', 'location', 'account'];
-  
-  const [countries, setCountries] = React.useState<Country[]>([]);
-  const [states, setStates] = React.useState<State[]>([]);
-  const [cities, setCities] = React.useState<City[]>([]);
-  const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
-  const [isLoadingStates, setIsLoadingStates] = React.useState(false);
-  const [isLoadingCities, setIsLoadingCities] = React.useState(false);
-  const [openCountry, setOpenCountry] = React.useState(false);
-  const [openState, setOpenState] = React.useState(false);
-  const [openCity, setOpenCity] = React.useState(false);
-  
-  const [imgSrc, setImgSrc] = React.useState('')
-  const imgRef = React.useRef<HTMLImageElement>(null)
-  const [crop, setCrop] = React.useState<Crop>()
-  const [completedCrop, setCompletedCrop] = React.useState<Crop>()
-  const [croppedImageUrl, setCroppedImageUrl] = React.useState<string>('')
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+export default function AdminsPage() {
+    const { toast } = useToast();
+    const [admins, setAdmins] = useState<ProfileUser[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-  const form = useForm<AdminUserFormValues>({
-    resolver: zodResolver(adminUserSchema),
-    defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      phoneNumber: user?.phoneNumber || '',
-      address: user?.address || '',
-      country: user?.country || '',
-      state: user?.state || '',
-      city: user?.city || '',
-      zipCode: user?.zipCode || '',
-      isVerified: user?.isVerified || false,
-      isActive: user?.isActive ?? true,
-      profilePhoto: undefined,
-    }
-  });
-  
-  const { handleSubmit, formState: { errors, isSubmitting }, control, setError, watch, setValue, reset } = form;
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  const watchedCountry = watch('country');
-  const watchedState = watch('state');
-
-  const countryRef = React.useRef(user?.country);
-  const stateRef = React.useRef(user?.state);
-
-  React.useEffect(() => {
-    if (user?.profilePhoto) {
-      setCroppedImageUrl(`${API_BASE_URL}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`);
-    }
-  }, [user]);
-  
-  React.useEffect(() => {
-    setIsLoadingCountries(true);
-    getCountries().then(setCountries).catch(() => toast({ title: "Failed to load countries", variant: "destructive" })).finally(() => setIsLoadingCountries(false));
-  }, [toast]);
-  
-  React.useEffect(() => {
-    if (watchedCountry) {
-      setIsLoadingStates(true);
-      if (countryRef.current !== watchedCountry) setValue('state', '');
-      setStates([]);
-      getStates(watchedCountry).then(setStates).catch(() => toast({ title: "Failed to load states", variant: "destructive" })).finally(() => setIsLoadingStates(false));
-    }
-    countryRef.current = watchedCountry;
-  }, [watchedCountry, toast, setValue]);
-
-  React.useEffect(() => {
-    if (watchedCountry && watchedState) {
-      setIsLoadingCities(true);
-      if (stateRef.current !== watchedState) setValue('city', '');
-      setCities([]);
-      getCities(watchedCountry, watchedState).then(setCities).catch(() => toast({ title: "Failed to load cities", variant: "destructive" })).finally(() => setIsLoadingCities(false));
-    }
-    stateRef.current = watchedState;
-  }, [watchedCountry, watchedState, toast, setValue]);
-
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
-      reader.readAsDataURL(file);
-      setDialogOpen(true);
-    }
-  }
-
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    setCrop(centerAspectCrop(e.currentTarget.width, e.currentTarget.height, 1));
-  }
-
-  const handleCropImage = () => {
-    const image = imgRef.current;
-    if (!image || !completedCrop) return toast({ title: "Crop Error", variant: "destructive" });
-    const canvas = document.createElement('canvas');
-    canvas.width = completedCrop.width; canvas.height = completedCrop.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return toast({ title: "Crop Error", variant: "destructive" });
-    ctx.drawImage(image, completedCrop.x, completedCrop.y, completedCrop.width, completedCrop.height, 0, 0, completedCrop.width, completedCrop.height);
-    canvas.toBlob((blob) => {
-      if (!blob) return toast({ title: "Crop Error", variant: "destructive" });
-      setCroppedImageUrl(URL.createObjectURL(blob));
-      setValue('profilePhoto', new File([blob], 'avatar.jpg', { type: 'image/jpeg' }), { shouldValidate: true });
-      setDialogOpen(false);
-    }, 'image/jpeg');
-  }
-
-  const onError = (errors: any) => {
-    const firstErrorField = Object.keys(errors)[0] as keyof AdminUserFormValues;
-    if (firstErrorField) {
-      const tab = fieldToTabMap[firstErrorField];
-      if (tab && tab !== activeTab) setActiveTab(tab);
-    }
-    toast({ title: "Validation Error", description: "Please check the form for errors.", variant: "destructive" });
-  };
-  
-  const onSubmit = async (data: AdminUserFormValues) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (user && key === 'password' && !value) return;
-      if (value !== undefined && value !== null && value !== '') {
-        if (key === 'profilePhoto' && value instanceof File) formData.append('profilePhoto', value);
-        else formData.append(key, String(value));
-      }
+    const [filters, setFilters] = useState({
+        isVerified: 'all',
+        isActive: 'all',
     });
 
-    try {
-      const response = user ? await updateAdminUser(user.id, formData) : await createAdminUser(formData);
-      toast({ title: user ? 'Admin Updated' : 'Admin Created', description: `${response.name} has been successfully saved.` });
-      router.push('/admins');
-      router.refresh();
-    } catch (error: any) {
-      toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
+    const [selectedSearchFields, setSelectedSearchFields] = useState<string[]>(['name', 'email', 'phoneNumber']);
+
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+        name: true,
+        phoneNumber: true,
+        location: false,
+        isActive: true,
+        isVerified: true,
+        actions: true,
+    });
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
+    const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
+
+    const fetchAdmins = useCallback(() => {
+        setIsLoading(true);
+        const apiFilters: Record<string, any> = {};
+        if (debouncedSearchTerm && selectedSearchFields.length > 0) {
+            selectedSearchFields.forEach(field => {
+                apiFilters[field] = debouncedSearchTerm;
+            });
+        }
+        if (filters.isVerified !== 'all') {
+            apiFilters.isVerified = filters.isVerified === 'verified';
+        }
+        if (filters.isActive !== 'all') {
+            apiFilters.isActive = filters.isActive === 'active';
+        }
+
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
+
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
+
+        getAdminUsers(params)
+            .then(data => {
+                setAdmins(data.data);
+                setPagination(data.pagination);
+            })
+            .catch(error => {
+                toast({
+                    title: 'Error fetching admins',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast, selectedSearchFields]);
+
+    useEffect(() => {
+        fetchAdmins();
+    }, [fetchAdmins]);
+    
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage, selectedSearchFields]);
+
+    const handleDelete = async (adminId: string) => {
+        try {
+            await deleteAdminUser(adminId);
+            toast({
+                title: 'Admin Deleted',
+                description: 'The admin has been successfully deleted.',
+            });
+            fetchAdmins();
+        } catch (error: any) {
+            toast({
+                title: 'Error deleting admin',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
+    const requestSort = (key: keyof ProfileUser) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: keyof ProfileUser) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <ArrowDownUp className="h-4 w-4 text-muted-foreground/50" />;
+        }
+        return sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setFilters({ isVerified: 'all', isActive: 'all' });
+        setSelectedSearchFields(['name', 'email', 'phoneNumber']);
+        setSortConfig({ key: 'updatedAt', direction: 'desc' });
     }
-  };
 
-  return (
-    <>
-      <Form {...form}>
-        <form onSubmit={handleSubmit(onSubmit, onError)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="info">User Info</TabsTrigger>
-              <TabsTrigger value="location">Location</TabsTrigger>
-              <TabsTrigger value="account">Account</TabsTrigger>
-            </TabsList>
+    const handleFilterChange = (key: keyof typeof filters, value: string) => {
+        setFilters(prev => ({...prev, [key]: value}));
+    }
 
-            <TabsContent value="info">
-              <Card>
-                <CardHeader><CardTitle>Admin Information</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <FormField name="name" control={control} render={({field}) => <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                    <FormField name="email" control={control} render={({field}) => <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>}/>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <FormField name="phoneNumber" control={control} render={({field}) => <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>}/>
-                    <FormField name="password" control={control} render={({field}) => <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} placeholder={user ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>}/>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+    const SkeletonRow = () => (
+        <TableRow>
+            {columnVisibility.name && <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-40" /></div></div></TableCell>}
+            {columnVisibility.phoneNumber && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
+            {columnVisibility.location && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
+            {columnVisibility.isActive && <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>}
+            {columnVisibility.isVerified && <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>}
+            {columnVisibility.actions && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
+        </TableRow>
+    );
 
-            <TabsContent value="location">
-              <Card>
-                <CardHeader><CardTitle>Location</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField control={control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <FormField control={control} name="country" render={({ field }) => ( <FormItem><FormLabel>Country</FormLabel><Popover open={openCountry} onOpenChange={setOpenCountry}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className="w-full justify-between">{isLoadingCountries ? <Skeleton className="h-5 w-3/4" /> : field.value ? countries.find(c => c.isoCode === field.value)?.name : "Select country..."}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search country..." /><CommandEmpty>No country found.</CommandEmpty><CommandGroup className="max-h-60 overflow-auto">{countries.map(c => ( <CommandItem key={c.isoCode} value={c.name} onSelect={() => { setValue('country', c.isoCode, { shouldValidate: true }); setOpenCountry(false); }}> <Check className={cn("mr-2 h-4 w-4", c.isoCode === field.value ? "opacity-100" : "opacity-0")} /> {c.name}</CommandItem>))}</CommandGroup></Command></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                    <FormField control={control} name="state" render={({ field }) => ( <FormItem><FormLabel>State / Province</FormLabel><Popover open={openState} onOpenChange={setOpenState}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedCountry || isLoadingStates}>{isLoadingStates ? <Skeleton className="h-5 w-3/4" /> : field.value ? states.find(s => s.isoCode === field.value)?.name : "Select state..."}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search state..." /><CommandEmpty>No state found.</CommandEmpty><CommandGroup className="max-h-60 overflow-auto">{states.map(s => ( <CommandItem key={s.isoCode} value={s.name} onSelect={() => { setValue('state', s.isoCode, { shouldValidate: true }); setOpenState(false); }}> <Check className={cn("mr-2 h-4 w-4", s.isoCode === field.value ? "opacity-100" : "opacity-0")} /> {s.name}</CommandItem>))}</CommandGroup></Command></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                    <FormField control={control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><Popover open={openCity} onOpenChange={setOpenCity}><PopoverTrigger asChild><FormControl><Button variant="outline" role="combobox" className="w-full justify-between" disabled={!watchedState || isLoadingCities}>{isLoadingCities ? <Skeleton className="h-5 w-3/4" /> : field.value ? field.value : "Select city..."}<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput placeholder="Search city..." /><CommandEmpty>No city found.</CommandEmpty><CommandGroup className="max-h-60 overflow-auto">{cities.map(c => ( <CommandItem key={c.name} value={c.name} onSelect={() => {setValue('city', c.name, { shouldValidate: true }); setOpenCity(false);}}><Check className={cn("mr-2 h-4 w-4", c.name === field.value ? "opacity-100" : "opacity-0")} />{c.name}</CommandItem>))}</CommandGroup></Command></PopoverContent></Popover><FormMessage /></FormItem>)}/>
-                  </div>
-                  <FormField control={control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                </CardContent>
-              </Card>
-            </TabsContent>
+    return (
+        <div>
+            <PageHeader title="Admins">
+                 <Button asChild>
+                    <Link href="/admins/new">
+                        <UserPlus className="mr-1 h-4 w-4" />
+                        Add New Admin
+                    </Link>
+                </Button>
+            </PageHeader>
+            
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by name, email, phone..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+                <div className='flex gap-2 w-full md:w-auto'>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full md:w-auto">
+                                <SlidersHorizontal className="mr-1 h-4 w-4" />
+                                Filter
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80" align="end">
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Filters</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Refine admin results.
+                                    </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Search In</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {searchFields.map((field) => (
+                                            <div key={field.key} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`search-${field.key}`}
+                                                    checked={selectedSearchFields.includes(field.key)}
+                                                    onCheckedChange={(checked) => {
+                                                        setSelectedSearchFields(prev => 
+                                                            checked ? [...prev, field.key] : prev.filter(f => f !== field.key)
+                                                        );
+                                                    }}
+                                                />
+                                                <Label htmlFor={`search-${field.key}`} className="font-normal">{field.label}</Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                 <div className="grid gap-2">
+                                    <Label>Status</Label>
+                                     <RadioGroup value={filters.isActive} onValueChange={(value) => handleFilterChange('isActive', value)}>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r-stat-all" /><Label htmlFor="r-stat-all">All</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="active" id="r-stat-active" /><Label htmlFor="r-stat-active">Active</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="inactive" id="r-stat-inactive" /><Label htmlFor="r-stat-inactive">Inactive</Label></div>
+                                    </RadioGroup>
+                                </div>
+                                 <div className="grid gap-2">
+                                    <Label>Verification Status</Label>
+                                    <RadioGroup
+                                        value={filters.isVerified}
+                                        onValueChange={(value) => handleFilterChange('isVerified', value)}
+                                    >
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r-ver-all" /><Label htmlFor="r-ver-all">All</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="verified" id="r-ver-verified" /><Label htmlFor="r-ver-verified">Verified</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="not-verified" id="r-ver-not" /><Label htmlFor="r-ver-not">Not Verified</Label></div>
+                                    </RadioGroup>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
 
-            <TabsContent value="account">
-              <Card>
-                <CardHeader><CardTitle>Account Settings</CardTitle></CardHeader>
-                <CardContent className="space-y-6">
-                  <FormField name="profilePhoto" control={control} render={() => (<FormItem><div className="flex items-center gap-6"><Avatar className="h-20 w-20"><AvatarImage src={croppedImageUrl} alt="Admin profile photo" /><AvatarFallback>{form.getValues('name')?.slice(0,2).toUpperCase()}</AvatarFallback></Avatar><div className="flex-grow space-y-2"><FormLabel>Profile Photo</FormLabel><FormControl><Input type="file" accept="image/*" onChange={onFileChange} /></FormControl><p className="text-xs text-muted-foreground">Image must be at least 200x200px.</p><FormMessage /></div></div></FormItem>)}/>
-                  <FormField control={control} name="isVerified" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Verification Status</FormLabel><CardDescription>Indicates if the admin has been verified.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)}/>
-                  <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel><CardDescription>Inactive admins cannot log in.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)}/>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-          <CardFooter className="flex justify-end gap-2 mt-6 px-0">
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Admin'}</Button>
-          </CardFooter>
-        </form>
-      </Form>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Crop Profile Photo</DialogTitle></DialogHeader>
-          {imgSrc && <ReactCrop crop={crop} onChange={(_, percentCrop) => setCrop(percentCrop)} onComplete={(c) => setCompletedCrop(c)} aspect={1} circularCrop minWidth={200} minHeight={200}><img ref={imgRef} alt="Crop me" src={imgSrc} onLoad={onImageLoad} /></ReactCrop>}
-          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button onClick={handleCropImage}>Crop & Save</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full md:w-auto">
+                                <Columns className="mr-1 h-4 w-4" />
+                                Columns
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {columnsConfig.filter(c => c.key !== 'actions').map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.key}
+                                    className="capitalize"
+                                    checked={columnVisibility[column.key as ColumnKeys]}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility(prev => ({...prev, [column.key as ColumnKeys]: !!value}))
+                                    }
+                                >
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <Button variant="outline" onClick={clearFilters}>
+                        <FilterX className="mr-1 h-4 w-4" />
+                        Clear
+                    </Button>
+                </div>
+            </div>
+
+            <div className="bg-card border rounded-lg">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {columnsConfig.map(col => (
+                                columnVisibility[col.key as ColumnKeys] && (
+                                    <TableHead key={col.key}>
+                                        {col.sortable ? (
+                                            <Button variant="ghost" onClick={() => requestSort(col.sortKey as keyof ProfileUser)} className="px-0 h-auto hover:bg-transparent capitalize">
+                                                {col.label} {getSortIcon(col.sortKey as keyof ProfileUser)}
+                                            </Button>
+                                        ) : (
+                                            col.label === 'Actions' ? <span className="sr-only">{col.label}</span> : col.label
+                                        )}
+                                    </TableHead>
+                                )
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            Array.from({ length: rowsPerPage }).map((_, i) => <SkeletonRow key={i} />)
+                        ) : admins.length > 0 ? (
+                            admins.map(admin => (
+                                <TableRow key={admin.id}>
+                                    {columnVisibility.name && (
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarImage src={admin.profilePhoto ? `${API_BASE_URL}${admin.profilePhoto.startsWith('/') ? '' : '/'}${admin.profilePhoto}` : undefined} alt={admin.name} />
+                                                    <AvatarFallback>{admin.name.slice(0,2)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{admin.name}</p>
+                                                    <p className="text-sm text-muted-foreground">{admin.email}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                    )}
+                                     {columnVisibility.phoneNumber && <TableCell>{admin.phoneNumber || 'N/A'}</TableCell>}
+                                     {columnVisibility.location && <TableCell>{admin.city && admin.country ? `${admin.city}, ${admin.country}` : 'N/A'}</TableCell>}
+                                     {columnVisibility.isActive && (
+                                        <TableCell>
+                                            <Badge variant={admin.isActive ? 'default' : 'destructive'} className={admin.isActive ? 'bg-green-500 hover:bg-green-600' : ''}>
+                                                {admin.isActive ? 'Active' : 'Inactive'}
+                                            </Badge>
+                                        </TableCell>
+                                    )}
+                                     {columnVisibility.isVerified && (
+                                        <TableCell>
+                                            {admin.isVerified ? (
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            ) : (
+                                                <XCircle className="h-5 w-5 text-destructive" />
+                                            )}
+                                        </TableCell>
+                                    )}
+                                    {columnVisibility.actions && (
+                                        <TableCell>
+                                            <AlertDialog>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">Toggle menu</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/admins/${admin.id}`}>
+                                                                <Eye className="mr-1 h-4 w-4" />
+                                                                View Details
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/admins/${admin.id}/edit`}>
+                                                                <Edit className="mr-1 h-4 w-4" />
+                                                                Edit
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                        <AlertDialogTrigger asChild>
+                                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                                <Trash2 className="mr-1 h-4 w-4"/>
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </AlertDialogTrigger>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This action cannot be undone. This will permanently delete the admin account.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(admin.id)}>Continue</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    )}
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-24 text-center">
+                                    No results found.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+             <div className="flex items-center justify-between mt-4">
+                 <div className="text-sm text-muted-foreground">
+                    {isLoading || !pagination ? (
+                        <Skeleton className="h-5 w-48" />
+                    ) : (
+                        `Showing ${pagination.totalRecords === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1} to ${Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of ${pagination.totalRecords} admins.`
+                    )}
+                </div>
+                <div className="flex items-center gap-6 lg:gap-8">
+                    <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium">Rows per page</p>
+                        <Input
+                            type="number"
+                            className="h-8 w-[70px]"
+                            value={rowsPerPageInput}
+                            onChange={(e) => setRowsPerPageInput(e.target.value)}
+                            onBlur={() => {
+                                const newRows = Number(rowsPerPageInput);
+                                if (newRows > 0) {
+                                    setRowsPerPage(newRows);
+                                } else {
+                                    setRowsPerPageInput(rowsPerPage);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const newRows = Number(rowsPerPageInput);
+                                    if (newRows > 0) {
+                                        setRowsPerPage(newRows);
+                                    } else {
+                                        setRowsPerPageInput(rowsPerPage);
+                                    }
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            min={1}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || isLoading}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination?.totalPages || 1))}
+                            disabled={currentPage === pagination?.totalPages || isLoading}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }
