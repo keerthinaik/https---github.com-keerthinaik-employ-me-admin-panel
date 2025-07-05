@@ -46,18 +46,18 @@ const jobSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   minExperience: z.coerce.number().min(0),
   maxExperience: z.coerce.number().min(0),
-  numberOfPosts: z.coerce.number().optional(),
+  numberOfPosts: z.coerce.number().optional().or(z.literal('')),
   type: z.enum(['full-time', 'part-time', 'contract']),
   payrollType: z.enum(['contract', 'direct']),
-  contractDuration: z.coerce.number().optional(),
+  contractDuration: z.coerce.number().optional().or(z.literal('')),
   contractDurationUnit: z.enum(['days', 'months', 'years']).optional(),
-  expectedMinHoursPerWeek: z.coerce.number().optional(),
-  expectedMaxHoursPerWeek: z.coerce.number().optional(),
+  expectedMinHoursPerWeek: z.coerce.number().optional().or(z.literal('')),
+  expectedMaxHoursPerWeek: z.coerce.number().optional().or(z.literal('')),
   shiftType: z.enum(['morning', 'evening', 'regular', 'night', 'flexible', 'weekend', 'us', 'uk', 'other']),
   otherShiftType: z.string().optional(),
   ctcCurrency: z.string().min(1, 'Currency is required'),
-  ctcMinAmount: z.coerce.number().optional(),
-  ctcMaxAmount: z.coerce.number().optional(),
+  ctcMinAmount: z.coerce.number().optional().or(z.literal('')),
+  ctcMaxAmount: z.coerce.number().optional().or(z.literal('')),
   ctcFrequency: z.enum(['weekly', 'yearly', 'monthly']),
   supplementalPayments: z.array(z.string()).optional(),
   otherSupplementalPaymentType: z.string().optional(),
@@ -163,10 +163,16 @@ export function JobForm({ job }: { job?: Job }) {
       description: '',
       minExperience: 0,
       maxExperience: 0,
+      numberOfPosts: '',
       type: 'full-time',
       payrollType: 'direct',
+      contractDuration: '',
+      expectedMinHoursPerWeek: '',
+      expectedMaxHoursPerWeek: '',
       shiftType: 'regular',
       ctcCurrency: 'USD',
+      ctcMinAmount: '',
+      ctcMaxAmount: '',
       ctcFrequency: 'yearly',
       workMode: [],
       isActive: false,
@@ -441,7 +447,8 @@ export function JobForm({ job }: { job?: Job }) {
                                     </CardDescription>
                                     <FormControl>
                                         <RichTextEditor
-                                            {...field}
+                                            value={field.value}
+                                            onChange={field.onChange}
                                             placeholder="Provide a detailed job description..."
                                         />
                                     </FormControl>
