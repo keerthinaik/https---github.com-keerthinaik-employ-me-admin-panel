@@ -151,8 +151,18 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
       } else {
         setCroppedImageUrl('');
       }
+
+      toast({
+        title: "Loaded Association IDs",
+        description: (
+          <div className="text-xs">
+            <p>Business ID: {jobseeker.businessAssociationId || 'null'}</p>
+            <p>University ID: {jobseeker.universityAssociationId || 'null'}</p>
+          </div>
+        )
+      });
     }
-  }, [jobseeker, reset]);
+  }, [jobseeker, reset, toast]);
   
   React.useEffect(() => {
     const fetchInitialData = async () => {
@@ -304,9 +314,6 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (key === 'password' && jobseeker && !value) {
-        return;
-      }
       
       if (value !== undefined && value !== null) {
         if (key === 'profilePhoto' && value instanceof File) {
@@ -320,6 +327,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         }
       }
     });
+
+    if (jobseeker && !data.password) {
+      formData.delete('password');
+    }
 
     try {
         if (jobseeker) {
@@ -378,7 +389,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 <FormField control={control} name="password" render={({ field }) => ( <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} placeholder={jobseeker ? "Leave blank to keep unchanged" : ""} /></FormControl><FormMessage /></FormItem>)}/>
                             </div>
                              <div className="grid md:grid-cols-2 gap-4">
-                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); setDatePickerOpen(false); }} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
+                                <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); setDatePickerOpen(false); }} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                                 <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                         </CardContent>
@@ -391,8 +402,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 name="businessAssociationId"
                                 render={({ field }) => {
                                     const displayValue = React.useMemo(() => {
-                                        if (!field.value) return "Select business...";
                                         if (isLoadingAssociations) return <Skeleton className="h-5 w-4/5" />;
+                                        if (!field.value) return "Select business...";
                                         const selected = businesses.find(b => b.id === field.value);
                                         return selected ? selected.name : "Select business...";
                                     }, [field.value, businesses, isLoadingAssociations]);
@@ -435,8 +446,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 name="universityAssociationId"
                                 render={({ field }) => {
                                     const displayValue = React.useMemo(() => {
-                                        if (!field.value) return "Select university...";
                                         if (isLoadingAssociations) return <Skeleton className="h-5 w-4/5" />;
+                                        if (!field.value) return "Select university...";
                                         const selected = universities.find(u => u.id === field.value);
                                         return selected ? selected.name : "Select university...";
                                     }, [field.value, universities, isLoadingAssociations]);
