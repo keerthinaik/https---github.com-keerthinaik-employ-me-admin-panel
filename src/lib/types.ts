@@ -62,6 +62,57 @@ export interface PaginatedApiResponse<T> {
   data: T[];
 }
 
+export interface Question {
+  question: string;
+  type: "boolean" | "single-choice" | "multi-choice" | "text";
+  options?: string[];
+  _id?: string;
+}
+
+export interface Job {
+  id: string;
+  _id?: string;
+  title: string;
+  slug?: string;
+  description: string;
+  minExperience: number;
+  maxExperience: number;
+  numberOfPosts?: number;
+  type: "full-time" | "part-time" | "contract";
+  payrollType: "contract" | "direct";
+  contractDuration?: number;
+  contractDurationUnit?: "days" | "months" | "years";
+  expectedMinHoursPerWeek?: number;
+  expectedMaxHoursPerWeek?: number;
+  shiftType: "morning" | "evening" | "regular" | "night" | "flexible" | "weekend" | "us" | "uk" | "other";
+  otherShiftType?: string;
+  ctcCurrency: string;
+  ctcMinAmount?: number;
+  ctcMaxAmount?: number;
+  ctcFrequency: "weeks" | "yearly" | "monthly";
+  supplementalPayments?: string[];
+  otherSupplementalPaymentType?: string;
+  jobCategory: string | JobCategory; // ObjectId as string
+  employer: string | Employer; // ObjectId as string
+  workMode: ("hybrid" | "remote" | "onsite" | "wfo" | "wfh" | "other")[];
+  otherWorkModeType?: string;
+  expectedStartDate?: Date;
+  postingDate: Date;
+  skills: string[]; // Array of skill ObjectIds
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  zipCode?: string;
+  isActive: boolean;
+  languagesRequired?: string[];
+  benefits?: string[];
+  questions?: Question[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+
 export interface SkillCategory {
     id: string;
     _id?: string;

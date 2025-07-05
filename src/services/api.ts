@@ -1,6 +1,6 @@
 
 
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq } from '@/lib/types';
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -135,6 +135,75 @@ export async function updateAdminUser(id: string, userData: FormData): Promise<A
     body: userData,
   });
   return response.data.user;
+}
+
+// Jobs
+export async function getJobs(params: GetAllParams = {}): Promise<{ data: Job[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response: PaginatedApiResponse<any> = await authedFetch(`/api/v1/jobs?${queryString}`);
+  
+  const data = response.data.map((item:any) => ({
+    ...mapItem(item),
+    employer: item.employer ? mapItem(item.employer) : undefined,
+    jobCategory: item.jobCategory ? mapItem(item.jobCategory) : undefined,
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+
+  return { data, pagination };
+}
+
+export async function getJob(id: string): Promise<Job> {
+    const response = await authedFetch(`/api/v1/jobs/${id}`);
+    const item = response.data;
+    if (!item) {
+        throw new Error("Job not found in API response.");
+    }
+    return {
+        ...mapItem(item),
+        employer: item.employer ? mapItem(item.employer) : undefined,
+        jobCategory: item.jobCategory ? mapItem(item.jobCategory) : undefined,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+    };
+}
+
+export async function createJob(jobData: FormData): Promise<Job> {
+  const response = await authedFetch(`/api/v1/jobs`, {
+    method: 'POST',
+    body: jobData,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Created job data not found in API response.");
+  }
+  return { ...mapItem(item) };
+}
+
+export async function updateJob(id: string, jobData: Partial<Job> | FormData): Promise<Job> {
+  const body = jobData instanceof FormData ? jobData : JSON.stringify(jobData);
+  const response = await authedFetch(`/api/v1/jobs/${id}`, {
+    method: 'PUT',
+    body: body,
+  });
+  const item = response.data;
+  if (!item) {
+    throw new Error("Updated job data not found in API response.");
+  }
+  return { ...mapItem(item) };
+}
+
+export async function deleteJob(id: string): Promise<null> {
+  return authedFetch(`/api/v1/jobs/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 

@@ -1,6 +1,5 @@
 
 
-import { businesses, universities } from "@/lib/data";
 import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType } from "./types";
 
 export type Question = {
@@ -8,69 +7,6 @@ export type Question = {
     type: "boolean" | "single-choice" | "multi-choice" | "text";
     options?: string[];
 }
-
-export type Job = {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-
-  minExperience: number;
-  maxExperience: number;
-  numberOfPosts?: number;
-
-  type: "full-time" | "part-time" | "contract";
-  payrollType: "contract" | "direct";
-
-  contractDuration?: number;
-  contractDurationUnit?: "days" | "months" | "years";
-
-  expectedMinHoursPerWeek?: number;
-  expectedMaxHoursPerWeek?: number;
-
-  shiftType: "morning" | "evening" | "regular" | "night" | "flexible" | "weekend" | "us" | "uk" | "other";
-  otherShiftType?: string;
-
-  ctcCurrency: string;
-  ctcMinAmount?: number;
-  ctcMaxAmount?: number;
-  ctcFrequency: "weekly" | "yearly" | "monthly";
-
-  supplementalPayments?: string[];
-  otherSupplementalPaymentType?: string;
-
-  jobCategoryId: string;
-  companyId: string;
-  companyName: string;
-  companyLogo: string;
-
-  workMode: ("hybrid" | "remote" | "onsite" | "wfo" | "wfh" | "other")[];
-  otherWorkModeType?: string;
-
-  expectedStartDate?: Date;
-  postingDate: Date;
-
-  skills?: string[];
-
-  address?: string;
-  country?: string;
-  state?: string;
-  city?: string;
-  zipCode?: string;
-
-  status: "active" | "inactive" | "draft" | "archived";
-
-  languagesRequired?: string[];
-  benefits?: string[];
-
-  questions?: Question[];
-  
-  // existing fields for list view
-  applications: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 
 export type Application = {
     id: string;
@@ -330,7 +266,7 @@ export const jobseekers: Jobseeker[] = [
         linkedInProfile: 'https://linkedin.com/in/johndoe',
         githubProfile: 'https://github.com/johndoe',
         portfolio: 'https://johndoe.dev',
-        skills: ['React', 'Node.js', 'TypeScript', 'JavaScript', 'AWS', 'Communication', 'Teamwork'],
+        skills: ['SKL003', 'SKL004', 'SKL011', 'SKL001', 'SKL009', 'SKL007', 'SKL008'],
         experience: [
             { 
                 jobTitle: 'Senior Software Engineer', 
@@ -395,7 +331,7 @@ export const jobseekers: Jobseeker[] = [
         ],
         createdAt: new Date('2023-02-15'),
         updatedAt: new Date('2023-11-01'),
-        skills: ['Communication', 'Teamwork', 'Problem Solving'],
+        skills: ['SKL007', 'SKL008', 'SKL013'],
     },
      {
         id: 'JS003',
@@ -413,7 +349,7 @@ export const jobseekers: Jobseeker[] = [
         portfolio: 'https://peterjones.design',
         isVerified: true,
         isActive: false,
-        skills: ['Figma', 'Sketch'],
+        skills: ['SKL005', 'SKL006'],
         experience: [
             { jobTitle: 'Lead UX Designer', companyName: 'Design Co.', startDate: new Date('2021-02-01'), isCurrent: true },
             { jobTitle: 'UI Designer', companyName: 'Creative Apps', startDate: new Date('2019-07-01'), endDate: new Date('2021-01-31'), isCurrent: false },
@@ -616,164 +552,6 @@ export const employers: Employer[] = [
     createdAt: new Date("2021-11-20"),
     updatedAt: new Date("2023-10-20"),
   },
-];
-
-
-export const jobs: Job[] = [
-  { 
-    id: 'JOB001', 
-    title: 'Senior Frontend Developer', 
-    slug: 'senior-frontend-developer',
-    description: 'We are looking for an experienced frontend developer to build modern, responsive web applications.',
-    minExperience: 4,
-    maxExperience: 8,
-    numberOfPosts: 2,
-    type: 'full-time',
-    payrollType: 'direct',
-    shiftType: 'regular',
-    ctcCurrency: 'USD',
-    ctcMinAmount: 120000,
-    ctcMaxAmount: 150000,
-    ctcFrequency: 'yearly',
-    jobCategoryId: 'JCAT001',
-    companyId: 'EMP001',
-    companyName: 'Innovate Inc.',
-    companyLogo: 'https://placehold.co/100x100.png',
-    workMode: ['remote'],
-    postingDate: new Date('2023-10-01'),
-    status: 'active',
-    applications: 42, 
-    createdAt: new Date('2023-10-01'),
-    updatedAt: new Date('2023-10-01'),
-    skills: ['React', 'TypeScript', 'Node.js', 'Communication', 'Teamwork'],
-    questions: [
-      { question: 'Are you authorized to work in the USA?', type: 'boolean' },
-      { question: 'What is your expected salary range?', type: 'text' }
-    ]
-  },
-  { 
-    id: 'JOB002', 
-    title: 'Product Manager', 
-    slug: 'product-manager',
-    description: 'Seeking a product manager to lead our mobile app development team.',
-    minExperience: 5,
-    maxExperience: 10,
-    type: 'full-time',
-    payrollType: 'direct',
-    shiftType: 'regular',
-    ctcCurrency: 'USD',
-    ctcMinAmount: 130000,
-    ctcMaxAmount: 160000,
-    ctcFrequency: 'yearly',
-    jobCategoryId: 'JCAT004',
-    companyId: 'EMP002',
-    companyName: 'Creative Minds Agency',
-    companyLogo: 'https://placehold.co/100x100.png',
-    workMode: ['hybrid'],
-    city: 'New York',
-    state: 'NY',
-    postingDate: new Date('2023-09-15'),
-    status: 'active',
-    applications: 28, 
-    createdAt: new Date('2023-09-15'),
-    updatedAt: new Date('2023-09-15'),
-    skills: ['Problem Solving', 'Communication'],
-  },
-  { 
-    id: 'JOB003', 
-    title: 'UX/UI Designer', 
-    slug: 'ux-ui-designer',
-    description: 'Join our design team to create beautiful and intuitive user interfaces.',
-    minExperience: 2,
-    maxExperience: 5,
-    type: 'contract',
-    payrollType: 'contract',
-    contractDuration: 6,
-    contractDurationUnit: 'months',
-    shiftType: 'flexible',
-    ctcCurrency: 'USD',
-    ctcMinAmount: 80,
-    ctcMaxAmount: 100,
-    ctcFrequency: 'weekly',
-    jobCategoryId: 'JCAT002',
-    companyId: 'EMP002',
-    companyName: 'Creative Minds Agency',
-    companyLogo: 'https://placehold.co/100x100.png',
-    workMode: ['remote'],
-    postingDate: new Date('2023-10-05'),
-    status: 'draft',
-    applications: 0, 
-    createdAt: new Date('2023-10-05'),
-    updatedAt: new Date('2023-10-05'),
-    skills: ['Figma', 'Sketch'],
-  },
-  { 
-    id: 'JOB004', 
-    title: 'Data Scientist', 
-    slug: 'data-scientist',
-    description: 'We need a data scientist to analyze large datasets and provide actionable insights.',
-    minExperience: 3,
-    maxExperience: 7,
-    type: 'full-time',
-    payrollType: 'direct',
-    shiftType: 'regular',
-    ctcCurrency: 'USD',
-    ctcMinAmount: 140000,
-    ctcMaxAmount: 180000,
-    ctcFrequency: 'yearly',
-    jobCategoryId: 'JCAT001',
-    companyId: 'EMP003',
-    companyName: 'HealthWell Solutions',
-    companyLogo: 'https://placehold.co/100x100.png',
-    workMode: ['onsite'],
-    city: 'Boston',
-    state: 'MA',
-    postingDate: new Date('2023-08-20'),
-    status: 'active',
-    applications: 65, 
-    createdAt: new Date('2023-08-20'),
-    updatedAt: new Date('2023-08-20'),
-    skills: ['Python'],
-  },
-  { 
-    id: 'JOB005', 
-    title: 'Backend Engineer', 
-    slug: 'backend-engineer',
-    description: 'Develop and maintain the server-side logic for our applications.',
-    minExperience: 3,
-    maxExperience: 6,
-    type: 'full-time',
-    payrollType: 'direct',
-    shiftType: 'regular',
-    ctcCurrency: 'USD',
-    ctcMinAmount: 110000,
-    ctcMaxAmount: 140000,
-    ctcFrequency: 'yearly',
-    jobCategoryId: 'JCAT001',
-    companyId: 'EMP001',
-    companyName: 'Innovate Inc.',
-    companyLogo: 'https://placehold.co/100x100.png',
-    workMode: ['hybrid'],
-    city: 'Austin',
-    state: 'TX',
-    postingDate: new Date('2023-07-10'),
-    status: 'archived',
-    applications: 15, 
-    createdAt: new Date('2023-07-10'),
-    updatedAt: new Date('2023-07-10'),
-    skills: ['Node.js', 'Python'],
-  },
-];
-
-export const users: User[] = [
-  { id: 'USR001', name: 'Alice Johnson', email: 'alice@example.com', avatar: 'https://placehold.co/40x40.png', role: 'Admin', status: 'Active', joinedAt: new Date('2023-01-15'), updatedAt: new Date('2023-01-15'), phoneNumber: '+1-555-0199', permissions: ['manageUsers', 'viewReports', 'manageSettings'] },
-  { id: 'USR002', name: 'Bob Williams', email: 'bob@example.com', avatar: 'https://placehold.co/40x40.png', role: 'Recruiter', status: 'Active', joinedAt: new Date('2023-02-20'), updatedAt: new Date('2023-02-20'), employerId: 'EMP001', employerName: 'Innovate Inc.' },
-  { id: 'USR003', name: 'Charlie Brown', email: 'charlie@example.com', avatar: 'https://placehold.co/40x40.png', role: 'Member', status: 'Inactive', joinedAt: new Date('2023-03-10'), updatedAt: new Date('2023-03-10'), employerId: 'EMP002', employerName: 'Creative Minds Agency' },
-  { id: 'USR004', name: 'Diana Miller', email: 'diana@example.com', avatar: 'https://placehold.co/40x40.png', role: 'Recruiter', status: 'Active', joinedAt: new Date('2023-05-01'), updatedAt: new Date('2023-05-01'), employerId: 'EMP001', employerName: 'Innovate Inc.' },
-  { id: 'USR005', name: 'Ethan Davis', email: 'ethan@example.com', avatar: 'https://placehold.co/40x40.png', role: 'Member', status: 'Active', joinedAt: new Date('2023-06-25'), updatedAt: new Date('2023-06-25'), employerId: 'EMP003', employerName: 'HealthWell Solutions' },
-  { id: 'USR006', name: 'Frank Green', email: 'frank@example.com', avatar: 'https://placehold.co/40x40.png', role: 'SubAdmin', status: 'Active', joinedAt: new Date('2023-07-01'), updatedAt: new Date('2023-07-01'), phoneNumber: '+1-555-0123', permissions: ['jobs:create', 'jobs:read', 'employers:read'], employerId: 'EMP002', employerName: 'Creative Minds Agency' },
-  { id: 'USR007', name: 'Grace Hall', email: 'grace@example.com', avatar: 'https://placehold.co/40x40.png', role: 'SubAdmin', status: 'Active', joinedAt: new Date('2023-08-10'), updatedAt: new Date('2023-08-10'), phoneNumber: '+1-555-0124', permissions: ['jobseekers:read', 'jobseekers:update'] },
-  { id: 'USR008', name: 'Henry Ives', email: 'henry@example.com', avatar: 'https://placehold.co/40x40.png', role: 'SubAdmin', status: 'Inactive', joinedAt: new Date('2023-09-05'), updatedAt: new Date('2023-09-05'), phoneNumber: '+1-555-0125', permissions: ['faqs:read', 'faqs:update', 'faqs:create', 'faqs:delete'] },
 ];
 
 export const applications: Application[] = [

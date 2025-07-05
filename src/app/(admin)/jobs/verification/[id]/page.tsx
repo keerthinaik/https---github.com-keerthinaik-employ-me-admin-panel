@@ -1,22 +1,25 @@
 
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { jobs, jobCategories, employers, skills, skillCategories } from "@/lib/data";
-import { format } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getJob, updateJob, getSkillCategories, getSkills } from "@/services/api";
+import { format, isValid } from "date-fns";
 import {
-    ArrowLeft, Briefcase, Building, Calendar, Clock, MapPin, Users, DollarSign, List, Tag, MessageSquare, Check, X, Tags
+    ArrowLeft, Briefcase, Building, Calendar, Clock, MapPin, DollarSign, List, Tag, Check, X, Tags, HelpCircle
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Job, Skill, SkillCategory, Employer as EmployerType, JobCategory as JobCategoryType } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
-function JobDetailsSkeleton() {
+function JobVerificationDetailsSkeleton() {
     return (
         <div>
             <PageHeader title="Job Verification Details">
@@ -84,38 +87,65 @@ export default function JobVerificationDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
-    const job = jobs.find(j => j.id === id);
-    
+    const { toast } = useToast();
+    const [job, setJob] = useState<Job | null>(null);
+    const [allSkills, setAllSkills] = useState<Skill[]>([]);
+    const [skillCategories, setSkillCategories] = useState<SkillCategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (!job) {
-        notFound();
-    }
-    
-    const company = employers.find(e => e.id === job.companyId);
-    const category = jobCategories.find(c => c.id === job.jobCategoryId);
-    
-    const getStatusBadge = (status: 'active' | 'inactive' | 'draft' | 'archived') => {
-        switch (status) {
-            case 'active':
-                return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
-            case 'inactive':
-                return <Badge variant="secondary">Inactive</Badge>;
-            case 'draft':
-                 return <Badge className="bg-yellow-500 hover:bg-yellow-600">Draft</Badge>;
-            case 'archived':
-                return <Badge variant="destructive">Archived</Badge>;
+    const fetchJobData = useCallback(() => {
+        if (id) {
+            setIsLoading(true);
+            Promise.all([
+                getJob(id),
+                getSkills({ limit: 1000 }),
+                getSkillCategories({ limit: 1000 })
+            ]).then(([jobData, skillsRes, categoriesRes]) => {
+                setJob(jobData);
+                setAllSkills(skillsRes.data);
+                setSkillCategories(categoriesRes.data);
+            }).catch(err => {
+                console.error(err);
+                notFound();
+            }).finally(() => {
+                setIsLoading(false);
+            });
         }
-    }
+    }, [id]);
+
+    useEffect(() => {
+        fetchJobData();
+    }, [fetchJobData]);
+    
+    const handleVerification = async (isActive: boolean) => {
+        if (!job) return;
+        try {
+            await updateJob(job.id, { isActive });
+            toast({
+                title: 'Job Status Updated',
+                description: `"${job.title}" has been ${isActive ? 'approved' : 'disapproved'}.`,
+            });
+            fetchJobData();
+        } catch (error: any) {
+            toast({
+                title: 'Error updating job status',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+    
 
     if (isLoading) {
-        return <JobDetailsSkeleton />;
+        return <JobVerificationDetailsSkeleton />;
     }
+
+    if (!job) {
+        return notFound();
+    }
+    
+    const company = job.employer as EmployerType;
+    const category = job.jobCategory as JobCategoryType;
 
     return (
         <div>
@@ -125,13 +155,12 @@ export default function JobVerificationDetailsPage() {
                         <ArrowLeft className="mr-1 h-4 w-4" />
                         Back to Verification List
                     </Button>
-                    {job.status !== 'active' && (
-                        <Button className="bg-green-500 hover:bg-green-600">
+                    {!job.isActive ? (
+                        <Button className="bg-green-500 hover:bg-green-600" onClick={() => handleVerification(true)}>
                             <Check className="mr-1 h-4 w-4" /> Approve
                         </Button>
-                    )}
-                    {job.status === 'active' && (
-                        <Button variant="destructive">
+                    ) : (
+                         <Button variant="destructive" onClick={() => handleVerification(false)}>
                             <X className="mr-1 h-4 w-4" /> Disapprove
                         </Button>
                     )}
@@ -142,10 +171,10 @@ export default function JobVerificationDetailsPage() {
                      <Card>
                         <CardHeader>
                             <CardTitle className="text-2xl">{job.title}</CardTitle>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground pt-2">
                                 <div className="flex items-center gap-2"><Briefcase className="h-4 w-4" /> {job.type}</div>
                                 {job.city && <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {job.city}, {job.country}</div>}
-                                <div className="flex items-center gap-2"><Clock className="h-4 w-4" /> Posted {format(job.postingDate, 'MMM d, yyyy')}</div>
+                                <div className="flex items-center gap-2"><Clock className="h-4 w-4" /> Posted {isValid(new Date(job.postingDate)) ? format(new Date(job.postingDate), 'MMM d, yyyy') : 'N/A'}</div>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -172,8 +201,8 @@ export default function JobVerificationDetailsPage() {
                              {job.skills && job.skills.length > 0 ? (
                                 <div className="space-y-4">
                                     {skillCategories.map(category => {
-                                        const relevantSkills = skills.filter(s =>
-                                            s.categoryId === category.id && job.skills?.includes(s.name)
+                                        const relevantSkills = allSkills.filter(s =>
+                                            s.skillCategory?.id === category.id && job.skills?.includes(s.id)
                                         );
 
                                         if (relevantSkills.length === 0) return null;
@@ -203,11 +232,11 @@ export default function JobVerificationDetailsPage() {
                     </Card>
                      {job.questions && job.questions.length > 0 && (
                         <Card>
-                            <CardHeader><CardTitle>Screening Questions</CardTitle></CardHeader>
+                            <CardHeader><CardTitle className="flex items-center gap-2"><HelpCircle /> Screening Questions</CardTitle></CardHeader>
                             <CardContent>
                                 <ul className="space-y-4">
                                 {job.questions.map((q, i) => (
-                                    <li key={i} className="text-sm">
+                                    <li key={q._id || i} className="text-sm">
                                         <p className="font-medium">{i+1}. {q.question}</p>
                                         <p className="text-muted-foreground text-xs capitalize pl-4">Type: {q.type.replace('-', ' ')}</p>
                                         {q.options && q.options.length > 0 && (
@@ -227,7 +256,9 @@ export default function JobVerificationDetailsPage() {
                             <CardTitle>Status</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             {getStatusBadge(job.status)}
+                             <Badge variant={job.isActive ? 'default' : 'destructive'} className={job.isActive ? 'bg-green-500 hover:bg-green-600' : ''}>
+                                {job.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
                              <p className="text-xs text-muted-foreground mt-2">Openings: {job.numberOfPosts}</p>
                         </CardContent>
                     </Card>
@@ -239,11 +270,11 @@ export default function JobVerificationDetailsPage() {
                             {company && (
                                 <div className="flex items-center gap-4">
                                      <Avatar>
-                                        <AvatarImage src={company.logo} alt={company.companyName} />
-                                        <AvatarFallback>{company.companyName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                        <AvatarImage src={company.profilePhoto} alt={company.name} />
+                                        <AvatarFallback>{company.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <h3 className="font-semibold">{company.companyName}</h3>
+                                        <h3 className="font-semibold">{company.name}</h3>
                                         <Button variant="link" className="p-0 h-auto" asChild>
                                             <Link href={`/employers/${company.id}`}>View Company</Link>
                                         </Button>
