@@ -49,7 +49,11 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
   });
 
   const onSubmit = (data: AdminUserFormValues) => {
-    console.log(data);
+    const payload = { ...data };
+    if (user && !payload.password) {
+      delete payload.password;
+    }
+    console.log(payload);
     toast({
         title: user ? 'Admin Updated' : 'Admin Created',
         description: `${data.name} has been successfully ${user ? 'updated' : 'created'}.`,

@@ -323,6 +323,10 @@ export function EmployerForm({ employer }: EmployerFormProps) {
   const onSubmit = async (data: EmployerFormValues) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
+      // Exclude password if it's empty during an update
+      if (employer && key === 'password' && !value) {
+          return;
+      }
       if (value !== undefined && value !== null && value !== '') {
         if (['profilePhoto', 'taxCertificate', 'registrationCertificate'].includes(key) && value instanceof FileList) {
           if (value.length > 0) formData.append(key, value[0]);

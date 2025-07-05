@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -307,11 +307,15 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      // Exclude association IDs if they are null, undefined, or an empty string
-      if ((key === 'businessAssociationId' || key === 'universityAssociationId') && !value) {
-        return; // Skip appending
+      // Exclude password if it's empty during an update
+      if (jobseeker && key === 'password' && !value) {
+        return;
       }
-
+      // Exclude association IDs if they are null
+      if ((key === 'businessAssociationId' || key === 'universityAssociationId') && !value) {
+        return; 
+      }
+      
       if (value === undefined || value === null) {
         return;
       }
@@ -528,4 +532,3 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
-

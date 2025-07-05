@@ -63,7 +63,11 @@ export function EmployeeForm({ user }: EmployeeFormProps) {
   const selectedRole = watch('role');
 
   const onSubmit = (data: EmployeeFormValues) => {
-    console.log(data);
+    const payload = { ...data };
+    if (user && !payload.password) {
+      delete payload.password;
+    }
+    console.log(payload);
     toast({
         title: user ? 'Employee Updated' : 'Employee Created',
         description: `${data.name} has been successfully ${user ? 'updated' : 'created'}.`,
@@ -256,5 +260,3 @@ export function EmployeeForm({ user }: EmployeeFormProps) {
     </form>
   );
 }
-
-    

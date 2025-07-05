@@ -52,7 +52,11 @@ export function SubAdminForm({ user }: SubAdminFormProps) {
   });
 
   const onSubmit = (data: SubAdminFormValues) => {
-    console.log(data);
+    const payload = { ...data };
+    if (user && !payload.password) {
+      delete payload.password;
+    }
+    console.log(payload);
     toast({
         title: user ? 'Sub Admin Updated' : 'Sub Admin Created',
         description: `${data.name} has been successfully ${user ? 'updated' : 'created'}.`,

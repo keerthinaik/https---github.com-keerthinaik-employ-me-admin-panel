@@ -327,6 +327,10 @@ export function UniversityForm({ university }: UniversityFormProps) {
   const onSubmit = async (data: UniversityFormValues) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
+      // Exclude password if it's empty during an update
+      if (university && key === 'password' && !value) {
+          return;
+      }
       if (value !== undefined && value !== null && value !== '') {
         if (key === 'profilePhoto' && value instanceof File) {
           formData.append('profilePhoto', value);

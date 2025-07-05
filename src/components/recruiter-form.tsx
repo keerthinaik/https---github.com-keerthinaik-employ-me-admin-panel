@@ -50,7 +50,11 @@ export function RecruiterForm({ user }: RecruiterFormProps) {
   });
 
   const onSubmit = (data: RecruiterFormValues) => {
-    console.log(data);
+    const payload = { ...data };
+    if (user && !payload.password) {
+      delete payload.password;
+    }
+    console.log(payload);
     toast({
         title: user ? 'Recruiter Updated' : 'Recruiter Created',
         description: `${data.name} has been successfully ${user ? 'updated' : 'created'}.`,
