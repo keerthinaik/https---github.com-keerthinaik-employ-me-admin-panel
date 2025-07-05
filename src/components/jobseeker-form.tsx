@@ -322,10 +322,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      if (value === null || value === undefined || value === '') {
+      if (value === null || value === undefined) {
         return;
       }
-
+      
       if (key === 'profilePhoto' && value instanceof File) {
         formData.append(key, value);
       } else if (value instanceof Date) {
@@ -442,8 +442,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <FormItem>
                                         <FormLabel>Business Association</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value || ''}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select business" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
+                                                <SelectItem value="">None</SelectItem>
                                                 {businesses.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
@@ -458,8 +459,9 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                     <FormItem>
                                         <FormLabel>University Association</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value || ''}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select university" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
+                                                <SelectItem value="">None</SelectItem>
                                                 {universities.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
