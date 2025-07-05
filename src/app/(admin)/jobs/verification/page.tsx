@@ -1,26 +1,51 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { type Job, type Pagination, type GetAllParams, type Employer as EmployerType } from "@/lib/types";
-import { getJobs, updateJob } from '@/services/api';
-import { format, isValid } from 'date-fns';
 import {
-    Eye,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuCheckboxItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getJobs } from '@/services/api';
+import type { Job, Pagination, GetAllParams, Employer as EmployerType } from "@/lib/types";
+import { format, isValid } from "date-fns";
+import {
     Search,
+    ArrowDownUp,
+    ArrowUp,
+    ArrowDown,
+    FilterX,
+    Columns,
     ChevronLeft,
     ChevronRight,
-    Check,
 } from "lucide-react";
-import Link from "next/link";
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { useDebounce } from '@/lib/hooks';
+import { useToast } from '@/hooks/use-toast';
+
+type SortConfig = {
+    key: string;
+    direction: 'asc' | 'desc';
+} | null;
+
+const columnsConfig = [
+    { key: 'title' as const, label: 'Job Title', sortable: true, sortKey: 'title' },
+    { key: 'employer' as const, label: 'Company', sortable: true, sortKey: 'employer.name' },
+    { key: 'status' as const, label: 'Status', sortable: true, sortKey: 'isActive' },
+    { key: 'postingDate' as const, label: 'Posted On', sortable: true, sortKey: 'postingDate' },
+];
+
+type ColumnKeys = typeof columnsConfig[number]['key'];
 
 const ROWS_PER_PAGE = 10;
 
@@ -30,21 +55,38 @@ export default function JobVerificationPage() {
     const [pagination, setPagination] = useState<Pagination | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'desc' });
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
-    
+
+    // Filters are removed from UI for this specific view
+    const [filters, setFilters] = useState({});
+
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+        title: true,
+        employer: true,
+        status: true,
+        postingDate: true,
+    });
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE);
     const [rowsPerPageInput, setRowsPerPageInput] = useState<number | string>(ROWS_PER_PAGE);
 
+    const getStatusBadge = (isActive: boolean) => {
+        // This page only shows inactive jobs pending approval
+        return <Badge variant="secondary" className="capitalize">Pending Approval</Badge>;
+    }
+
     const fetchJobs = useCallback(() => {
         setIsLoading(true);
-        const apiFilters: Record<string, any> = { isActive: false };
+        // Always fetch inactive jobs for the verification page
+        const apiFilters: Record<string, any> = { ...filters, isActive: false }; 
         if (debouncedSearchTerm) {
             apiFilters.title = debouncedSearchTerm;
         }
 
-        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: '-updatedAt' };
+        const sortString = sortConfig ? `${sortConfig.direction === 'desc' ? '-' : ''}${sortConfig.key}` : undefined;
+        const params: GetAllParams = { page: currentPage, limit: rowsPerPage, filters: apiFilters, sort: sortString };
 
         getJobs(params)
             .then(data => {
@@ -53,46 +95,57 @@ export default function JobVerificationPage() {
             })
             .catch(error => {
                 toast({
-                    title: 'Error fetching jobs for verification',
+                    title: 'Error fetching jobs',
                     description: error.message,
                     variant: 'destructive',
                 });
             })
             .finally(() => setIsLoading(false));
-    }, [currentPage, rowsPerPage, debouncedSearchTerm, toast]);
+    }, [currentPage, rowsPerPage, debouncedSearchTerm, filters, sortConfig, toast]);
 
     useEffect(() => {
         fetchJobs();
     }, [fetchJobs]);
-    
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearchTerm, rowsPerPage]);
+    }, [debouncedSearchTerm, filters, sortConfig, rowsPerPage]);
 
-    const handleApprove = async (job: Job) => {
-        try {
-            await updateJob(job.id, { isActive: true });
-            toast({
-                title: 'Job Approved',
-                description: `"${job.title}" has been successfully approved and is now active.`,
-            });
-            fetchJobs();
-        } catch (error: any) {
-             toast({
-                title: 'Error approving job',
-                description: error.message,
-                variant: 'destructive',
-            });
+    const requestSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
         }
+        setSortConfig({ key, direction });
     };
+
+    const getSortIcon = (key: string) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <ArrowDownUp className="h-4 w-4 text-muted-foreground/50" />;
+        }
+        return sortConfig.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setFilters({});
+        setSortConfig({ key: 'updatedAt', direction: 'desc' });
+    }
 
     const SkeletonRow = () => (
         <TableRow>
-            <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-            <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-            <TableCell><div className="flex gap-2"><Skeleton className="h-8 w-16" /><Skeleton className="h-8 w-24" /></div></TableCell>
+            {columnsConfig.map(col => (
+                columnVisibility[col.key] && (
+                    <TableCell key={col.key}>
+                        <Skeleton className={cn("h-5", {
+                            "w-48": col.key === "title",
+                            "w-32": col.key === "employer",
+                            "w-20 rounded-full h-6": col.key === "status",
+                            "w-24": col.key === "postingDate",
+                        })} />
+                    </TableCell>
+                )
+            ))}
         </TableRow>
     );
 
@@ -110,17 +163,44 @@ export default function JobVerificationPage() {
                         className="pl-10"
                     />
                 </div>
+                <div className='flex gap-2 w-full md:w-auto'>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full md:w-auto">
+                                <Columns className="mr-1 h-4 w-4" /> Columns
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {columnsConfig.map(column => (
+                                <DropdownMenuCheckboxItem key={column.key} className="capitalize" checked={columnVisibility[column.key]} onCheckedChange={(value) => setColumnVisibility(prev => ({...prev, [column.key]: !!value}))}>
+                                    {column.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button variant="outline" onClick={clearFilters}><FilterX className="mr-1 h-4 w-4" /> Clear</Button>
+                </div>
             </div>
 
             <div className="bg-card border rounded-lg">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Job Title</TableHead>
-                            <TableHead>Company</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Posted On</TableHead>
-                            <TableHead><span className="sr-only">Actions</span></TableHead>
+                            {columnsConfig.map(col => (
+                                columnVisibility[col.key] && (
+                                    <TableHead key={col.key}>
+                                        {col.sortable ? (
+                                            <Button variant="ghost" onClick={() => requestSort(col.sortKey as string)} className="px-0 h-auto hover:bg-transparent capitalize">
+                                                {col.label} {getSortIcon(col.sortKey as string)}
+                                            </Button>
+                                        ) : (
+                                            col.label
+                                        )}
+                                    </TableHead>
+                                )
+                            ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -129,26 +209,16 @@ export default function JobVerificationPage() {
                         ) : jobs.length > 0 ? (
                             jobs.map(job => (
                                 <TableRow key={job.id}>
-                                    <TableCell className="font-medium">{job.title}</TableCell>
-                                    <TableCell className="text-muted-foreground">{(job.employer as EmployerType)?.name || 'N/A'}</TableCell>
-                                    <TableCell><Badge variant="secondary">Pending Approval</Badge></TableCell>
-                                    <TableCell>{isValid(new Date(job.postingDate)) ? format(new Date(job.postingDate), 'MMM d, yyyy') : 'N/A'}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href={`/jobs/verification/${job.id}`}><Eye className="mr-1 h-4 w-4"/> View</Link>
-                                            </Button>
-                                            <Button size="sm" className="bg-green-500 hover:bg-green-600" onClick={() => handleApprove(job)}>
-                                                <Check className="mr-1 h-4 w-4"/> Approve
-                                            </Button>
-                                        </div>
-                                    </TableCell>
+                                    {columnVisibility.title && <TableCell className="font-medium">{job.title}</TableCell>}
+                                    {columnVisibility.employer && <TableCell className="text-muted-foreground">{(job.employer as EmployerType)?.name || 'N/A'}</TableCell>}
+                                    {columnVisibility.status && <TableCell>{getStatusBadge(job.isActive)}</TableCell>}
+                                    {columnVisibility.postingDate && <TableCell className="hidden lg:table-cell">{isValid(new Date(job.postingDate)) ? format(new Date(job.postingDate), 'MMM d, yyyy') : 'N/A'}</TableCell>}
                                 </TableRow>
                             ))
                         ) : (
                              <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No jobs are currently pending verification.
+                                <TableCell colSpan={Object.values(columnVisibility).filter(Boolean).length} className="h-24 text-center">
+                                    No jobs pending verification.
                                 </TableCell>
                             </TableRow>
                         )}
