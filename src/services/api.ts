@@ -1,5 +1,6 @@
 
-import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job } from '@/lib/types';
+
+import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job, ProfileUser } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
@@ -128,13 +129,56 @@ export async function getMe(): Promise<GetMeResponse> {
   return authedFetch(`/api/v1/auth/me`);
 }
 
-export async function updateAdminUser(id: string, userData: FormData): Promise<AuthUser> {
+// Admin Users
+export async function getAdminUsers(params: GetAllParams = {}): Promise<{ data: ProfileUser[], pagination: Pagination }> {
+  const queryString = buildQueryString(params);
+  const response = await authedFetch(`/api/v1/admin-users?${queryString}`);
+  const data = response.data.map((item: any) => ({
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  }));
+  const pagination: Pagination = {
+    currentPage: response.page,
+    limit: response.limit,
+    totalRecords: response.total,
+    totalPages: Math.ceil(response.total / response.limit),
+  };
+  return { data, pagination };
+}
+
+export async function getAdminUser(id: string): Promise<ProfileUser> {
+  const response = await authedFetch(`/api/v1/admin-users/${id}`);
+  const item = response.data;
+  return {
+    ...mapItem(item),
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+export async function createAdminUser(userData: FormData): Promise<ProfileUser> {
+  const response = await authedFetch(`/api/v1/admin-users`, {
+    method: 'POST',
+    body: userData,
+  });
+  return response.data;
+}
+
+export async function updateAdminUser(id: string, userData: FormData): Promise<ProfileUser> {
   const response = await authedFetch(`/api/v1/admin-users/${id}`, {
     method: 'PUT',
     body: userData,
   });
-  return response.data.user;
+  return response.data;
 }
+
+export async function deleteAdminUser(id: string): Promise<null> {
+  return authedFetch(`/api/v1/admin-users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 
 // Jobs
 export async function getJobs(params: GetAllParams = {}): Promise<{ data: Job[], pagination: Pagination }> {
