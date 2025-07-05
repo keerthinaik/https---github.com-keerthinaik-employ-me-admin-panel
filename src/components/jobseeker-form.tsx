@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -19,8 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { getCountries, getStates, getCities, createJobseeker, updateJobseeker } from '@/services/api';
-import type { Jobseeker, Country, State, City } from '@/lib/types';
+import { getCountries, getStates, getCities, createJobseeker, updateJobseeker, getBusinesses, getUniversities } from '@/services/api';
+import type { Jobseeker, Country, State, City, Business, University } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -46,6 +46,9 @@ const jobseekerSchema = z.object({
   city: z.string().optional(),
   zipCode: z.string().optional(),
   
+  businessAssociationId: z.string().optional(),
+  universityAssociationId: z.string().optional(),
+
   isVerified: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
@@ -79,14 +82,19 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [countries, setCountries] = React.useState<Country[]>([]);
   const [states, setStates] = React.useState<State[]>([]);
   const [cities, setCities] = React.useState<City[]>([]);
+  const [businesses, setBusinesses] = React.useState<Business[]>([]);
+  const [universities, setUniversities] = React.useState<University[]>([]);
 
   const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
   const [isLoadingStates, setIsLoadingStates] = React.useState(false);
   const [isLoadingCities, setIsLoadingCities] = React.useState(false);
+  const [isLoadingAssociations, setIsLoadingAssociations] = React.useState(false);
   
   const [openCountry, setOpenCountry] = React.useState(false);
   const [openState, setOpenState] = React.useState(false);
   const [openCity, setOpenCity] = React.useState(false);
+  const [openBusiness, setOpenBusiness] = React.useState(false);
+  const [openUniversity, setOpenUniversity] = React.useState(false);
 
   const [imgSrc, setImgSrc] = React.useState('')
   const imgRef = React.useRef<HTMLImageElement>(null)
@@ -112,6 +120,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         isVerified: false,
         isActive: true,
         profilePhoto: undefined,
+        businessAssociationId: '',
+        universityAssociationId: '',
     }
   });
 
@@ -140,6 +150,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         isVerified: jobseeker.isVerified || false,
         isActive: jobseeker.isActive ?? true,
         profilePhoto: undefined,
+        businessAssociationId: jobseeker.businessAssociationId || '',
+        universityAssociationId: jobseeker.universityAssociationId || '',
       });
 
       if (jobseeker.profilePhoto) {
@@ -154,13 +166,21 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   React.useEffect(() => {
     const fetchInitialData = async () => {
         setIsLoadingCountries(true);
+        setIsLoadingAssociations(true);
         try {
-            const countryData = await getCountries();
+            const [countryData, businessData, universityData] = await Promise.all([
+                getCountries(),
+                getBusinesses({ limit: 1000 }),
+                getUniversities({ limit: 1000 }),
+            ]);
             setCountries(countryData);
+            setBusinesses(businessData.data);
+            setUniversities(universityData.data);
         } catch (error) {
             toast({ title: "Failed to load initial form data", variant: "destructive" });
         } finally {
             setIsLoadingCountries(false);
+            setIsLoadingAssociations(false);
         }
     };
     fetchInitialData();
@@ -311,7 +331,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         formData.append(key, String(value));
       }
     });
-
+    
     try {
         if (jobseeker) {
             await updateJobseeker(jobseeker.id, formData);
@@ -372,6 +392,81 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                 <FormField control={control} name="dateOfBirth" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1960} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem>)} />
                                 <FormField control={control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Associations</CardTitle></CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                                control={control}
+                                name="businessAssociationId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Business Association</FormLabel>
+                                        <Popover open={openBusiness} onOpenChange={setOpenBusiness}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
+                                                        {field.value ? businesses.find(b => b.id === field.value)?.name : "Select business..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search business..." />
+                                                    <CommandEmpty>No business found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-60 overflow-auto">
+                                                        <CommandItem onSelect={() => { setValue('businessAssociationId', ''); setValue('universityAssociationId', ''); setOpenBusiness(false); }}>None</CommandItem>
+                                                        {businesses.map(b => (
+                                                            <CommandItem key={b.id} value={b.name} onSelect={() => { setValue('businessAssociationId', b.id); setValue('universityAssociationId', ''); setOpenBusiness(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", b.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {b.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={control}
+                                name="universityAssociationId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>University Association</FormLabel>
+                                        <Popover open={openUniversity} onOpenChange={setOpenUniversity}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className="w-full justify-between" disabled={isLoadingAssociations}>
+                                                        {field.value ? universities.find(u => u.id === field.value)?.name : "Select university..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search university..." />
+                                                    <CommandEmpty>No university found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-60 overflow-auto">
+                                                        <CommandItem onSelect={() => { setValue('universityAssociationId', ''); setValue('businessAssociationId', ''); setOpenUniversity(false);}}>None</CommandItem>
+                                                        {universities.map(u => (
+                                                            <CommandItem key={u.id} value={u.name} onSelect={() => { setValue('universityAssociationId', u.id); setValue('businessAssociationId', ''); setOpenUniversity(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", u.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {u.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </CardContent>
                     </Card>
                     <Card>
