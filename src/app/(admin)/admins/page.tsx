@@ -55,6 +55,7 @@ type SortConfig = {
 
 const columnsConfig = [
     { key: 'name' as const, label: 'User', sortable: true, sortKey: 'name' as keyof ProfileUser },
+    { key: 'phoneNumber' as const, label: 'Phone', sortable: true, sortKey: 'phoneNumber' as keyof ProfileUser },
     { key: 'location' as const, label: 'Location', sortable: false },
     { key: 'isActive' as const, label: 'Status', sortable: true, sortKey: 'isActive' as keyof ProfileUser },
     { key: 'isVerified' as const, label: 'Verified', sortable: true, sortKey: 'isVerified' as keyof ProfileUser },
@@ -82,7 +83,8 @@ export default function AdminsPage() {
 
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
         name: true,
-        location: true,
+        phoneNumber: true,
+        location: false,
         isActive: true,
         isVerified: true,
         actions: true,
@@ -97,6 +99,8 @@ export default function AdminsPage() {
         const apiFilters: Record<string, any> = {};
         if (debouncedSearchTerm) {
             apiFilters.name = debouncedSearchTerm;
+            apiFilters.email = debouncedSearchTerm;
+            apiFilters.phoneNumber = debouncedSearchTerm;
         }
         if (filters.isVerified !== 'all') {
             apiFilters.isVerified = filters.isVerified === 'verified';
@@ -177,6 +181,7 @@ export default function AdminsPage() {
     const SkeletonRow = () => (
         <TableRow>
             {columnVisibility.name && <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-40" /></div></div></TableCell>}
+            {columnVisibility.phoneNumber && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
             {columnVisibility.location && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
             {columnVisibility.isActive && <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>}
             {columnVisibility.isVerified && <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>}
@@ -199,7 +204,7 @@ export default function AdminsPage() {
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by name..."
+                        placeholder="Search by name, email, phone..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -315,6 +320,7 @@ export default function AdminsPage() {
                                             </div>
                                         </TableCell>
                                     )}
+                                     {columnVisibility.phoneNumber && <TableCell>{admin.phoneNumber || 'N/A'}</TableCell>}
                                      {columnVisibility.location && <TableCell>{admin.city && admin.country ? `${admin.city}, ${admin.country}` : 'N/A'}</TableCell>}
                                      {columnVisibility.isActive && (
                                         <TableCell>
@@ -458,3 +464,4 @@ export default function AdminsPage() {
         </div>
     )
 }
+
