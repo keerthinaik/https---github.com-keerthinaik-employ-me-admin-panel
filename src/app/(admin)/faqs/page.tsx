@@ -349,7 +349,7 @@ export default function FaqsPage() {
                         Previous
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                        Page {isLoading || !pagination ? '...' : currentPage} of {isLoading || !pagination ? '...' : totalPages}
+                        Page {isLoading || !pagination ? '...' : currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
                     </span>
                     <Button
                         variant="outline"
@@ -365,4 +365,5 @@ export default function FaqsPage() {
         </div>
     );
 }
+
 
