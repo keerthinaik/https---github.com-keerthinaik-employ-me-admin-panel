@@ -30,6 +30,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '
 import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJob, updateJob, createSkill } from '@/services/api';
 import type { Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
+import { Switch } from './ui/switch';
 
 const questionSchema = z.object({
   question: z.string().min(1, 'Question text is required'),
@@ -399,7 +400,7 @@ export function JobForm({ job }: { job?: Job }) {
                             name="title"
                             render={({ field }) => (
                                 <FormItem>
-                                    <Label htmlFor="title">Job Title</Label>
+                                    <FormLabel htmlFor="title">Job Title</FormLabel>
                                     <FormControl>
                                         <Input id="title" {...field} />
                                     </FormControl>
@@ -429,13 +430,13 @@ export function JobForm({ job }: { job?: Job }) {
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <Label htmlFor="description" className="flex items-center justify-between">
+                                    <FormLabel htmlFor="description" className="flex items-center justify-between">
                                         Job Description
                                         <Button type="button" size="sm" variant="outline" onClick={handleSuggestTitles} disabled={!canSuggest || isSuggesting}>
                                             {isSuggesting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Wand2 className="mr-1 h-4 w-4" />}
                                             Suggest Titles
                                         </Button>
-                                    </Label>
+                                    </FormLabel>
                                     <CardDescription>
                                         Provide a detailed job description. This field supports markdown for formatting.
                                     </CardDescription>
@@ -453,7 +454,7 @@ export function JobForm({ job }: { job?: Job }) {
                                 name="employer"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label>Employer</Label>
+                                        <FormLabel>Employer</FormLabel>
                                          <Popover open={openEmployer} onOpenChange={setOpenEmployer}>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
@@ -487,7 +488,7 @@ export function JobForm({ job }: { job?: Job }) {
                                 name="jobCategory"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label>Job Category</Label>
+                                        <FormLabel>Job Category</FormLabel>
                                         <Popover open={openJobCategory} onOpenChange={setOpenJobCategory}>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
@@ -537,7 +538,7 @@ export function JobForm({ job }: { job?: Job }) {
                                 name="type"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label>Job Type</Label>
+                                        <FormLabel>Job Type</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                             <SelectContent>
@@ -555,7 +556,7 @@ export function JobForm({ job }: { job?: Job }) {
                                 name="payrollType"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label>Payroll Type</Label>
+                                        <FormLabel>Payroll Type</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                             <SelectContent>
@@ -572,12 +573,12 @@ export function JobForm({ job }: { job?: Job }) {
                             <FormField
                                 control={form.control}
                                 name="expectedMinHoursPerWeek"
-                                render={({ field }) => (<FormItem><Label>Min. Hours/Week</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Min. Hours/Week</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                             />
                             <FormField
                                 control={form.control}
                                 name="expectedMaxHoursPerWeek"
-                                render={({ field }) => (<FormItem><Label>Max. Hours/Week</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Max. Hours/Week</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                             />
                         </div>
                          <FormField
@@ -585,7 +586,7 @@ export function JobForm({ job }: { job?: Job }) {
                             name="shiftType"
                             render={({ field }) => (
                                 <FormItem>
-                                    <Label>Shift Type</Label>
+                                    <FormLabel>Shift Type</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                         <SelectContent>
@@ -616,7 +617,7 @@ export function JobForm({ job }: { job?: Job }) {
                                 name="ctcCurrency"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <Label>Currency</Label>
+                                        <FormLabel>Currency</FormLabel>
                                         <Popover open={openCurrency} onOpenChange={setOpenCurrency}>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
@@ -673,12 +674,12 @@ export function JobForm({ job }: { job?: Job }) {
                             <FormField
                                 control={form.control}
                                 name="ctcMinAmount"
-                                render={({ field }) => (<FormItem><Label>Min Amount</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Min Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                             />
                              <FormField
                                 control={form.control}
                                 name="ctcMaxAmount"
-                                render={({ field }) => (<FormItem><Label>Max Amount</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Max Amount</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                             />
                         </div>
                         <FormField
@@ -686,7 +687,7 @@ export function JobForm({ job }: { job?: Job }) {
                             name="ctcFrequency"
                             render={({ field }) => (
                                 <FormItem>
-                                    <Label>Salary Frequency</Label>
+                                    <FormLabel>Salary Frequency</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                         <SelectContent>
@@ -704,7 +705,7 @@ export function JobForm({ job }: { job?: Job }) {
                             name="benefits"
                             render={({ field }) => (
                                 <FormItem>
-                                    <Label>Benefits (comma-separated)</Label>
+                                    <FormLabel>Benefits (comma-separated)</FormLabel>
                                     <FormControl><Input {...field} onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -728,12 +729,12 @@ export function JobForm({ job }: { job?: Job }) {
                             <FormField
                                 control={form.control}
                                 name="minExperience"
-                                render={({ field }) => (<FormItem><Label>Min Experience (years)</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Min Experience (years)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                             />
                             <FormField
                                 control={form.control}
                                 name="maxExperience"
-                                render={({ field }) => (<FormItem><Label>Max Experience (years)</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                                render={({ field }) => (<FormItem><FormLabel>Max Experience (years)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                             />
                         </div>
                         <FormField
@@ -741,7 +742,7 @@ export function JobForm({ job }: { job?: Job }) {
                             name="skills"
                             render={({ field }) => (
                             <FormItem>
-                                <Label>Required Skills</Label>
+                                <FormLabel>Required Skills</FormLabel>
                                 <div className="space-y-4">
                                     <div className="flex flex-wrap gap-2 min-h-10 border rounded-md p-2">
                                         {field.value?.length > 0 ? (
@@ -798,9 +799,9 @@ export function JobForm({ job }: { job?: Job }) {
                                                                             }
                                                                         }}
                                                                     />
-                                                                    <Label htmlFor={`skill-${skill.id}`} className="font-normal cursor-pointer">
+                                                                    <FormLabel htmlFor={`skill-${skill.id}`} className="font-normal cursor-pointer">
                                                                         {skill.name}
-                                                                    </Label>
+                                                                    </FormLabel>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -857,7 +858,7 @@ export function JobForm({ job }: { job?: Job }) {
                             name="workMode"
                             render={() => (
                                 <FormItem>
-                                    <Label>Work Mode</Label>
+                                    <FormLabel>Work Mode</FormLabel>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         {['remote', 'hybrid', 'onsite'].map((item) => (
                                             <FormField
@@ -871,7 +872,7 @@ export function JobForm({ job }: { job?: Job }) {
                                                                 return checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter((value) => value !== item))
                                                             }}/>
                                                         </FormControl>
-                                                        <Label className="font-normal capitalize">{item}</Label>
+                                                        <FormLabel className="font-normal capitalize">{item}</FormLabel>
                                                     </FormItem>
                                                 )}
                                             />
@@ -882,19 +883,19 @@ export function JobForm({ job }: { job?: Job }) {
                             )}
                         />
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="city" render={({ field }) => (<FormItem><Label>City</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="state" render={({ field }) => (<FormItem><Label>State</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="country" render={({ field }) => (<FormItem><Label>Country</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="zipCode" render={({ field }) => (<FormItem><Label>Zip Code</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                          <FormField
                             control={form.control}
                             name="expectedStartDate"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <Label>Expected Start Date</Label>
+                                    <FormLabel>Expected Start Date</FormLabel>
                                     <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                                         <PopoverTrigger asChild>
                                           <FormControl>
@@ -941,13 +942,13 @@ export function JobForm({ job }: { job?: Job }) {
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive hover:bg-destructive/10" onClick={() => removeQuestion(index)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
-                                <FormField control={form.control} name={`questions.${index}.question`} render={({ field }) => (<FormItem><Label>Question</Label><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name={`questions.${index}.question`} render={({ field }) => (<FormItem><FormLabel>Question</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField
                                     control={form.control}
                                     name={`questions.${index}.type`}
                                     render={({ field: typeField }) => (
                                     <FormItem>
-                                        <Label>Question Type</Label>
+                                        <FormLabel>Question Type</FormLabel>
                                         <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
                                             <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                                             <SelectContent>
@@ -967,7 +968,7 @@ export function JobForm({ job }: { job?: Job }) {
                                         name={`questions.${index}.options`}
                                         render={({ field }) => (
                                             <FormItem>
-                                                <Label>Options (comma-separated)</Label>
+                                                <FormLabel>Options (comma-separated)</FormLabel>
                                                 <FormControl><Input {...field} onChange={e => field.onChange(e.target.value.split(',').map(s => s.trim()))} value={Array.isArray(field.value) ? field.value.join(', ') : ''} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -1015,7 +1016,7 @@ export function JobForm({ job }: { job?: Job }) {
                         <FormField
                             control={form.control}
                             name="numberOfPosts"
-                            render={({ field }) => (<FormItem><Label>Number of Openings</Label><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                            render={({ field }) => (<FormItem><FormLabel>Number of Openings</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
                         />
                     </CardContent>
                  </Card>
