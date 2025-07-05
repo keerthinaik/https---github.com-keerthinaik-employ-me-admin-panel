@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { type Job, type Question, type SkillCategory, type Employer, type JobCategory } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
@@ -30,6 +29,10 @@ import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJo
 import type { Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { Switch } from './ui/switch';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('./rich-text-editor'), { ssr: false });
+
 
 const questionSchema = z.object({
   question: z.string().min(1, 'Question text is required'),
@@ -434,10 +437,13 @@ export function JobForm({ job }: { job?: Job }) {
                                         </Button>
                                     </FormLabel>
                                     <CardDescription>
-                                        Provide a detailed job description. This field supports markdown for formatting.
+                                        Provide a detailed job description. Use the editor tools for formatting.
                                     </CardDescription>
                                     <FormControl>
-                                        <Textarea id="description" {...field} className="min-h-[300px]" />
+                                        <RichTextEditor
+                                            {...field}
+                                            placeholder="Provide a detailed job description..."
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
