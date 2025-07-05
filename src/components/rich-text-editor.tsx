@@ -1,11 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
-
-// Dynamically import ReactQuill to disable SSR
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import { Skeleton } from './ui/skeleton';
 
 interface RichTextEditorProps {
   value: string;
@@ -32,6 +30,15 @@ const formats = [
 ];
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeholder, className }) => {
+  // Using useMemo to prevent re-creating the dynamic component on every render
+  const ReactQuill = useMemo(
+    () => dynamic(() => import('react-quill'), { 
+      ssr: false,
+      loading: () => <Skeleton className="h-[200px] w-full rounded-md" />
+    }),
+    []
+  );
+
   return (
     <div className={cn("bg-background", className)}>
       <ReactQuill
