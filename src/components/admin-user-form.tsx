@@ -186,9 +186,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
     }, 'image/jpeg');
   }
 
-  const goToNextTab = () => setActiveTab(TABS[TABS.indexOf(activeTab) + 1]);
-  const goToPrevTab = () => setActiveTab(TABS[TABS.indexOf(activeTab) - 1]);
-
   const onError = (errors: any) => {
     const firstErrorField = Object.keys(errors)[0] as keyof AdminUserFormValues;
     if (firstErrorField) {
@@ -243,7 +240,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
                   </div>
                 </CardContent>
               </Card>
-              <div className="mt-6 flex justify-end"><Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button></div>
             </TabsContent>
 
             <TabsContent value="location">
@@ -259,7 +255,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
                   <FormField control={control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                 </CardContent>
               </Card>
-              <div className="mt-6 flex justify-between"><Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button><Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button></div>
             </TabsContent>
 
             <TabsContent value="account">
@@ -271,7 +266,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
                   <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel><CardDescription>Inactive admins cannot log in.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)}/>
                 </CardContent>
               </Card>
-              <div className="mt-6 flex justify-between"><Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button></div>
             </TabsContent>
           </Tabs>
           <CardFooter className="flex justify-end gap-2 mt-6 px-0">

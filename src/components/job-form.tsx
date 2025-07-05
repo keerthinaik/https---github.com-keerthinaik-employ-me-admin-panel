@@ -134,7 +134,6 @@ export function JobForm({ job }: { job?: Job }) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('details');
-  const TABS = ['details', 'type', 'compensation', 'skills', 'logistics', 'questions', 'publish'];
 
   const [employers, setEmployers] = React.useState<Employer[]>([]);
   const [jobCategories, setJobCategories] = React.useState<JobCategory[]>([]);
@@ -305,20 +304,6 @@ export function JobForm({ job }: { job?: Job }) {
 
   const watchDescription = form.watch('description');
   const canSuggest = watchDescription && watchDescription.length > 50;
-
-  const goToNextTab = () => {
-    const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex < TABS.length - 1) {
-        setActiveTab(TABS[currentIndex + 1]);
-    }
-  };
-
-  const goToPrevTab = () => {
-     const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex > 0) {
-        setActiveTab(TABS[currentIndex - 1]);
-    }
-  };
 
   const handleSuggestTitles = async () => {
     setIsSuggesting(true);
@@ -601,9 +586,6 @@ export function JobForm({ job }: { job?: Job }) {
                          </div>
                     </CardContent>
                 </Card>
-                <div className="mt-6 flex justify-end">
-                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                </div>
             </TabsContent>
             
             <TabsContent value="type">
@@ -680,10 +662,6 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                 </Card>
-                <div className="mt-6 flex justify-between">
-                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                </div>
             </TabsContent>
             
             <TabsContent value="compensation">
@@ -794,10 +772,6 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
-                <div className="mt-6 flex justify-between">
-                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                </div>
             </TabsContent>
             
             <TabsContent value="skills">
@@ -931,10 +905,6 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
-                 <div className="mt-6 flex justify-between">
-                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                </div>
             </TabsContent>
 
              <TabsContent value="logistics">
@@ -1107,7 +1077,7 @@ export function JobForm({ job }: { job?: Job }) {
                                     <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                                         <PopoverTrigger asChild>
                                           <FormControl>
-                                            <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>
                                               <CalendarIcon className="mr-1 h-4 w-4" />
                                               {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                             </Button>
@@ -1132,10 +1102,6 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
-                 <div className="mt-6 flex justify-between">
-                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                </div>
             </TabsContent>
             
             <TabsContent value="questions">
@@ -1188,10 +1154,6 @@ export function JobForm({ job }: { job?: Job }) {
                         <Button type="button" variant="outline" onClick={() => appendQuestion({ question: '', type: 'text', options: [] })}>Add Question</Button>
                     </CardContent>
                  </Card>
-                 <div className="mt-6 flex justify-between">
-                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                </div>
             </TabsContent>
             
             <TabsContent value="publish">
@@ -1228,9 +1190,6 @@ export function JobForm({ job }: { job?: Job }) {
                         />
                     </CardContent>
                  </Card>
-                <div className="mt-6 flex justify-between">
-                    <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                </div>
             </TabsContent>
 
         </Tabs>

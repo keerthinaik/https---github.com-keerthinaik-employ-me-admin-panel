@@ -96,8 +96,7 @@ export function BusinessForm({ business }: BusinessFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('business');
-  const TABS = ['business', 'location', 'account'];
-
+  
   const [countries, setCountries] = React.useState<Country[]>([]);
   const [states, setStates] = React.useState<State[]>([]);
   const [cities, setCities] = React.useState<City[]>([]);
@@ -281,20 +280,6 @@ export function BusinessForm({ business }: BusinessFormProps) {
     }, 'image/jpeg');
   }
 
-  const goToNextTab = () => {
-    const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex < TABS.length - 1) {
-        setActiveTab(TABS[currentIndex + 1]);
-    }
-  };
-
-  const goToPrevTab = () => {
-     const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex > 0) {
-        setActiveTab(TABS[currentIndex - 1]);
-    }
-  };
-
    const onError = (errors: any) => {
     const firstErrorField = Object.keys(errors)[0] as keyof BusinessFormValues;
     if (firstErrorField) {
@@ -442,9 +427,6 @@ export function BusinessForm({ business }: BusinessFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-end">
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
                 </TabsContent>
 
                 <TabsContent value="location" className="space-y-6">
@@ -579,10 +561,6 @@ export function BusinessForm({ business }: BusinessFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
                 </TabsContent>
                 
                 <TabsContent value="account" className="space-y-6">
@@ -656,9 +634,6 @@ export function BusinessForm({ business }: BusinessFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    </div>
                 </TabsContent>
             </Tabs>
             <CardFooter className="flex justify-end gap-2 mt-6 px-0">

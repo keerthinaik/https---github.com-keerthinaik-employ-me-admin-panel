@@ -17,7 +17,6 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ChevronLeft, ChevronRight, ChevronsUpDown, Check } from 'lucide-react';
 import { getCountries, getStates, getCities, updateEmployer, createEmployer } from '@/services/api';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
@@ -26,6 +25,7 @@ import { Skeleton } from './ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { ChevronsUpDown, Check } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -102,7 +102,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('company');
-  const TABS = ['company', 'location', 'legal', 'account'];
   
   const [countries, setCountries] = React.useState<Country[]>([]);
   const [states, setStates] = React.useState<State[]>([]);
@@ -291,20 +290,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
     }, 'image/jpeg');
   }
 
-  const goToNextTab = () => {
-    const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex < TABS.length - 1) {
-        setActiveTab(TABS[currentIndex + 1]);
-    }
-  };
-
-  const goToPrevTab = () => {
-     const currentIndex = TABS.indexOf(activeTab);
-    if (currentIndex > 0) {
-        setActiveTab(TABS[currentIndex - 1]);
-    }
-  };
-
   const onError = (errors: any) => {
     const firstErrorField = Object.keys(errors)[0] as keyof EmployerFormValues;
     if (firstErrorField) {
@@ -455,9 +440,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-end">
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
                 </TabsContent>
 
                 <TabsContent value="location" className="space-y-6">
@@ -592,10 +574,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
                 </TabsContent>
                 
                 <TabsContent value="legal" className="space-y-6">
@@ -665,10 +643,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                             </div>
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                        <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
-                    </div>
                 </TabsContent>
 
                 <TabsContent value="account" className="space-y-6">
@@ -740,9 +714,6 @@ export function EmployerForm({ employer }: EmployerFormProps) {
                             />
                         </CardContent>
                     </Card>
-                    <div className="mt-6 flex justify-between">
-                        <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
-                    </div>
                 </TabsContent>
             </Tabs>
             <CardFooter className="flex justify-end gap-2 mt-6 px-0">
