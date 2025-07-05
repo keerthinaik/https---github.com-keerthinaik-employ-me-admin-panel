@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -72,7 +73,7 @@ export default function FaqsPage() {
     const [filters, setFilters] = useState({ isActive: 'all' });
     
     const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKeys, boolean>>({
-        order: true,
+        order: false,
         question: true,
         status: true,
         updatedAt: true,
