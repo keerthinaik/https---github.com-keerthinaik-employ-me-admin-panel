@@ -19,7 +19,7 @@ const subAdminSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().regex(/^\+?[0-9\s-()]{7,20}$/, "Please enter a valid phone number").optional().or(z.literal('')),
   status: z.enum(['Active', 'Inactive']),
   permissions: z.array(z.string()).optional(),
 });
@@ -105,6 +105,7 @@ export function SubAdminForm({ user }: SubAdminFormProps) {
                              <div className="space-y-2">
                                 <Label htmlFor="phoneNumber">Phone Number</Label>
                                 <Input id="phoneNumber" {...register('phoneNumber')} />
+                                {errors.phoneNumber && <p className="text-sm text-destructive">{errors.phoneNumber.message}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="password">Password</Label>

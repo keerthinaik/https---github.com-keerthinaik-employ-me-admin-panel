@@ -22,7 +22,7 @@ const recruiterSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().regex(/^\+?[0-9\s-()]{7,20}$/, "Please enter a valid phone number").optional().or(z.literal('')),
   status: z.enum(['Active', 'Inactive']),
   employerId: z.string().min(1, 'Employer is required'),
 });

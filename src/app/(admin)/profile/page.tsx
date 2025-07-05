@@ -28,7 +28,7 @@ import { Contact, Shield, ShieldCheck } from 'lucide-react';
 const profileSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().regex(/^\+?[0-9\s-()]{7,20}$/, "Please enter a valid phone number").optional().or(z.literal('')),
   avatar: z.any().optional(),
   address: z.string().optional(),
   country: z.string().optional(),

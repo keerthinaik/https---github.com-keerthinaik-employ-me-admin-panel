@@ -34,7 +34,7 @@ const jobseekerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be at most 50 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().regex(/^\+?[0-9\s-()]{7,20}$/, "Please enter a valid phone number").optional().or(z.literal('')),
   
   profilePhoto: z.any().optional(),
   
@@ -192,12 +192,12 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const fetchStates = async () => {
       if (watchedCountry) {
         setIsLoadingStates(true);
-        setStates([]);
-        setCities([]);
-        if (countryRef.current && countryRef.current !== watchedCountry) {
+        if (countryRef.current !== watchedCountry) {
           setValue('state', '');
           setValue('city', '');
         }
+        setStates([]);
+        setCities([]);
         try {
           const stateData = await getStates(watchedCountry);
           setStates(stateData);
@@ -208,7 +208,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         }
       }
     };
-    fetchStates();
+    if(watchedCountry) fetchStates();
     countryRef.current = watchedCountry;
   }, [watchedCountry, toast, setValue]);
 
@@ -216,10 +216,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const fetchCities = async () => {
       if (watchedCountry && watchedState) {
         setIsLoadingCities(true);
-        setCities([]);
-        if (stateRef.current && stateRef.current !== watchedState) {
-          setValue('city', '');
+        if (stateRef.current !== watchedState) {
+           setValue('city', '');
         }
+        setCities([]);
         try {
           const cityData = await getCities(watchedCountry, watchedState);
           setCities(cityData);
@@ -230,7 +230,7 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
         }
       }
     };
-    fetchCities();
+    if(watchedState) fetchCities();
     stateRef.current = watchedState;
   }, [watchedCountry, watchedState, toast, setValue]);
   
@@ -580,4 +580,3 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     </>
   );
 }
-
