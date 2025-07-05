@@ -22,7 +22,7 @@ import { Calendar } from './ui/calendar';
 import { CalendarIcon, Check, ChevronsUpDown, Loader2, Sparkles, Trash2, Wand2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Form, FormControl, FormField, FormItem, FormMessage } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { suggestJobTitles } from '@/ai/flows/suggest-job-title-flow';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from './ui/badge';
