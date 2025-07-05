@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -11,20 +9,30 @@ import { Button } from '@/components/ui/button';
 import { type Coupon, subscriptionPlans } from '@/lib/data';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from './ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { countries } from '@/lib/enums';
-import { Badge } from './ui/badge';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import { Checkbox } from './ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Input } from './ui/input';
-import { Calendar } from './ui/calendar';
+import { Badge } from '@/components/ui/badge';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Switch } from './ui/switch';
+import { Switch } from '@/components/ui/switch';
+
+const featureSchema = z.object({
+  value: z.string().min(1, 'Feature cannot be empty'),
+});
+
+const priceSchema = z.object({
+  country: z.string().min(1, 'Country is required'),
+  currency: z.enum(currencies.map(c => c.value) as [string, ...string[]]),
+  amount: z.coerce.number().min(0, 'Amount must be a non-negative number'),
+});
 
 const couponSchema = z.object({
   code: z.string().min(1, 'Coupon code is required'),

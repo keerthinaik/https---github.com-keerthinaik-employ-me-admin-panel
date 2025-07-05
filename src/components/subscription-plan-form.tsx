@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -12,11 +11,11 @@ import { Button } from '@/components/ui/button';
 import { type SubscriptionPlan } from '@/lib/data';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from './ui/textarea';
-import { Switch } from './ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Check, ChevronsUpDown, Trash2 } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { currencies, currencyCodes, countries } from '@/lib/enums';
 
@@ -287,4 +286,3 @@ export function SubscriptionPlanForm({ plan, userType }: SubscriptionPlanFormPro
     </form>
   );
 }
-

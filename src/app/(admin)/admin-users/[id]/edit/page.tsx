@@ -10,19 +10,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { ProfileUser, Country, State, City } from '@/lib/types';
-import { Switch } from './ui/switch';
+import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createAdminUser, updateAdminUser, getCountries, getStates, getCities } from '@/services/api';
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Check } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { Skeleton } from './ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://148.72.244.169:3000';
 
@@ -169,9 +169,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
     }, 'image/jpeg');
   }
 
-  const goToNextTab = () => setActiveTab(TABS[TABS.indexOf(activeTab) + 1]);
-  const goToPrevTab = () => setActiveTab(TABS[TABS.indexOf(activeTab) - 1]);
-
   const onError = (errors: any) => {
     const firstErrorField = Object.keys(errors)[0] as keyof AdminUserFormValues;
     if (firstErrorField) {
@@ -226,7 +223,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
                   </div>
                 </CardContent>
               </Card>
-              <div className="mt-6 flex justify-end"><Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button></div>
             </TabsContent>
 
             <TabsContent value="location">
@@ -242,7 +238,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
                   <FormField control={control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)}/>
                 </CardContent>
               </Card>
-              <div className="mt-6 flex justify-between"><Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button><Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button></div>
             </TabsContent>
 
             <TabsContent value="account">
@@ -254,7 +249,6 @@ export function AdminUserForm({ user }: AdminUserFormProps) {
                   <FormField control={control} name="isActive" render={({ field }) => (<FormItem className="flex items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel>Active Status</FormLabel><CardDescription>Inactive admins cannot log in.</CardDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)}/>
                 </CardContent>
               </Card>
-              <div className="mt-6 flex justify-between"><Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button></div>
             </TabsContent>
           </Tabs>
           <CardFooter className="flex justify-end gap-2 mt-6 px-0">

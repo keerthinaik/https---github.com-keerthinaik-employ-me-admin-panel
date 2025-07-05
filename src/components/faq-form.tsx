@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { type Faq } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from './ui/textarea';
-import { Switch } from './ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { createFaq, updateFaq } from '@/services/api';
 
 const faqSchema = z.object({
@@ -107,8 +107,8 @@ export function FaqForm({ faq }: FaqFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
-            <div className="space-y-6">
+             </div>
+             <div className="space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>Settings</CardTitle>
@@ -139,7 +139,7 @@ export function FaqForm({ faq }: FaqFormProps) {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+             </div>
         </div>
         <CardFooter className="flex justify-end gap-2 mt-6 px-0">
             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>

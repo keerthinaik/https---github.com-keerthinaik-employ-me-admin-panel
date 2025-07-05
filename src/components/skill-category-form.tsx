@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -11,10 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from './ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 import type { SkillCategory } from '@/lib/types';
 import { createSkillCategory, updateSkillCategory } from '@/services/api';
-import { Switch } from './ui/switch';
+import { Switch } from '@/components/ui/switch';
 
 const skillCategorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
