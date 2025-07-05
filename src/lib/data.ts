@@ -1,6 +1,5 @@
 
 
-
 import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType, Job as JobType } from "./types";
 
 export type Question = {
@@ -46,7 +45,7 @@ export type User = {
   name: string;
   email: string;
   avatar: string;
-  role?: 'Admin' | 'Recruiter' | 'Member';
+  role?: 'Admin';
   status: 'Active' | 'Inactive';
   joinedAt: Date;
   updatedAt: Date;
@@ -67,42 +66,6 @@ export const users: User[] = [
     joinedAt: new Date('2022-01-15'),
     updatedAt: new Date('2023-10-20'),
     permissions: ['manageUsers', 'manageJobs', 'approveCompanies', 'viewReports', 'manageSettings', 'assignRoles'],
-  },
-  {
-    id: 'USR003',
-    name: 'Charlie Brown',
-    email: 'charlie@example.com',
-    avatar: 'https://placehold.co/40x40.png',
-    role: 'Recruiter',
-    status: 'Active',
-    joinedAt: new Date('2022-03-25'),
-    updatedAt: new Date('2023-10-25'),
-    employerId: 'EMP001',
-    employerName: 'Innovate Inc.',
-  },
-  {
-    id: 'USR004',
-    name: 'Diana Prince',
-    email: 'diana@example.com',
-    avatar: 'https://placehold.co/40x40.png',
-    role: 'Member',
-    status: 'Inactive',
-    joinedAt: new Date('2023-04-10'),
-    updatedAt: new Date('2023-09-15'),
-    employerId: 'EMP002',
-    employerName: 'Creative Minds Agency',
-  },
-  {
-    id: 'USR005',
-    name: 'Eve Adams',
-    email: 'eve@example.com',
-    avatar: 'https://placehold.co/40x40.png',
-    role: 'Recruiter',
-    status: 'Active',
-    joinedAt: new Date('2023-05-18'),
-    updatedAt: new Date('2023-11-02'),
-    employerId: 'EMP002',
-    employerName: 'Creative Minds Agency',
   },
   {
     id: 'USR007',
