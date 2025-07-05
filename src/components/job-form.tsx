@@ -412,7 +412,7 @@ export function JobForm({ job }: { job?: Job }) {
             let firstErrorField: keyof JobFormValues | null = null;
             Object.keys(serverErrors).forEach((key) => {
                 if (!firstErrorField) firstErrorField = key as keyof JobFormValues;
-                if (Object.prototype.hasOwnProperty.call(jobSchema.shape, key)) {
+                if (Object.prototype.hasOwnProperty.call(jobSchema._def.schema.shape, key)) {
                     form.setError(key as keyof JobFormValues, { type: 'server', message: serverErrors[key] });
                 }
             });
