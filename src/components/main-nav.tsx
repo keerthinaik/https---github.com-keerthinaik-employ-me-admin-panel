@@ -122,7 +122,6 @@ const navSections: { title: string; items: NavItem[] }[] = [
     items: [
       { href: '/skills', label: 'Skills', icon: Tags },
       { href: '/skill-categories', label: 'Skill Categories', icon: FolderKanban },
-      { href: '/test-skills', label: 'Test Skills', icon: Tags },
     ],
   },
     {
