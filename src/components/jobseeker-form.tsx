@@ -10,7 +10,6 @@ import 'react-image-crop/dist/ReactCrop.css'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { businesses, universities } from '@/lib/data';
 import { Switch } from './ui/switch';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -20,8 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { getCountries, getStates, getCities, createJobseeker, updateJobseeker } from '@/services/api';
-import type { Jobseeker, Country, State, City } from '@/lib/types';
+import { getCountries, getStates, getCities, createJobseeker, updateJobseeker, getBusinesses, getUniversities } from '@/services/api';
+import type { Jobseeker, Country, State, City, Business, University } from '@/lib/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -89,10 +88,13 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   const [countries, setCountries] = React.useState<Country[]>([]);
   const [states, setStates] = React.useState<State[]>([]);
   const [cities, setCities] = React.useState<City[]>([]);
+  const [businesses, setBusinesses] = React.useState<Business[]>([]);
+  const [universities, setUniversities] = React.useState<University[]>([]);
 
   const [isLoadingCountries, setIsLoadingCountries] = React.useState(false);
   const [isLoadingStates, setIsLoadingStates] = React.useState(false);
   const [isLoadingCities, setIsLoadingCities] = React.useState(false);
+  const [isLoadingAssociations, setIsLoadingAssociations] = React.useState(true);
   
   const [openCountry, setOpenCountry] = React.useState(false);
   const [openState, setOpenState] = React.useState(false);
@@ -166,18 +168,26 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
   }, [jobseeker, reset]);
   
   React.useEffect(() => {
-    const fetchCountries = async () => {
-      setIsLoadingCountries(true);
-      try {
-        const countryData = await getCountries();
-        setCountries(countryData);
-      } catch (error) {
-        toast({ title: "Failed to load countries", variant: "destructive" });
-      } finally {
-        setIsLoadingCountries(false);
-      }
+    const fetchInitialData = async () => {
+        setIsLoadingCountries(true);
+        setIsLoadingAssociations(true);
+        try {
+            const [countryData, businessRes, universityRes] = await Promise.all([
+                getCountries(),
+                getBusinesses({ limit: 1000, fields: 'id,name' }),
+                getUniversities({ limit: 1000, fields: 'id,name' })
+            ]);
+            setCountries(countryData);
+            setBusinesses(businessRes.data);
+            setUniversities(universityRes.data);
+        } catch (error) {
+            toast({ title: "Failed to load initial form data", variant: "destructive" });
+        } finally {
+            setIsLoadingCountries(false);
+            setIsLoadingAssociations(false);
+        }
     };
-    fetchCountries();
+    fetchInitialData();
   }, [toast]);
   
   React.useEffect(() => {
@@ -307,12 +317,10 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
     const formData = new FormData();
 
     Object.entries(data).forEach(([key, value]) => {
-      // Exclude password if it's empty during an update
       if (jobseeker && key === 'password' && !value) {
         return;
       }
       
-      // Exclude association IDs if they are null/empty
       if ((key === 'businessAssociationId' || key === 'universityAssociationId') && !value) {
         return; 
       }
@@ -451,7 +459,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                     }
                                                 }
                                             }}
-                                            value={field.value ?? '__none__'}>
+                                            value={field.value ?? '__none__'}
+                                            disabled={isLoadingAssociations}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="__none__">None</SelectItem>
@@ -483,7 +492,8 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
                                                     }
                                                 }
                                             }}
-                                            value={field.value ?? '__none__'}>
+                                            value={field.value ?? '__none__'}
+                                            disabled={isLoadingAssociations}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="__none__">None</SelectItem>
