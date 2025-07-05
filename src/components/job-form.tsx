@@ -147,6 +147,8 @@ export function JobForm({ job }: { job?: Job }) {
   const [openEmployer, setOpenEmployer] = React.useState(false);
   const [openJobCategory, setOpenJobCategory] = React.useState(false);
   const [startDateOpen, setStartDateOpen] = React.useState(false);
+  
+  const [openAccordionItems, setOpenAccordionItems] = React.useState<string[]>([]);
 
   const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
   const [isAddingSkill, setIsAddingSkill] = React.useState<Record<string, boolean>>({});
@@ -699,7 +701,7 @@ export function JobForm({ job }: { job?: Job }) {
                             )}
                         />
                     </CardContent>
-                </Card>
+                 </Card>
                 <div className="mt-6 flex justify-between">
                     <Button type="button" variant="outline" onClick={goToPrevTab}><ChevronLeft className="mr-2 h-4 w-4" /> Previous</Button>
                     <Button type="button" onClick={goToNextTab}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
@@ -754,13 +756,18 @@ export function JobForm({ job }: { job?: Job }) {
                                             <span className="text-sm text-muted-foreground px-2 py-1">No skills selected.</span>
                                         )}
                                     </div>
-                                    <Accordion type="multiple" className="w-full">
+                                    <Accordion 
+                                      type="multiple" 
+                                      className="w-full"
+                                      value={openAccordionItems}
+                                      onValueChange={setOpenAccordionItems}
+                                    >
                                         {skillCategories.map(category => {
                                             const categorySkills = allSkills
                                                 .filter(s => s.skillCategory?.id === category.id)
                                                 .sort((a,b) => a.name.localeCompare(b.name));
                                                 
-                                            if (categorySkills.length === 0) return null;
+                                            if (categorySkills.length === 0 && !newSkillInputs[category.id]) return null;
 
                                             return (
                                                 <AccordionItem value={category.id} key={category.id}>
