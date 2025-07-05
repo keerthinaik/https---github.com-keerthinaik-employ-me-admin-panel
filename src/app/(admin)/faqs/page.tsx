@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -200,7 +201,7 @@ export default function FaqsPage() {
                             <div className="grid gap-4">
                                  <div className="grid gap-2">
                                     <Label>Status</Label>
-                                     <RadioGroup value={filters.isActive} onValueChange={(value) => setFilters(prev => ({...prev, isActive: value}))}>
+                                     <RadioGroup value={filters.isActive} onValueChange={(value) => setFilters({ isActive: value })}>
                                         <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r-stat-all" /><Label htmlFor="r-stat-all">All</Label></div>
                                         <div className="flex items-center space-x-2"><RadioGroupItem value="active" id="r-stat-active" /><Label htmlFor="r-stat-active">Active</Label></div>
                                         <div className="flex items-center space-x-2"><RadioGroupItem value="inactive" id="r-stat-inactive" /><Label htmlFor="r-stat-inactive">Inactive</Label></div>
@@ -348,7 +349,7 @@ export default function FaqsPage() {
                         Previous
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                        Page {isLoading || !pagination ? '...' : pagination.currentPage} of {isLoading || !pagination ? '...' : pagination.totalPages}
+                        Page {isLoading || !pagination ? '...' : currentPage} of {isLoading || !pagination ? '...' : totalPages}
                     </span>
                     <Button
                         variant="outline"
@@ -364,3 +365,4 @@ export default function FaqsPage() {
         </div>
     );
 }
+
