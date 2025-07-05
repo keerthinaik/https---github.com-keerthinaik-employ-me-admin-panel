@@ -1,5 +1,4 @@
 
-
 import type { LoginSuccessResponse, SkillCategory, JobCategory, PaginatedApiResponse, Pagination, GetAllParams, Skill, GetMeResponse, AuthUser, Business, University, Country, State, City, Employer, Jobseeker, Faq, Job } from '@/lib/types';
 
 async function authedFetch(url: string, options: RequestInit = {}) {
@@ -175,10 +174,10 @@ export async function getJob(id: string): Promise<Job> {
     };
 }
 
-export async function createJob(jobData: FormData): Promise<Job> {
+export async function createJob(jobData: Partial<Omit<Job, 'id'>>): Promise<Job> {
   const response = await authedFetch(`/api/v1/jobs`, {
     method: 'POST',
-    body: jobData,
+    body: JSON.stringify(jobData),
   });
   const item = response.data;
   if (!item) {
@@ -187,11 +186,10 @@ export async function createJob(jobData: FormData): Promise<Job> {
   return { ...mapItem(item) };
 }
 
-export async function updateJob(id: string, jobData: Partial<Job> | FormData): Promise<Job> {
-  const body = jobData instanceof FormData ? jobData : JSON.stringify(jobData);
+export async function updateJob(id: string, jobData: Partial<Omit<Job, 'id'>>): Promise<Job> {
   const response = await authedFetch(`/api/v1/jobs/${id}`, {
     method: 'PUT',
-    body: body,
+    body: JSON.stringify(jobData),
   });
   const item = response.data;
   if (!item) {

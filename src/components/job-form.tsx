@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { type Job, type Question, jobCategories, employers, skills, skillCategories } from '@/lib/data';
+import { type Job, type Question, type SkillCategory, type Employer, type JobCategory } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from './ui/textarea';
@@ -27,12 +26,15 @@ import { suggestJobTitles } from '@/ai/flows/suggest-job-title-flow';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from './ui/badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-
+import { getEmployers, getJobCategories, getSkills, getSkillCategories, createJob, updateJob } from '@/services/api';
+import type { Skill } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
 
 const questionSchema = z.object({
   question: z.string().min(1, 'Question text is required'),
   type: z.enum(['boolean', 'single-choice', 'multi-choice', 'text']),
   options: z.array(z.string()).optional(),
+  _id: z.string().optional(),
 });
 
 const jobSchema = z.object({
@@ -55,8 +57,8 @@ const jobSchema = z.object({
   ctcFrequency: z.enum(['weekly', 'yearly', 'monthly']),
   supplementalPayments: z.array(z.string()).optional(),
   otherSupplementalPaymentType: z.string().optional(),
-  jobCategoryId: z.string().min(1, 'Job Category is required'),
-  companyId: z.string().min(1, 'Company is required'),
+  jobCategory: z.string().min(1, 'Job Category is required'),
+  employer: z.string().min(1, 'Employer is required'),
   workMode: z.array(z.string()).min(1, 'At least one work mode is required'),
   otherWorkModeType: z.string().optional(),
   expectedStartDate: z.date().optional(),
@@ -66,7 +68,7 @@ const jobSchema = z.object({
   state: z.string().optional(),
   city: z.string().optional(),
   zipCode: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'draft', 'archived']),
+  isActive: z.boolean().default(false),
   languagesRequired: z.array(z.string()).optional(),
   benefits: z.array(z.string()).optional(),
   questions: z.array(questionSchema).optional(),
@@ -80,8 +82,8 @@ type JobFormValues = z.infer<typeof jobSchema>;
 const fieldToTabMap: Record<keyof JobFormValues, string> = {
   title: 'details',
   description: 'details',
-  companyId: 'details',
-  jobCategoryId: 'details',
+  employer: 'details',
+  jobCategory: 'details',
   type: 'type',
   payrollType: 'type',
   contractDuration: 'type',
@@ -110,7 +112,7 @@ const fieldToTabMap: Record<keyof JobFormValues, string> = {
   zipCode: 'logistics',
   expectedStartDate: 'logistics',
   questions: 'questions',
-  status: 'publish',
+  isActive: 'publish',
   numberOfPosts: 'publish',
 };
 
@@ -132,11 +134,17 @@ export function JobForm({ job }: { job?: Job }) {
   const [activeTab, setActiveTab] = React.useState('details');
   const TABS = ['details', 'type', 'compensation', 'skills', 'logistics', 'questions', 'publish'];
 
+  const [employers, setEmployers] = React.useState<Employer[]>([]);
+  const [jobCategories, setJobCategories] = React.useState<JobCategory[]>([]);
+  const [allSkills, setAllSkills] = React.useState<Skill[]>([]);
+  const [skillCategories, setSkillCategories] = React.useState<SkillCategory[]>([]);
+  const [isLoadingData, setIsLoadingData] = React.useState(true);
+
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [suggestedTitles, setSuggestedTitles] = React.useState<string[]>([]);
-  const [allSkills, setAllSkills] = React.useState(skills);
-  const [newSkillInputs, setNewSkillInputs] = React.useState<Record<string, string>>({});
   const [openCurrency, setOpenCurrency] = React.useState(false);
+  const [openEmployer, setOpenEmployer] = React.useState(false);
+  const [openJobCategory, setOpenJobCategory] = React.useState(false);
   const [startDateOpen, setStartDateOpen] = React.useState(false);
   
   const form = useForm<JobFormValues>({
@@ -161,8 +169,8 @@ export function JobForm({ job }: { job?: Job }) {
       ctcFrequency: job?.ctcFrequency || 'yearly',
       supplementalPayments: job?.supplementalPayments || [],
       otherSupplementalPaymentType: job?.otherSupplementalPaymentType,
-      jobCategoryId: job?.jobCategoryId || '',
-      companyId: job?.companyId || '',
+      jobCategory: typeof job?.jobCategory === 'object' ? job.jobCategory.id : job?.jobCategory || '',
+      employer: typeof job?.employer === 'object' ? job.employer.id : job?.employer || '',
       workMode: job?.workMode || [],
       otherWorkModeType: job?.otherWorkModeType,
       expectedStartDate: job?.expectedStartDate ? new Date(job.expectedStartDate) : undefined,
@@ -172,12 +180,35 @@ export function JobForm({ job }: { job?: Job }) {
       state: job?.state || '',
       city: job?.city || '',
       zipCode: job?.zipCode || '',
-      status: job?.status || 'draft',
+      isActive: job?.isActive || false,
       languagesRequired: job?.languagesRequired || [],
       benefits: job?.benefits || [],
       questions: job?.questions || [],
     },
   });
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setIsLoadingData(true);
+      try {
+        const [employersRes, jobCategoriesRes, skillsRes, skillCategoriesRes] = await Promise.all([
+          getEmployers({ limit: 1000 }),
+          getJobCategories({ limit: 1000 }),
+          getSkills({ limit: 1000 }),
+          getSkillCategories({ limit: 1000 }),
+        ]);
+        setEmployers(employersRes.data);
+        setJobCategories(jobCategoriesRes.data);
+        setAllSkills(skillsRes.data);
+        setSkillCategories(skillCategoriesRes.data);
+      } catch (error) {
+        toast({ title: "Failed to load form data", variant: "destructive" });
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    fetchData();
+  }, [toast]);
 
   const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
     control: form.control,
@@ -219,38 +250,6 @@ export function JobForm({ job }: { job?: Job }) {
     }
   };
 
-  const handleAddNewSkill = (categoryId: string, categoryName: string) => {
-    const newSkillName = newSkillInputs[categoryId]?.trim();
-    if (!newSkillName) {
-        toast({ title: "Skill name cannot be empty.", variant: "destructive" });
-        return;
-    }
-
-    if (allSkills.some(s => s.name.toLowerCase() === newSkillName.toLowerCase())) {
-        toast({ title: "Skill already exists.", description: `"${newSkillName}" is already in the list.`, variant: "destructive" });
-        return;
-    }
-
-    const newSkill = {
-        id: `SKL_${Date.now()}`,
-        name: newSkillName,
-        categoryId,
-        categoryName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
-
-    setAllSkills(prev => [...prev, newSkill].sort((a, b) => a.name.localeCompare(b.name)));
-    
-    const currentSelectedSkills = form.getValues('skills') || [];
-    form.setValue('skills', [...currentSelectedSkills, newSkill.name], { shouldDirty: true });
-    
-    setNewSkillInputs(prev => ({...prev, [categoryId]: ''}));
-    
-    toast({ title: "Skill Added", description: `"${newSkillName}" has been added and selected.` });
-  };
-
-
   const onError = (errors: any) => {
     const firstErrorField = Object.keys(errors)[0] as keyof JobFormValues;
     if (firstErrorField) {
@@ -266,14 +265,74 @@ export function JobForm({ job }: { job?: Job }) {
     });
   };
 
-  const onSubmit = (data: JobFormValues) => {
-    console.log(data);
-    toast({
-        title: job ? 'Job Updated' : 'Job Created',
-        description: `${data.title} has been successfully ${job ? 'updated' : 'created'}.`,
-    });
-    router.push('/jobs');
+  const onSubmit = async (data: JobFormValues) => {
+    // Make sure we send an empty string if otherShiftType isn't relevant
+    if (data.shiftType !== 'other') {
+        data.otherShiftType = '';
+    }
+    
+    // Convert benefits & languages from string to array if needed
+    if (typeof data.benefits === 'string') {
+        data.benefits = data.benefits.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (typeof data.languagesRequired === 'string') {
+        data.languagesRequired = data.languagesRequired.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    
+    try {
+      if (job) {
+        await updateJob(job.id, data);
+      } else {
+        await createJob(data);
+      }
+      toast({
+          title: job ? 'Job Updated' : 'Job Created',
+          description: `${data.title} has been successfully ${job ? 'updated' : 'created'}.`,
+      });
+      router.push('/jobs');
+      router.refresh();
+    } catch (error: any) {
+        if (error.data && error.data.errors) {
+            const serverErrors = error.data.errors;
+            let firstErrorField: keyof JobFormValues | null = null;
+            Object.keys(serverErrors).forEach((key) => {
+                if (!firstErrorField) firstErrorField = key as keyof JobFormValues;
+                if (Object.prototype.hasOwnProperty.call(jobSchema.shape, key)) {
+                    form.setError(key as keyof JobFormValues, { type: 'server', message: serverErrors[key] });
+                }
+            });
+            if (firstErrorField) {
+                const tab = fieldToTabMap[firstErrorField];
+                if (tab && tab !== activeTab) setActiveTab(tab);
+            }
+            toast({
+                title: 'Could not save job',
+                description: error.data.message || 'Please correct the errors and try again.',
+                variant: 'destructive',
+            });
+        } else {
+           toast({ title: 'An error occurred', description: error.message, variant: 'destructive' });
+        }
+    }
   };
+
+  if (isLoadingData) {
+    return (
+        <div>
+            <Skeleton className="h-10 w-full mb-6" />
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-10 w-full" /></div>
+                    <div className="space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-20 w-full" /></div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -340,8 +399,11 @@ export function JobForm({ job }: { job?: Job }) {
                                             Suggest Titles
                                         </Button>
                                     </Label>
+                                    <CardDescription>
+                                        Provide a detailed job description. This field supports markdown for formatting.
+                                    </CardDescription>
                                     <FormControl>
-                                        <Textarea id="description" {...field} className="min-h-40" />
+                                        <Textarea id="description" {...field} className="min-h-[300px]" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -351,36 +413,68 @@ export function JobForm({ job }: { job?: Job }) {
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
-                                name="companyId"
+                                name="employer"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label>Company</Label>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger><SelectValue placeholder="Select a company" /></SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {employers.map(e => <SelectItem key={e.id} value={e.id}>{e.companyName}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <Label>Employer</Label>
+                                         <Popover open={openEmployer} onOpenChange={setOpenEmployer}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? employers.find((e) => e.id === field.value)?.name : "Select Employer"}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search employer..." />
+                                                    <CommandEmpty>No employer found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {employers.map((e) => (
+                                                            <CommandItem value={e.name} key={e.id} onSelect={() => { form.setValue("employer", e.id); setOpenEmployer(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", e.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {e.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
-                                name="jobCategoryId"
+                                name="jobCategory"
                                 render={({ field }) => (
                                     <FormItem>
                                         <Label>Job Category</Label>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {jobCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <Popover open={openJobCategory} onOpenChange={setOpenJobCategory}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? jobCategories.find((c) => c.id === field.value)?.name : "Select Category"}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search category..." />
+                                                    <CommandEmpty>No category found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {jobCategories.map((c) => (
+                                                            <CommandItem value={c.name} key={c.id} onSelect={() => { form.setValue("jobCategory", c.id); setOpenJobCategory(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", c.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                {c.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -614,20 +708,23 @@ export function JobForm({ job }: { job?: Job }) {
                                 <div className="space-y-4">
                                     <div className="flex flex-wrap gap-2 min-h-10 border rounded-md p-2">
                                         {field.value?.length > 0 ? (
-                                            field.value.map(skillName => (
-                                                <Badge key={skillName} variant="secondary">
-                                                    {skillName}
+                                            field.value.map(skillId => {
+                                                const skill = allSkills.find(s => s.id === skillId);
+                                                return (
+                                                <Badge key={skillId} variant="secondary">
+                                                    {skill?.name || 'Loading...'}
                                                     <button
                                                         type="button"
                                                         className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                                         onClick={() => {
-                                                            field.onChange(field.value?.filter(s => s !== skillName));
+                                                            field.onChange(field.value?.filter(id => id !== skillId));
                                                         }}
                                                     >
                                                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                                                     </button>
                                                 </Badge>
-                                            ))
+                                                )
+                                            })
                                         ) : (
                                             <span className="text-sm text-muted-foreground px-2 py-1">No skills selected.</span>
                                         )}
@@ -635,7 +732,7 @@ export function JobForm({ job }: { job?: Job }) {
                                     <Accordion type="multiple" className="w-full">
                                         {skillCategories.map(category => {
                                             const categorySkills = allSkills
-                                                .filter(s => s.categoryId === category.id)
+                                                .filter(s => s.skillCategory?.id === category.id)
                                                 .sort((a,b) => a.name.localeCompare(b.name));
                                                 
                                             if (categorySkills.length === 0) return null;
@@ -649,13 +746,13 @@ export function JobForm({ job }: { job?: Job }) {
                                                                 <div key={skill.id} className="flex items-center space-x-2">
                                                                     <Checkbox
                                                                         id={`skill-${skill.id}`}
-                                                                        checked={field.value?.includes(skill.name)}
+                                                                        checked={field.value?.includes(skill.id)}
                                                                         onCheckedChange={(checked) => {
                                                                             const currentSkills = field.value || [];
                                                                             if (checked) {
-                                                                                field.onChange([...currentSkills, skill.name]);
+                                                                                field.onChange([...currentSkills, skill.id]);
                                                                             } else {
-                                                                                field.onChange(currentSkills.filter(s => s !== skill.name));
+                                                                                field.onChange(currentSkills.filter(s => s !== skill.id));
                                                                             }
                                                                         }}
                                                                     />
@@ -664,23 +761,6 @@ export function JobForm({ job }: { job?: Job }) {
                                                                     </Label>
                                                                 </div>
                                                             ))}
-                                                        </div>
-                                                        <div className="mt-4 pt-4 border-t border-dashed">
-                                                            <p className="text-xs font-semibold text-muted-foreground mb-2">Not listed? Add a new skill to this category.</p>
-                                                            <div className="flex items-center gap-2">
-                                                                <Input
-                                                                    placeholder="Enter new skill name"
-                                                                    value={newSkillInputs[category.id] || ''}
-                                                                    onChange={(e) => setNewSkillInputs(prev => ({ ...prev, [category.id]: e.target.value }))}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            e.preventDefault();
-                                                                            handleAddNewSkill(category.id, category.name);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <Button type="button" onClick={() => handleAddNewSkill(category.id, category.name)}>Add</Button>
-                                                            </div>
                                                         </div>
                                                     </AccordionContent>
                                                 </AccordionItem>
@@ -848,20 +928,21 @@ export function JobForm({ job }: { job?: Job }) {
                     <CardContent className="space-y-6">
                        <FormField
                             control={form.control}
-                            name="status"
+                            name="isActive"
                             render={({ field }) => (
-                                <FormItem>
-                                    <Label>Job Status</Label>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="draft">Draft</SelectItem>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
-                                            <SelectItem value="archived">Archived</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Job Status</FormLabel>
+                                        <CardDescription>
+                                            Set whether this job is active and accepting applications.
+                                        </CardDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
                                 </FormItem>
                             )}
                         />

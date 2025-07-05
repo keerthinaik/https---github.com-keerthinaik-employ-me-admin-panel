@@ -1,6 +1,6 @@
 
 
-import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType } from "./types";
+import type { JobCategory as JobCategoryType, SkillCategory as SkillCategoryType, University as UniversityType, Business as BusinessType, Experience, Education, Project, Faq as FaqType, Job as JobType } from "./types";
 
 export type Question = {
     question: string;
@@ -230,6 +230,7 @@ export type TestSkill = {
 
 export type SkillCategory = SkillCategoryType;
 export type JobCategory = JobCategoryType;
+export type Job = JobType;
 export type Faq = FaqType;
 
 export const skillCategories: SkillCategory[] = [];
@@ -822,37 +823,5 @@ export const userSubscriptions: UserSubscription[] = [
     status: 'expired',
     createdAt: new Date(),
     updatedAt: new Date(),
-  }
-];
-
-export const testSkills: TestSkill[] = [
-  {
-    id: 'skill-1',
-    name: 'Frontend Development',
-    subSkills: [
-      { id: 'sub-1-1', name: 'HTML' },
-      { id: 'sub-1-2', name: 'CSS' },
-      { id: 'sub-1-3', name: 'JavaScript' },
-      { id: 'sub-1-4', name: 'React' },
-    ],
-  },
-  {
-    id: 'skill-2',
-    name: 'Backend Development',
-    subSkills: [
-      { id: 'sub-2-1', name: 'Node.js' },
-      { id: 'sub-2-2', name: 'Python' },
-      { id: 'sub-2-3', name: 'SQL' },
-      { id: 'sub-2-4', name: 'REST APIs' },
-    ],
-  },
-  {
-    id: 'skill-3',
-    name: 'Design',
-    subSkills: [
-        {id: 'sub-3-1', name: 'UI Design'},
-        {id: 'sub-3-2', name: 'UX Research'},
-        {id: 'sub-3-3', name: 'Figma'},
-    ]
   }
 ];
