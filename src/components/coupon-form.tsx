@@ -11,10 +11,10 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Check, ChevronsUpDown, X } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { countries } from '@/lib/enums';
+import { currencies, currencyCodes, countries } from '@/lib/enums';
 import { Badge } from '@/components/ui/badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,7 +30,7 @@ const featureSchema = z.object({
 
 const priceSchema = z.object({
   country: z.string().min(1, 'Country is required'),
-  currency: z.enum(currencies.map(c => c.value) as [string, ...string[]]),
+  currency: z.enum(currencyCodes),
   amount: z.coerce.number().min(0, 'Amount must be a non-negative number'),
 });
 
@@ -73,6 +73,16 @@ export function CouponForm({ coupon }: CouponFormProps) {
         applicablePlans: coupon?.applicablePlans || [],
         isActive: coupon?.isActive ?? true,
     }
+  });
+
+  const { fields: featureFields, append: appendFeature, remove: removeFeature } = useFieldArray({
+    control: form.control,
+    name: "features"
+  });
+
+  const { fields: priceFields, append: appendPrice, remove: removePrice } = useFieldArray({
+    control: form.control,
+    name: "prices",
   });
 
   const onSubmit = (data: CouponFormValues) => {
