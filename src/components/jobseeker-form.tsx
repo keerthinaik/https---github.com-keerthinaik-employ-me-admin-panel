@@ -320,21 +320,23 @@ export function JobseekerForm({ jobseeker }: JobseekerFormProps) {
 
   const onSubmit = async (data: JobseekerFormValues) => {
     const formData = new FormData();
-    const jsonData: Record<string, any> = {};
 
-    for (const [key, value] of Object.entries(data)) {
-        if (value === undefined || value === null || value === '') continue;
-        
-        const keyString = key as keyof JobseekerFormValues;
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') {
+        return; // Skip empty/null/undefined fields
+      }
 
-        if (keyString === 'profilePhoto' && value instanceof File) {
-            formData.append('profilePhoto', value);
-        } else {
-           jsonData[keyString] = value;
-        }
-    }
-    
-    formData.append('jsonData', JSON.stringify(jsonData));
+      if (key === 'profilePhoto' && value instanceof File) {
+        formData.append(key, value);
+      } else if (value instanceof Date) {
+        formData.append(key, value.toISOString());
+      } else if (typeof value === 'boolean') {
+        formData.append(key, String(value));
+      } else if (key !== 'profilePhoto') {
+        // Append other fields as strings
+        formData.append(key, String(value));
+      }
+    });
 
     try {
         if (jobseeker) {
